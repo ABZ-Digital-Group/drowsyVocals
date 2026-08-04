@@ -1,0 +1,31 @@
+{
+  "name": "drowsyvocals",
+  "version": "1.0.0",
+  "description": "",
+  "homepage": "https://github.com/ABZ-Digital-Group/drowsyVocals#readme",
+  "bugs": {
+    "url": "https://github.com/ABZ-Digital-Group/drowsyVocals/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ABZ-Digital-Group/drowsyVocals.git"
+  },
+  "license": "ISC",
+  "author": "stuartiek",
+  "type": "commonjs",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "dotenv": "^17.4.2",
+    "ejs": "^6.0.1",
+    "express": "^5.2.1",
+    "express-session": "^1.19.0",
+    "init": "^0.1.2",
+    "mongodb": "^7.5.0",
+    "mongodb-legacy": "^6.1.3"
+  }
+}
