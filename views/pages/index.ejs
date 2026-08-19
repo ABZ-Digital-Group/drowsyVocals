@@ -3,21 +3,31 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>My Website</title>
+        <title>Drowsy Vocals</title>
         <link rel="stylesheet" href="/css/main.css">
     </head>
     <body>
-        
-        <header>
-            <h1>Drowsy Vocals</h1>
-            <hr>
-            <h2>EST. 2020</h2>
-        </header>
-        <main>
-            <img src="/assets/DrowsyLogo.svg" alt="Drowsy Vocals Logo">
+        <main class="login-page">
+            <section class="login-container">
+                <div class="Logo">
+                    <img src="/assets/DrowsyLogo.svg" alt="Drowsy Vocals Logo">
+                </div>
+                <div class="login-form">
+                    <form class="login-form-actions" action="/login" method="POST">
+
+                        <label for="username">Username:</label>
+                        <input type="text" id="username" name="username" required>
+
+                        <label for="password">Password:</label>
+                        <input type="password" id="password" name="password" required>
+
+                        <button type="submit">Login</button>
+                    </form>
+                    <div class="footer">
+                        <p>&copy; 2026 Drowsy Vocals | All rights reserved.</p>
+                    </div>
+                </div>
+            </section>
         </main>
-        <footer>
-            <p>&copy; 2026 Drowsy Vocals | All rights reserved.</p>
-        </footer>
     </body>
 </html>

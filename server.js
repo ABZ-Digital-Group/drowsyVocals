@@ -118,5 +118,5 @@ app.get('/martial-arts', (req, res) => res.render('pages/martial-arts'));
 app.get('/online-coaching', (req, res) => res.render('pages/online-coaching'));
 app.get('/contact', (req, res) => res.render('pages/contact'));
 
-const PORT = process.env.PORT;
+const PORT = 3000;
 app.listen(PORT, '0.0.0.0', () => console.log('Listening on', PORT));
