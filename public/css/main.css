@@ -1,0 +1,88 @@
+@font-face {
+    font-family: DrowsyFont;
+    src: url(Satoshi-Variable.ttf);
+}
+body{
+    margin: 0;
+    width: 100%;
+    color: #242320;
+    font-family: DrowsyFont, sans-serif;
+}
+.login-page {
+    width: 100%;
+}
+.login-container {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    height: 100vh;
+    width: 100%;
+    align-items: center;
+}
+.Logo {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    width: 40%;
+    background-color: #242320;
+}
+.Logo img { 
+    max-width: 50%;
+    max-height: 50%;
+}
+.login-form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    width: 60%;
+    background-color: #B7B2A7;
+} 
+.login-form-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+.login-form-actions label {
+    margin-bottom: 10px;
+    font-size: 1.2em;
+    color: #242320;
+    font-weight: bold;
+    text-align: left;
+    width: 80%;
+}
+.login-form-actions input {
+    margin-bottom: 20px;
+    padding: 10px;
+    font-size: 1em;
+    width: 80%;
+    border: none;
+    background-color: #242320;
+    color: #B7B2A7;
+    border-radius: 5px;
+    outline: none;
+}
+.login-form-actions button {
+    padding: 10px;
+    font-size: 1.2em;
+    width: 80%;
+    border: none;
+    cursor: pointer;
+    background-color: #242320;
+    color: #B7B2A7;
+    border-radius: 5px;
+    outline: none;
+}
+.footer {
+    margin-top: 20px;
+    text-align: center;
+    color: #242320;
+    font-size: 1em;
+    font-weight: bold;
+    position: absolute;
+    bottom: 20px;
+    width: 60%;
+}
