@@ -52,13 +52,13 @@ body{
     color: #242320;
     font-weight: bold;
     text-align: left;
-    width: 80%;
+    width: 100%;
 }
 .login-form-actions input {
     margin-bottom: 20px;
     padding: 10px;
     font-size: 1em;
-    width: 80%;
+    width: 100%;
     border: none;
     background-color: #242320;
     color: #B7B2A7;

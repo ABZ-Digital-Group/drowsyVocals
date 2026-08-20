@@ -1,3 +1,8 @@
+// BCRYPT SETUP
+const bcrypt = require('bcrypt');
+const saltRounds = 10;
+const PORT = 3000;
+
 require('dotenv').config();
 const path = require('path');
 
@@ -7,9 +12,8 @@ process.on('unhandledRejection', (e) => console.error('unhandledRejection', e));
 // LOAD NPM PACKAGES
 const express = require('express');
 const session = require('express-session');
-const bodyParser = require('body-parser');
 const nodemailer = require('nodemailer');
-const fetch = require('node-fetch');
+const flash = require('connect-flash');
 
 const app = express();
 
@@ -31,6 +35,35 @@ app.set('view engine', 'ejs');
 // MIDDLEWARE
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(flash());
+
+// Global Middleware to pass session data to all templates
+app.use((req, res, next) => {
+    res.locals.success_msg = req.flash('success_msg');
+    res.locals.error_msg = req.flash('error_msg');
+    res.locals.loggedin = req.session.loggedin;
+    res.locals.currentuser = req.session.currentuser;
+    res.locals.userType = req.session.accountType;
+    next();
+});
+
+// CONNECT TO MONGO
+const { MongoClient, ObjectId } = require('mongodb');
+const url = 'mongodb://127.0.0.1:27017';
+const client = new MongoClient(url);
+const dbname = 'drowsyDB';
+
+// --- DATABASE CONNECTION ---
+let db;
+connectDB();
+async function connectDB(){
+    await client.connect();
+    console.log('✅ Connected Successfully to Server');
+    db = client.db(dbname);
+    app.listen(PORT, '0.0.0.0', () => {
+        console.log(`✅ Drowsy Vocals server listening on Port: ${PORT}`);
+    });
+};
 
 // --- EMAIL ROUTE ---
 // app.post('/send-email', async (req, res) => {
@@ -112,11 +145,76 @@ app.use(express.urlencoded({ extended: true }));
 //     }
 // });
 
+
+
+
+// =================================================================
+// --- FORM SUBMISSION & API ROUTES ---
+// =================================================================
+
+// USER SIGN-UP
+app.post('/signUp', async (req, res) => {
+    const { username, discordId, password, accountType } = req.body;
+    try {
+        const existingUser = await db.collection('users').findOne({ "login.discordId": discordId });
+        if (existingUser) {
+            req.flash('error_msg', 'User Already Exists.');
+            return res.redirect('/users');
+        }
+
+        const hash = await bcrypt.hash(password, saltRounds);
+        const newUser = {
+            login: { "discordId": discordId, password: hash },
+            accountType,
+            created: new Date().toISOString().slice(0, 19)
+        };
+        await db.collection('users').insertOne(newUser);
+        req.flash('success_msg', 'User created successfully!');
+        res.redirect('/');
+    } catch (err) {
+        console.error("❌ Error during sign-up:", err);
+        res.redirect('/users');
+    }
+});
+
+// USER LOGIN
+app.post('/login', async (req, res) => {
+    const { discordId, password } = req.body;
+    try {
+        const userDoc = await db.collection('users').findOne({ "login.discordId": discordId });
+        if (!userDoc) {
+            console.log('No User Found');
+            return res.redirect('/');
+        }
+
+        const isMatch = await bcrypt.compare(password, userDoc.login.password);
+        if (isMatch) {
+            req.session.loggedin = true;
+            req.session.currentuser = discordId;
+            req.session.accountType = userDoc.accountType;
+            console.log(`✅ User ${discordId} logged in with account type: ${userDoc.accountType}`);
+            res.redirect('/dashboard');
+        } else {
+            console.log('Password does not match.');
+            res.redirect('/');
+        }
+    } catch (err) {
+        console.error("❌ Error during login:", err);
+        res.redirect('/');
+    }
+});
+
+// USER LOGOUT
+app.get('/logout', (req, res) => {
+    req.session.destroy(() => {
+        res.redirect('/');
+    });
+});
+
 // --- ROUTES ---
 app.get('/', (req, res) => res.render('pages/index'));
-app.get('/martial-arts', (req, res) => res.render('pages/martial-arts'));
-app.get('/online-coaching', (req, res) => res.render('pages/online-coaching'));
-app.get('/contact', (req, res) => res.render('pages/contact'));
-
-const PORT = 3000;
-app.listen(PORT, '0.0.0.0', () => console.log('Listening on', PORT));
+app.get('/dashboard', (req, res) => {
+    if (!req.session.loggedin) return res.redirect('/');
+        res.render('pages/dashboard');
+});
+app.get('/users', (req, res) => res.render('pages/users'));
