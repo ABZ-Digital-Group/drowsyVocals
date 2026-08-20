@@ -215,6 +215,13 @@ app.get('/logout', (req, res) => {
 app.get('/', (req, res) => res.render('pages/index'));
 app.get('/dashboard', (req, res) => {
     if (!req.session.loggedin) return res.redirect('/');
-        res.render('pages/dashboard');
+        const username = await db.collection('users').findOne({ _id: new ObjectId(id) });
+        res.render('pages/dashboard',{
+            username
+        });
+});
+app.get('/roster', (req, res) => {
+    if (!req.session.loggedin) return res.redirect('/');
+        res.render('pages/roster');
 });
 app.get('/users', (req, res) => res.render('pages/users'));

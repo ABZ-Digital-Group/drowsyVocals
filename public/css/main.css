@@ -7,6 +7,10 @@ body{
     width: 100%;
     color: #242320;
     font-family: DrowsyFont, sans-serif;
+    background-color: #B7B2A7;
+}
+main{
+    margin: 20px;
 }
 .login-page {
     width: 100%;
@@ -76,6 +80,60 @@ body{
     border-radius: 5px;
     outline: none;
 }
+
+nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 20px;
+    background-color: #242320;
+    color: #B7B2A7;
+}
+nav img {
+    max-width: 10%;
+    max-height: 10%;
+}
+nav ul {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+}
+nav ul li {
+    margin: 0 20px;
+}
+nav ul li a {
+    text-decoration: none;
+    color: #B7B2A7;
+    font-weight: bold;
+    font-size: 1.2em;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 .footer {
     margin-top: 20px;
     text-align: center;
