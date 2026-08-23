@@ -13,6 +13,7 @@ main{
     margin: 20px;
 }
 .login-page {
+    margin: 0;
     width: 100%;
 }
 .login-container {
@@ -112,6 +113,45 @@ nav ul li a {
 
 
 
+.roster-content button {
+    padding: 10px;
+    font-size: 1.2em;
+    width: 10%;
+    border: none;
+    cursor: pointer;
+    background-color: #242320;
+    color: #B7B2A7;
+    border-radius: 5px;
+    outline: none;
+}
+
+.roster-content table input[type="checkbox"] {
+    transform: scale(1.5);
+    margin-right: 10px;
+    background-color: #242320;
+
+-webkit-appearance: none;
+  appearance: none;
+
+}   
+
+
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+th, td {
+    border: 1px solid #242320;
+    padding: 10px;
+    text-align: center;
+}
+th {
+    background-color: #242320;
+    color: #B7B2A7;
+    text-align: center;
+}
 
 
 
@@ -125,13 +165,19 @@ nav ul li a {
 
 
 
-
-
-
-
-
-
-
+#addUserPopup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    height : 300px;
+    width : 400px;
+    transform: translate(-50%, -50%);
+    background-color: #B7B2A7;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+}
 
 
 .footer {

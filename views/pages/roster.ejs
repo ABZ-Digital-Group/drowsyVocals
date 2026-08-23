@@ -20,10 +20,94 @@
             </nav>
         </header>
         <main>
-            <section class="dashboard-content">
-                <h1>Welcome to the Drowsy Dashboard</h1>
-                <p>Here you can manage your account, view your roster, and access online coaching resources.</p>
+            <section class="roster-content">
+                <h1>Roster</h1>
+                <p>List of team members will be displayed here.</p>
+                <div class="roster-actions">
+                    <button class="createBtn" type="button" onclick="document.getElementById('addUserPopup').showModal()">Add User</button>
+                    <button onclick="window.location.href='/save'">Save</button>
+                </div>
             </section>
+            <section>   
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Meeting <br>Attendance</th>
+                            <th>Account <br>Type</th>
+                            <th>Display Name</th>
+                            <th>Discord User</th>
+                            <th>Discord ID</th>
+                            <th>Hire Date</th>
+                            <th>Time In <br>Service</th>
+                            <th>Last <br>Promotion</th>
+                            <th>Time In <br>Grade</th>
+                            <th>Shift</th>
+                            <th>House</th>
+                            <th>House </th></th>
+                            <th>Activity</th>
+                            <th>Weeks <br>Activity</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Example data, replace with dynamic data from your database -->
+                        <tr>
+                            <td><input type="checkbox" name="attendance" /></td>
+                            <td>Tired Esquire</td>
+                            <td>Lord Stubo</td>
+                            <td>monkeyboymi7</td>
+                            <td>404371787606917140</td>
+                            <td>2022-01-01</td>
+                            <td>200</td>
+                            <td>2023-01-01</td>
+                            <td>60</td>
+                            <td>Night</td>
+                            <td>Red</td>
+                            <td>150</td>
+                            <td>Active</td>
+                            <td>4</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+            <dialog id="addUserPopup">
+                <form action="/add-user" method="POST">
+                    <label for="discordId">Discord ID:</label>
+                    <input type="text" id="discordId" name="discordId" required>
+                    <br>
+                    <label for="username">Username:</label>
+                    <input type="text" id="username" name="username" required>
+                    <br>
+                    <label for="accountType"><b>Account Type</b></label>
+                    <select name="accountType" id="accountType">
+                        <option value="Tired Esquire">Tired Esquire</option>
+                        <option value="Nighty Knights">Nighty Knights</option>
+                        <option value="Dreamland Guard">Dreamland Guard</option>
+                        <option value="Dreamy Defender">Dreamy Defender</option>
+                        <option value="Realm God">Realm God</option>
+                        <option value="Mr. Sandman">Mr. Sandman</option>
+                    </select>
+                    <label for="password">Password:</label>
+                    <input type="password" id="password" name="password" required>
+                    <hr>
+                    <label for="house"><b>House</b></label>
+                    <select name="house" id="house">
+                        <option value="Stubo United">Stubo United</option>
+                        <option value="Penguin Force">Penguin Force</option>
+                        <option value="Drowsy Operators">Drowsy Operators</option>
+                    </select>
+                    <label for="shift"><b>Shift</b></label>
+                    <select name="shift" id="shift">
+                        <option value="NA">NA</option>
+                        <option value="EU">EU</option>
+                        <option value="AU">AU</option>
+                    </select>
+                    <div class="dialog-buttons">
+                        <button type="submit">Add User</button>
+                        <button type="button" onclick="closeCreateDialog()">Cancel</button>
+                    </div>
+                </form>
+            </dialog>
+            
         </main>
         <div class="footer">
             <p>&copy; 2026 Drowsy Vocals | All rights reserved.</p>
