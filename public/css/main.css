@@ -2,6 +2,12 @@
     font-family: DrowsyFont;
     src: url(Satoshi-Variable.ttf);
 }
+.material-symbols-outlined{
+    background-color: #242320;
+    color: #B7B2A7;
+    padding: 2px;
+    border-radius: 5px;
+}
 body{
     margin: 0;
     width: 100%;
@@ -178,6 +184,34 @@ th {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     z-index: 1000;
 }
+
+.roster-stats {
+    display: flex;
+    justify-content: start;
+    flex-direction: row;
+    gap: 10%;
+    margin-top: 20px;
+}
+.roster-stats div {
+    background-color: #242320;
+    color: #B7B2A7;
+    border-radius: 5px;
+    font-size: 1.2em;
+    width: 10%;
+    height: 10%;
+    text-align: center;
+}
+
+
+
+
+
+
+
+
+
+
+
 
 
 .footer {
