@@ -153,29 +153,61 @@ async function connectDB(){
 // =================================================================
 
 // USER SIGN-UP
-app.post('/signUp', async (req, res) => {
-    const { username, discordId, password, accountType } = req.body;
+    app.post('/signUp', async (req, res) => {
+        const { username, discordId, password, accountType } = req.body;
+        try {
+            const existingUser = await db.collection('users').findOne({ "login.discordId": discordId });
+            if (existingUser) {
+                req.flash('error_msg', 'User Already Exists.');
+                return res.redirect('/users');
+            }
+
+            const hash = await bcrypt.hash(password, saltRounds);
+            const newUser = {
+                login: { "discordId": discordId, password: hash },
+                accountType,
+                created: new Date().toISOString().slice(0, 19)
+            };
+            await db.collection('users').insertOne(newUser);
+            req.flash('success_msg', 'User created successfully!');
+            res.redirect('/');
+        } catch (err) {
+            console.error("❌ Error during sign-up:", err);
+            res.redirect('/users');
+        }
+    });
+
+//Add User
+app.post('/add-user', async (req, res) => {
+    const { discordId, displayName, discordUser, accountType, hireDate, password, house, shift } = req.body;
     try {
         const existingUser = await db.collection('users').findOne({ "login.discordId": discordId });
         if (existingUser) {
-            req.flash('error_msg', 'User Already Exists.');
-            return res.redirect('/users');
+            console.log('error_msg', 'User Already Exists.');
+            return res.redirect('/roster');
         }
 
         const hash = await bcrypt.hash(password, saltRounds);
         const newUser = {
             login: { "discordId": discordId, password: hash },
+            displayName,
+            discordUser,
             accountType,
+            hireDate,
+            house,
+            shift,
             created: new Date().toISOString().slice(0, 19)
         };
         await db.collection('users').insertOne(newUser);
-        req.flash('success_msg', 'User created successfully!');
-        res.redirect('/');
+        console.log('success_msg', 'User added successfully!');
+        res.redirect('/roster');
     } catch (err) {
-        console.error("❌ Error during sign-up:", err);
-        res.redirect('/users');
+        console.log("❌ Error during adding user:", err);
+        res.redirect('/roster');
     }
 });
+
+
 
 // USER LOGIN
 app.post('/login', async (req, res) => {

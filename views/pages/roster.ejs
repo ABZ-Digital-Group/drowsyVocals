@@ -4,8 +4,12 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <script src="/scripts/main.js" defer></script>
         <link rel="stylesheet" href="/css/main.css">
-        <title>Drowsy Dashboard</title>
+        <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+        
+        <link rel="icon" href="/assets/DrowsyLogo.png" type="image/png">
+        <title>Drowsy Roster</title>
     </head>
     <body>
         <header>
@@ -13,7 +17,7 @@
                 <img src="/assets/DrowsyLogo.png" alt="Drowsy Vocals Logo">
                 <ul>
                     <li><a href="/dashboard">Dashboard</a></li>
-                    <li><a href="/online-coaching">Roster</a></li>
+                    <li><a href="/roster">Roster</a></li>
                     <li><a href="/contact">Account</a></li>
                     <li><a href="/logout">Logout</a></li>
                 </ul>
@@ -24,8 +28,25 @@
                 <h1>Roster</h1>
                 <p>List of team members will be displayed here.</p>
                 <div class="roster-actions">
-                    <button class="createBtn" type="button" onclick="document.getElementById('addUserPopup').showModal()">Add User</button>
+                    <button class="createBtn" type="button" id="openAddUserPopup">Add User</button>
                     <button onclick="window.location.href='/save'">Save</button>
+                </div>
+                <div class="roster-stats">
+                    <div>
+                        <p>Total Staff: 21</p>
+                    </div>
+                    <div>
+                        <p>Active Staff: 8</p>
+                    </div>
+                    <div>
+                        <p>Semi-Active Staff: 5</p>
+                    </div>
+                    <div>
+                        <p>LOA: 6</p>
+                    </div>
+                    <div>
+                        <p>Inactive Staff: 0</p>
+                    </div>
                 </div>
             </section>
             <section>   
@@ -46,26 +67,33 @@
                             <th>House </th></th>
                             <th>Activity</th>
                             <th>Weeks <br>Activity</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <!-- Example data, replace with dynamic data from your database -->
+                        
+                         <% stock.forEach(function(user) { %>
                         <tr>
                             <td><input type="checkbox" name="attendance" /></td>
-                            <td>Tired Esquire</td>
-                            <td>Lord Stubo</td>
-                            <td>monkeyboymi7</td>
-                            <td>404371787606917140</td>
-                            <td>2022-01-01</td>
-                            <td>200</td>
-                            <td>2023-01-01</td>
-                            <td>60</td>
-                            <td>Night</td>
-                            <td>Red</td>
-                            <td>150</td>
-                            <td>Active</td>
-                            <td>4</td>
+                            <td><%= user.accountType %></td>
+                            <td><%= user.displayName %></td>
+                            <td><%= user.discordUser %></td>
+                            <td><%= user.discordId %></td>
+                            <td><%= user.hireDate %></td>
+                            <td><%= user.timeInService %></td>
+                            <td><%= user.lastPromotion %></td>
+                            <td><%= user.timeInGrade %></td>
+                            <td><%= user.shift %></td>
+                            <td><%= user.house %></td>
+                            <td><%= user.housePoints %></td>
+                            <td><%= user.activity %></td>
+                            <td><%= user.weeksActivity %></td>
+                            <td>
+                                <button><span class="material-symbols-outlined">edit</span></button>
+                                <button><span class="material-symbols-outlined">delete</span></button>
+                            </td>
                         </tr>
+                        <% }); %>
                     </tbody>
                 </table>
             </section>
@@ -74,8 +102,11 @@
                     <label for="discordId">Discord ID:</label>
                     <input type="text" id="discordId" name="discordId" required>
                     <br>
-                    <label for="username">Username:</label>
-                    <input type="text" id="username" name="username" required>
+                    <label for="displayName">Display Name:</label>
+                    <input type="text" id="displayName" name="displayName" required>
+                    <br>
+                    <label for="discordUser">Discord User:</label>
+                    <input type="text" id="discordUser" name="discordUser" required>
                     <br>
                     <label for="accountType"><b>Account Type</b></label>
                     <select name="accountType" id="accountType">
@@ -86,6 +117,10 @@
                         <option value="Realm God">Realm God</option>
                         <option value="Mr. Sandman">Mr. Sandman</option>
                     </select>
+                    <br>
+                    <label for="hireDate">Hire Date:</label>
+                    <input type="date" id="hireDate" name="hireDate" required>
+                    <br>
                     <label for="password">Password:</label>
                     <input type="password" id="password" name="password" required>
                     <hr>
@@ -95,6 +130,7 @@
                         <option value="Penguin Force">Penguin Force</option>
                         <option value="Drowsy Operators">Drowsy Operators</option>
                     </select>
+                    <br>
                     <label for="shift"><b>Shift</b></label>
                     <select name="shift" id="shift">
                         <option value="NA">NA</option>
@@ -103,7 +139,7 @@
                     </select>
                     <div class="dialog-buttons">
                         <button type="submit">Add User</button>
-                        <button type="button" onclick="closeCreateDialog()">Cancel</button>
+                        <button type="button" id="closeAddUserPopup">Cancel</button>
                     </div>
                 </form>
             </dialog>
