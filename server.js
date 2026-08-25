@@ -179,7 +179,19 @@ async function connectDB(){
 
 //Add User
 app.post('/add-user', async (req, res) => {
-    const { discordId, displayName, discordUser, accountType, hireDate, password, house, shift } = req.body;
+    const {
+        discordId,
+        displayName,
+        discordUser,
+        accountType,
+        hireDate,
+        password,
+        house,
+        shift,
+        housePoints = 0,
+        activity = 'Active',
+        weeksActivity = 0
+    } = req.body;
     try {
         const existingUser = await db.collection('users').findOne({ "login.discordId": discordId });
         if (existingUser) {
@@ -194,7 +206,11 @@ app.post('/add-user', async (req, res) => {
             discordUser,
             accountType,
             hireDate,
+            lastPromotion: hireDate || null,
             house,
+            housePoints,
+            activity,
+            weeksActivity,
             shift,
             created: new Date().toISOString().slice(0, 19)
         };
@@ -207,6 +223,142 @@ app.post('/add-user', async (req, res) => {
     }
 });
 
+app.post('/update-user', async (req, res) => {
+    if (!req.session.loggedin) return res.redirect('/');
+
+    const {
+        originalDiscordId,
+        discordId,
+        displayName,
+        discordUser,
+        accountType,
+        hireDate,
+        password,
+        house,
+        housePoints,
+        activity,
+        weeksActivity,
+        shift
+    } = req.body;
+
+    try {
+        if (!originalDiscordId) {
+            return res.redirect('/roster');
+        }
+
+        const existingUser = await db.collection('users').findOne({ "login.discordId": originalDiscordId });
+        if (!existingUser) {
+            return res.redirect('/roster');
+        }
+
+        if (discordId !== originalDiscordId) {
+            const duplicateUser = await db.collection('users').findOne({ "login.discordId": discordId });
+            if (duplicateUser) {
+                console.log('error_msg', 'Discord ID is already in use.');
+                return res.redirect('/roster');
+            }
+        }
+
+        const isPromotion = existingUser.accountType !== accountType;
+        const nextLastPromotion = isPromotion
+            ? new Date().toISOString().slice(0, 10)
+            : (existingUser.lastPromotion || hireDate || null);
+
+        const updateDoc = {
+            $set: {
+                "login.discordId": discordId,
+                displayName,
+                discordUser,
+                accountType,
+                hireDate,
+                lastPromotion: nextLastPromotion,
+                house,
+                shift,
+                housePoints,
+                activity,
+                weeksActivity
+            }
+        };
+
+        if (password && password.trim()) {
+            const hash = await bcrypt.hash(password.trim(), saltRounds);
+            updateDoc.$set["login.password"] = hash;
+        }
+
+        await db.collection('users').updateOne(
+            { "login.discordId": originalDiscordId },
+            updateDoc
+        );
+
+        res.redirect('/roster');
+    } catch (err) {
+        console.error("❌ Error during user update:", err);
+        res.redirect('/roster');
+    }
+});
+
+app.post('/promote-user', async (req, res) => {
+    if (!req.session.loggedin) return res.redirect('/');
+
+    const { discordId, accountType, effectiveDate, rankActionType } = req.body;
+    const allowedRanks = [
+        'Mr. Sandman',
+        'Realm God',
+        'Dreamy Defender',
+        'Dreamland Guard',
+        'Nighty Knights',
+        'Tired Esquire'
+    ];
+
+    try {
+        if (!discordId || !allowedRanks.includes(accountType)) {
+            return res.redirect('/roster');
+        }
+
+        const user = await db.collection('users').findOne({ "login.discordId": discordId });
+        if (!user) {
+            return res.redirect('/roster');
+        }
+
+        if (user.accountType === accountType) {
+            console.log('info', `No-op ${rankActionType || 'rank change'} for ${discordId}; rank unchanged.`);
+            return res.redirect('/roster');
+        }
+
+        const promotionDate = effectiveDate || new Date().toISOString().slice(0, 10);
+
+        await db.collection('users').updateOne(
+            { "login.discordId": discordId },
+            {
+                $set: {
+                    accountType,
+                    lastPromotion: promotionDate
+                }
+            }
+        );
+
+        if (req.session.currentuser === discordId) {
+            req.session.accountType = accountType;
+        }
+
+        res.redirect('/roster');
+    } catch (err) {
+        console.error("❌ Error during user promotion:", err);
+        res.redirect('/roster');
+    }
+});
+
+app.post('/deleteUser', async (req, res) => {
+    if (!req.session.loggedin) return res.redirect('/');
+    const { discordId } = req.body;
+    try {
+        await db.collection('users').deleteOne({ "login.discordId": discordId });
+        res.redirect('/roster');
+    } catch (err) {
+        console.error("Error during user deletion:", err);
+        res.redirect('/roster');
+    }
+});
 
 
 // USER LOGIN
@@ -245,15 +397,91 @@ app.get('/logout', (req, res) => {
 
 // --- ROUTES ---
 app.get('/', (req, res) => res.render('pages/index'));
-app.get('/dashboard', (req, res) => {
+
+
+app.get('/dashboard', async (req, res) => {
     if (!req.session.loggedin) return res.redirect('/');
-        //const username = await db.collection('users').findOne({ _id: new ObjectId(id) });
-        res.render('pages/dashboard',{
-            
+    const currentDiscordId = req.session.currentuser;
+    const userDoc = await db.collection('users').findOne({ "login.discordId": currentDiscordId });
+    const currentDisplayName = userDoc?.displayName || currentDiscordId;
+    const accountType = userDoc ? userDoc.accountType : null;
+
+    res.render('pages/dashboard',{
+        
+        page: 'dashboard',
+        currentDisplayName,
+        currentDiscordId,
+        accountType
+    });
+});
+
+
+app.get('/roster', async (req, res) => {
+    if (!req.session.loggedin) return res.redirect('/');
+    try {
+        const users = await db.collection('users').find().toArray();
+
+        const rankOrder = {
+            'mr sandman': 0,
+            'realm god': 1,
+            'realm gods': 1,
+            'drowsy defender': 2,
+            'drowsy defenders': 2,
+            'dreamy defender': 2,
+            'dreamland guard': 3,
+            'nighty knight': 4,
+            'nighty knights': 4,
+            'tired esquire': 5
+        };
+
+        const normalizeRank = (rank) => (rank || '')
+            .toString()
+            .toLowerCase()
+            .replace(/\./g, '')
+            .trim();
+
+        const msPerDay = 1000 * 60 * 60 * 24;
+        const today = new Date();
+
+        const usersWithService = users.map((user) => {
+            const hire = user.hireDate ? new Date(user.hireDate) : null;
+            const validHireDate = hire instanceof Date && !Number.isNaN(hire.valueOf());
+            const daysInService = validHireDate
+                ? Math.max(0, Math.floor((today - hire) / msPerDay))
+                : 0;
+
+            const promotionSource = user.lastPromotion || user.hireDate;
+            const promotion = promotionSource ? new Date(promotionSource) : null;
+            const validPromotionDate = promotion instanceof Date && !Number.isNaN(promotion.valueOf());
+            const daysInGrade = validPromotionDate
+                ? Math.max(0, Math.floor((today - promotion) / msPerDay))
+                : 0;
+
+            return {
+                ...user,
+                timeInService: daysInService,
+                timeInGrade: daysInGrade
+            };
         });
+
+        usersWithService.sort((a, b) => {
+            const rankA = rankOrder[normalizeRank(a.accountType)] ?? Number.MAX_SAFE_INTEGER;
+            const rankB = rankOrder[normalizeRank(b.accountType)] ?? Number.MAX_SAFE_INTEGER;
+
+            if (rankA !== rankB) return rankA - rankB;
+
+            const nameA = (a.displayName || a.discordUser || a.login?.discordId || '').toString();
+            const nameB = (b.displayName || b.discordUser || b.login?.discordId || '').toString();
+            return nameA.localeCompare(nameB);
+        });
+
+        res.render('pages/roster', { 
+            page: 'roster',
+            users: usersWithService 
+        });
+    } catch (err) {
+        console.error("❌ Error fetching users:", err);
+        res.status(500).send("Error fetching users.");
+    }
+        //res.render('pages/roster');
 });
-app.get('/roster', (req, res) => {
-    if (!req.session.loggedin) return res.redirect('/');
-        res.render('pages/roster');
-});
-app.get('/users', (req, res) => res.render('pages/users'));
