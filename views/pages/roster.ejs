@@ -72,13 +72,13 @@
                     </thead>
                     <tbody>
                         
-                         <% stock.forEach(function(user) { %>
+                         <% users.forEach(function(user) { %>
                         <tr>
                             <td><input type="checkbox" name="attendance" /></td>
                             <td><%= user.accountType %></td>
                             <td><%= user.displayName %></td>
                             <td><%= user.discordUser %></td>
-                            <td><%= user.discordId %></td>
+                            <td><%= user.login.discordId %></td>
                             <td><%= user.hireDate %></td>
                             <td><%= user.timeInService %></td>
                             <td><%= user.lastPromotion %></td>
@@ -89,8 +89,43 @@
                             <td><%= user.activity %></td>
                             <td><%= user.weeksActivity %></td>
                             <td>
-                                <button><span class="material-symbols-outlined">edit</span></button>
-                                <button><span class="material-symbols-outlined">delete</span></button>
+                                <button
+                                    class="editBtn"
+                                    type="button"
+                                    data-discord-id="<%= user.login.discordId %>"
+                                    data-display-name="<%= user.displayName || '' %>"
+                                    data-discord-user="<%= user.discordUser || '' %>"
+                                    data-account-type="<%= user.accountType || '' %>"
+                                    data-hire-date="<%= user.hireDate || '' %>"
+                                    data-house="<%= user.house || '' %>"
+                                    data-house-points="<%= user.housePoints || '' %>"
+                                    data-shift="<%= user.shift || '' %>"
+                                    data-activity="<%= user.activity || '' %>"
+                                    data-weeks-activity="<%= user.weeksActivity || '' %>"
+                                >
+                                    <span class="material-symbols-outlined">edit</span>
+                                </button>
+                                <button
+                                    class="promoteBtn"
+                                    type="button"
+                                    data-discord-id="<%= user.login.discordId %>"
+                                    data-display-name="<%= user.displayName || user.discordUser || user.login.discordId %>"
+                                    data-account-type="<%= user.accountType || '' %>"
+                                >
+                                    <span class="material-symbols-outlined">arrow_upward</span>
+                                </button>
+                                <button
+                                    class="demoteBtn"
+                                    type="button"
+                                    data-discord-id="<%= user.login.discordId %>"
+                                    data-display-name="<%= user.displayName || user.discordUser || user.login.discordId %>"
+                                    data-account-type="<%= user.accountType || '' %>"
+                                >
+                                    <span class="material-symbols-outlined">arrow_downward</span>
+                                </button>
+                                <button class="delBtn" type="button" onclick="deleteUser('<%= user.login.discordId %>')">
+                                    <span class="material-symbols-outlined">delete</span>
+                                </button> 
                             </td>
                         </tr>
                         <% }); %>
@@ -143,10 +178,128 @@
                     </div>
                 </form>
             </dialog>
+
+            <dialog id="editUserPopup">
+                <form action="/update-user" method="POST">
+                    <input type="hidden" id="editOriginalDiscordId" name="originalDiscordId" required>
+
+                    <label for="editDiscordId">Discord ID:</label>
+                    <input type="text" id="editDiscordId" name="discordId" required>
+                    <br>
+
+                    <label for="editDisplayName">Display Name:</label>
+                    <input type="text" id="editDisplayName" name="displayName" required>
+                    <br>
+
+                    <label for="editDiscordUser">Discord User:</label>
+                    <input type="text" id="editDiscordUser" name="discordUser" required>
+                    <br>
+
+                    <label for="editAccountType"><b>Account Type</b></label>
+                    <select name="accountType" id="editAccountType">
+                        <option value="Tired Esquire">Tired Esquire</option>
+                        <option value="Nighty Knights">Nighty Knights</option>
+                        <option value="Dreamland Guard">Dreamland Guard</option>
+                        <option value="Dreamy Defender">Dreamy Defender</option>
+                        <option value="Realm God">Realm God</option>
+                        <option value="Mr. Sandman">Mr. Sandman</option>
+                    </select>
+                    <br>
+
+                    <label for="editHireDate">Hire Date:</label>
+                    <input type="date" id="editHireDate" name="hireDate" required>
+                    <br>
+
+                    <label for="editPassword">Password (optional):</label>
+                    <input type="password" id="editPassword" name="password" placeholder="Leave blank to keep current password">
+                    <hr>
+
+                    <label for="editHouse"><b>House</b></label>
+                    <select name="house" id="editHouse">
+                        <option value="Stubo United">Stubo United</option>
+                        <option value="Penguin Force">Penguin Force</option>
+                        <option value="Drowsy Operators">Drowsy Operators</option>
+                    </select>
+                    <br>
+
+                    <label for="editHousePoints">House Points:</label>
+                    <input type="number" id="editHousePoints" name="housePoints" required>
+                    <br>
+
+                    <label for="editActivity">Activity:</label>
+                    <select name="activity" id="editActivity">
+                        <option value="Active">Active</option>
+                        <option value="Semi-Active">Semi-Active</option>
+                        <option value="Inactive">Inactive</option>
+                        <option value="LOA">LOA</option>
+                    </select>
+                    <br>
+
+                    <label for="editWeeksActivity">Weeks Activity:</label>
+                    <input type="number" step="0.01" id="editWeeksActivity" name="weeksActivity" required>
+                    <br>
+                    <label for="editShift"><b>Shift</b></label>
+                    <select name="shift" id="editShift">
+                        <option value="NA">NA</option>
+                        <option value="EU">EU</option>
+                        <option value="AU">AU</option>
+                    </select>
+
+                    <div class="dialog-buttons">
+                        <button type="submit">Save Changes</button>
+                        <button type="button" id="closeEditUserPopup">Cancel</button>
+                    </div>
+                </form>
+            </dialog>
+
+            <dialog id="promoteUserPopup">
+                <form action="/promote-user" method="POST">
+                    <input type="hidden" id="rankActionType" name="rankActionType" value="promote">
+                    <input type="hidden" id="promoteDiscordId" name="discordId" required>
+
+                    <label for="promoteDisplayName">User:</label>
+                    <input type="text" id="promoteDisplayName" readonly>
+                    <br>
+
+                    <label for="currentRank">Current Rank:</label>
+                    <input type="text" id="currentRank" readonly>
+                    <br>
+
+                    <label for="promoteAccountType"><b>New Rank</b></label>
+                    <select name="accountType" id="promoteAccountType" required>
+                        <option value="Mr. Sandman">Mr. Sandman</option>
+                        <option value="Realm God">Realm God</option>
+                        <option value="Dreamy Defender">Dreamy Defender</option>
+                        <option value="Dreamland Guard">Dreamland Guard</option>
+                        <option value="Nighty Knights">Nighty Knights</option>
+                        <option value="Tired Esquire">Tired Esquire</option>
+                    </select>
+                    <br>
+
+                    <label for="effectiveDate">Promotion Date:</label>
+                    <input type="date" id="effectiveDate" name="effectiveDate">
+
+                    <div class="dialog-buttons">
+                        <button type="submit">Promote User</button>
+                        <button type="button" id="closePromoteUserPopup">Cancel</button>
+                    </div>
+                </form>
+            </dialog>
             
         </main>
         <div class="footer">
             <p>&copy; 2026 Drowsy Vocals | All rights reserved.</p>
         </div>
+        <form id="deleteUserForm" action="/deleteUser" method="POST" style="display:none;">
+            <input type="hidden" name="discordId" id="deleteDiscordId">
+        </form>
+        <script>
+            function deleteUser(discordId) {
+                if(confirm('Are you sure you want to delete this user?')) {
+                    document.getElementById('deleteDiscordId').value = discordId;
+                    document.getElementById('deleteUserForm').submit();
+                }
+            }
+        </script>
     </body>
 </html>
