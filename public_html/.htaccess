@@ -1,6 +1,6 @@
 # --- 2. NODE.JS / PASSENGER CONFIGURATION ---
 # Point to the app in the main folder (Flattened structure)
-PassengerAppRoot /home/u791717742/domains/https://drowsyvocals.com
+PassengerAppRoot /home/u791717742/domains/https://manage.drowsyvocals.com
 PassengerAppType node
 PassengerNodejs /opt/alt/alt-nodejs18/root/bin/node
 PassengerStartupFile server.js
@@ -8,9 +8,10 @@ PassengerBaseURI /
 
 # --- 3. RESTART LOGIC ---
 # Critical: Point to the tmp folder at the root to allow app reboots
-PassengerRestartDir /home/u791717742/domains/drowsyvocals.com/tmp
+PassengerRestartDir /home/u791717742/domains/manage.drowsyvocals.com/tmp
 
 # --- 4. SECURITY RULES ---
 # Prevent access to build logs and hidden folders
 RewriteEngine On
 RewriteRule ^\.builds - [F,L]
+
