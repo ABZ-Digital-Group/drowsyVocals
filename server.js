@@ -1,7 +1,7 @@
 // BCRYPT SETUP
 const bcrypt = require('bcrypt');
 const saltRounds = 10;
-const PORT = 3000;
+// const PORT = 3000;
 
 require('dotenv').config();
 const path = require('path');
@@ -49,7 +49,7 @@ app.use((req, res, next) => {
 
 // CONNECT TO MONGO
 const { MongoClient, ObjectId } = require('mongodb');
-const url = 'mongodb://127.0.0.1:27017';
+const url = 'mongodb://82.29.191.177:27017';
 const client = new MongoClient(url);
 const dbname = 'drowsyDB';
 
@@ -60,8 +60,8 @@ async function connectDB(){
     await client.connect();
     console.log('✅ Connected Successfully to Server');
     db = client.db(dbname);
-    app.listen(PORT, '0.0.0.0', () => {
-        console.log(`✅ Drowsy Vocals server listening on Port: ${PORT}`);
+    app.listen(process.env.PORT, '0.0.0.0', () => {
+        console.log(`✅ Drowsy Vocals server listening on Port: ${process.env.PORT}`);
     });
 };
 
