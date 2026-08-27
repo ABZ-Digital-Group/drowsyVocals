@@ -445,9 +445,9 @@ app.get('/dashboard', requireDatabase, async (req, res) => {
 
 // ROSTER
 app.get('/roster', requireDatabase, async (req, res) => {
-    // Add an authentication check here if the roster should be private.
-    // if (!req.session.loggedin) return res.redirect('/');
+    if (!req.session.loggedin) return res.redirect('/');
 
+    const totalUsers = await db.collection('users').countDocuments();
     try {
         const users = await db.collection('users').find().toArray();
 
@@ -490,7 +490,8 @@ app.get('/roster', requireDatabase, async (req, res) => {
             return {
                 ...user,
                 timeInService: daysInService,
-                timeInGrade: daysInGrade
+                timeInGrade: daysInGrade,
+                totalUsers: totalUsers
             };
         });
 
