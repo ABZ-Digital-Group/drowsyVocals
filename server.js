@@ -450,10 +450,10 @@ app.get('/roster', requireDatabase, async (req, res) => {
     const totalUsers = await db.collection('users').countDocuments();
     try {
         const users = await db.collection('users').find().toArray();
-        const activeUsers = users.filter(user => user.accountType !== 'inactive').length;
-        const inactiveUsers = users.filter(user => user.accountType === 'inactive').length;
-        const semiActiveUsers = users.filter(user => user.accountType === 'semi-active').length;
-        const loaUsers = users.filter(user => user.accountType === 'loa').length;
+        const activeUsers = users.filter(user => user.accountType === 'Active').length;
+        const inactiveUsers = users.filter(user => user.accountType === 'Inactive').length;
+        const semiActiveUsers = users.filter(user => user.accountType === 'Semi-Active').length;
+        const loaUsers = users.filter(user => user.accountType === 'LOA').length;
         const totalUsers = users.length;
         
         // Add these to the render context later
