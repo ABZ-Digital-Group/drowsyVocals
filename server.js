@@ -450,7 +450,18 @@ app.get('/roster', requireDatabase, async (req, res) => {
     const totalUsers = await db.collection('users').countDocuments();
     try {
         const users = await db.collection('users').find().toArray();
+        const activeUsers = users.filter(user => user.accountType !== 'inactive').length;
+        const inactiveUsers = users.filter(user => user.accountType === 'inactive').length;
+        const semiActiveUsers = users.filter(user => user.accountType === 'semi-active').length;
+        const loaUsers = users.filter(user => user.accountType === 'loa').length;
         const totalUsers = users.length;
+        
+        // Add these to the render context later
+        res.locals.activeUsers = activeUsers;
+        res.locals.inactiveUsers = inactiveUsers;
+        res.locals.semiActiveUsers = semiActiveUsers;
+        res.locals.loaUsers = loaUsers;
+        res.locals.totalUsers = totalUsers;
 
         const rankOrder = {
             'mr sandman': 0,
@@ -509,7 +520,11 @@ app.get('/roster', requireDatabase, async (req, res) => {
         res.render('pages/roster', {
             page: 'roster',
             users: usersWithService,
-            totalUsers
+            totalUsers,
+            activeUsers,
+            inactiveUsers,
+            semiActiveUsers,
+            loaUsers
         });
     } catch (error) {
         console.error('Error fetching users:', error);
