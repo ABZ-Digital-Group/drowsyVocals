@@ -31,6 +31,11 @@ if (!sessionSecret) {
     console.warn('SESSION_SECRET is not configured. Add a long random value to the application environment variables.');
 }
 
+// Hostinger terminates HTTPS at its reverse proxy.
+// This allows express-session to recognise the original HTTPS request
+// and set secure cookies correctly in production.
+app.set('trust proxy', 1);
+
 // APP CONFIGURATION
 app.use(session({
     secret: sessionSecret,
@@ -373,28 +378,45 @@ app.post('/login', requireDatabase, async (req, res) => {
         const userDoc = await db.collection('users').findOne({ 'login.discordId': discordId });
 
         if (!userDoc) {
+            req.flash('error_msg', 'Invalid Discord ID or password.');
             return res.redirect('/');
         }
 
         const isMatch = await bcrypt.compare(password, userDoc.login.password);
 
-        if (isMatch) {
-            req.session.loggedin = true;
-            req.session.currentuser = discordId;
-            req.session.accountType = userDoc.accountType;
-            return res.redirect('/dashboard');
+        if (!isMatch) {
+            req.flash('error_msg', 'Invalid Discord ID or password.');
+            return res.redirect('/');
         }
 
-        res.redirect('/');
+        req.session.loggedin = true;
+        req.session.currentuser = discordId;
+        req.session.accountType = userDoc.accountType;
+
+        // Explicitly save the session before redirecting so the reverse proxy
+        // does not receive the dashboard request before the session is stored.
+        return req.session.save((error) => {
+            if (error) {
+                console.error('Session save error:', error);
+                return res.status(500).send('Unable to create login session.');
+            }
+
+            res.redirect('/dashboard');
+        });
     } catch (error) {
         console.error('Error during login:', error);
+        req.flash('error_msg', 'Unable to log in right now. Please try again.');
         res.redirect('/');
     }
 });
 
 // USER LOGOUT
 app.get('/logout', (req, res) => {
-    req.session.destroy(() => {
+    req.session.destroy((error) => {
+        if (error) {
+            console.error('Logout session error:', error);
+        }
+        res.clearCookie('connect.sid');
         res.redirect('/');
     });
 });
@@ -421,32 +443,10 @@ app.get('/dashboard', requireDatabase, async (req, res) => {
     }
 });
 
-// DASHBOARD
-app.get('/dashboard', requireDatabase, async (req, res) => {
-    if (!req.session.loggedin) return res.redirect('/');
-
-    try {
-        const currentDiscordId = req.session.currentuser;
-        const userDoc = await db.collection('users').findOne({ 'login.discordId': currentDiscordId });
-        const currentDisplayName = userDoc?.displayName || currentDiscordId;
-        const accountType = userDoc ? userDoc.accountType : null;
-
-        res.render('pages/dashboard', {
-            page: 'dashboard',
-            currentDisplayName,
-            currentDiscordId,
-            accountType
-        });
-    } catch (error) {
-        console.error('Error loading dashboard:', error);
-        res.status(500).send('Error loading dashboard.');
-    }
-});
-
-
 // ROSTER
 app.get('/roster', requireDatabase, async (req, res) => {
-    //if (!req.session.loggedin) return res.redirect('/');
+    // Add an authentication check here if the roster should be private.
+    // if (!req.session.loggedin) return res.redirect('/');
 
     try {
         const users = await db.collection('users').find().toArray();
