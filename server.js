@@ -450,6 +450,7 @@ app.get('/roster', requireDatabase, async (req, res) => {
     const totalUsers = await db.collection('users').countDocuments();
     try {
         const users = await db.collection('users').find().toArray();
+        const totalUsers = users.length;
 
         const rankOrder = {
             'mr sandman': 0,
@@ -490,8 +491,7 @@ app.get('/roster', requireDatabase, async (req, res) => {
             return {
                 ...user,
                 timeInService: daysInService,
-                timeInGrade: daysInGrade,
-                totalUsers: totalUsers
+                timeInGrade: daysInGrade
             };
         });
 
@@ -508,7 +508,8 @@ app.get('/roster', requireDatabase, async (req, res) => {
 
         res.render('pages/roster', {
             page: 'roster',
-            users: usersWithService
+            users: usersWithService,
+            totalUsers
         });
     } catch (error) {
         console.error('Error fetching users:', error);
