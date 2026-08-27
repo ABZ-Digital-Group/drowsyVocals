@@ -83,7 +83,8 @@
                             <td><%= user.timeInService %></td>
                             <td><%= user.lastPromotion %></td>
                             <td><%= user.timeInGrade %></td>
-                            <td><%= user.shift %></td>
+                            
+                            <td class="shift-cell <%= user.shift === 'EU' ? 'shift-eu' : user.shift === 'NA' ? 'shift-na' : user.shift === 'AU' ? 'shift-au' : '' %>"><%= user.shift %></td>
                             <td class="house-cell <%= user.house === 'Penguin Force' ? 'house-penguin-force' : user.house === 'Stubo United' ? 'house-stubo-united' : user.house === 'Drowsy Operators' ? 'house-drowsy-operators' : '' %>"><%= user.house %></td>
                             <td><%= user.housePoints %></td>
                             <td><%= user.activity %></td>
