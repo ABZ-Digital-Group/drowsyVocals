@@ -489,13 +489,3 @@ process.on('SIGTERM', shutdown);
 
 
 
-app.get('/debug/outbound-ip', async (req, res) => {
-    try {
-        const response = await fetch('https://api.ipify.org');
-        const ip = await response.text();
-        res.type('text').send(ip.trim());
-    } catch (error) {
-        console.error('Could not determine outbound IP:', error);
-        res.status(500).send('Unable to determine outbound IP');
-    }
-});
