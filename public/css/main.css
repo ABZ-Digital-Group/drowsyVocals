@@ -186,6 +186,18 @@ th, td {
 .shift-au {
     background-color: #FFC978;
 }
+.activity-cell {
+    font-weight: bold;
+}
+.activity-active {
+    background-color: #E4FFE8;
+}
+.activity-inactive {
+    background-color: #F9C0BC;
+}
+.activity-semi-active {
+    background-color: #FFF1C2;
+}
 th {
     background-color: #242320;
     color: #B7B2A7;
