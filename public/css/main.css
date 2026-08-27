@@ -117,7 +117,17 @@ nav ul li a {
     font-size: 1.2em;
 }
 
-
+.roster-actions button{
+    padding: 10px;
+    font-size: 1.2em;
+    width: 80%;
+    border: none;
+    cursor: pointer;
+    background-color: #242320;
+    color: #B7B2A7;
+    border-radius: 5px;
+    outline: none;
+}
 
 .roster-content button {
     padding: 2px;
