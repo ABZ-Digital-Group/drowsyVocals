@@ -117,6 +117,57 @@ nav ul li a {
     font-size: 1.2em;
 }
 
+.profile-page {
+    max-width: 900px;
+    margin: 60px auto;
+}
+.profile-heading {
+    border-bottom: 6px solid #242320;
+    padding-bottom: 24px;
+}
+.profile-eyebrow {
+    margin: 0 0 8px;
+    color: #6f6a60;
+    font-size: 0.9em;
+    font-weight: bold;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+.profile-heading h1 {
+    margin: 0;
+    font-size: 2.6em;
+}
+.profile-subtitle {
+    margin: 8px 0 0;
+    font-size: 1.1em;
+}
+.profile-details {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1px;
+    margin-top: 28px;
+    background-color: #242320;
+    border: 1px solid #242320;
+}
+.profile-detail {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 72px;
+    padding: 18px;
+    background-color: #B7B2A7;
+}
+.profile-detail span {
+    color: #6f6a60;
+    font-size: 0.85em;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+.profile-detail strong {
+    overflow-wrap: anywhere;
+    font-size: 1.15em;
+}
+
 .roster-actions button{
     padding: 50px;
     font-size: 1.2em;

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <script src="/scripts/main.js" defer></script>
+        <link rel="stylesheet" href="/css/main.css">
+        <title>Drowsy Account</title>
+    </head>
+    <body>
+        <header>
+            <%- include('../partials/nav') %>
+        </header>
+        <main>
+            <section class="profile-page">
+                <div class="profile-heading">
+                    <p class="profile-eyebrow">Account profile</p>
+                    <h1><%= user.displayName || user.discordUser || user.login.discordId %></h1>
+                    <p class="profile-subtitle">Your Drowsy Vocals member details.</p>
+                </div>
+                <div class="profile-details">
+                    <div class="profile-detail">
+                        <span>Display Name</span>
+                        <strong><%= user.displayName || 'Not provided' %></strong>
+                    </div>
+                    <div class="profile-detail">
+                        <span>Discord User</span>
+                        <strong><%= user.discordUser || 'Not provided' %></strong>
+                    </div>
+                    <div class="profile-detail">
+                        <span>Discord ID</span>
+                        <strong><%= user.login.discordId %></strong>
+                    </div>
+                    <div class="profile-detail">
+                        <span>Account Type</span>
+                        <strong><%= user.accountType || 'Not assigned' %></strong>
+                    </div>
+                    <div class="profile-detail">
+                        <span>House</span>
+                        <strong><%= user.house || 'Not assigned' %></strong>
+                    </div>
+                    <div class="profile-detail">
+                        <span>Shift</span>
+                        <strong><%= user.shift || 'Not assigned' %></strong>
+                    </div>
+                    <div class="profile-detail">
+                        <span>Hire Date</span>
+                        <strong><%= user.hireDate || 'Not provided' %></strong>
+                    </div>
+                    <div class="profile-detail">
+                        <span>Activity</span>
+                        <strong><%= user.activity || 'Not assigned' %></strong>
+                    </div>
+                </div>
+            </section>
+        </main>
+        <div class="footer">
+            <p>&copy; 2026 Drowsy Vocals | All rights reserved.</p>
+        </div>
+    </body>
+</html>
