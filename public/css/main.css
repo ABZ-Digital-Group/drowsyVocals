@@ -163,10 +163,10 @@ th, td {
     text-align: center;
 }
 .rank-divider td {
-    height: 8px;
-    padding: 0;
-    background-color: #242320;
-    border-color: #242320;
+    height: 12px !important;
+    padding: 0 !important;
+    background-color: #242320 !important;
+    border: 0 !important;
 }
 .house-cell {
     font-weight: bold;
