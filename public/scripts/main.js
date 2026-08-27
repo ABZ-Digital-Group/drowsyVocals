@@ -94,6 +94,33 @@ if (editUserPopup && closeEditUserPopup) {
   });
 }
 if (viewUserPopup && closeViewUserPopup) {
+  const viewButtons = document.querySelectorAll(".viewBtn");
+  const viewDisplayName = document.getElementById("viewDisplayName");
+  const viewDiscordUser = document.getElementById("viewDiscordUser");
+  const viewAccountType = document.getElementById("viewAccountType");
+  const viewHouse = document.getElementById("viewHouse");
+  const viewHousePoints = document.getElementById("viewHousePoints");
+
+  viewButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      const {
+        displayName,
+        discordUser,
+        accountType,
+        house,
+        housePoints
+      } = button.dataset;
+
+      viewDisplayName.textContent = displayName || "";
+      viewDiscordUser.textContent = discordUser || "";
+      viewAccountType.textContent = accountType || "";
+      viewHouse.textContent = house || "";
+      viewHousePoints.textContent = housePoints || "0";
+
+      viewUserPopup.showModal();
+    });
+  });
+
   closeViewUserPopup.addEventListener("click", () => {
     viewUserPopup.close();
   });
