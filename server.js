@@ -395,7 +395,7 @@ app.get('/dashboard', requireDatabase, async (req, res) => {
 
 // ROSTER
 app.get('/roster', requireDatabase, async (req, res) => {
-    if (!req.session.loggedin) return res.redirect('/');
+    //if (!req.session.loggedin) return res.redirect('/');
 
     try {
         const users = await db.collection('users').find().toArray();
@@ -481,11 +481,3 @@ async function shutdown() {
 
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
-
-
-
-
-
-
-
-
