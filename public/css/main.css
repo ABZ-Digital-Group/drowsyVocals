@@ -153,7 +153,15 @@ nav ul li a {
     background-color: #242320;
     border: 1px solid #242320;
 }
-.profile-detail {
+.profile-detail{
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 72px;
+    padding: 18px;
+    background-color: #B7B2A7;
+}
+.profile-detail-full {
     display: flex;
     flex-direction: column;
     gap: 8px;
