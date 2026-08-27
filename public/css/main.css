@@ -162,6 +162,12 @@ th, td {
     padding: 10px;
     text-align: center;
 }
+.rank-divider td {
+    height: 8px;
+    padding: 0;
+    background-color: #242320;
+    border-color: #242320;
+}
 .house-cell {
     font-weight: bold;
 }
