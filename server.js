@@ -5,14 +5,6 @@ const saltRounds = 10;
 require('dotenv').config();
 const path = require('path');
 
-process.on('uncaughtException', (error) => {
-    console.error('uncaughtException', error);
-});
-
-process.on('unhandledRejection', (error) => {
-    console.error('unhandledRejection', error);
-});
-
 // LOAD NPM PACKAGES
 const express = require('express');
 const session = require('express-session');
@@ -29,6 +21,10 @@ const sessionSecret = process.env.SESSION_SECRET;
 
 if (!mongoUri) {
     console.error('MONGODB_URI is not configured. Add it to the application environment variables.');
+}
+
+if (!dbname) {
+    console.error('MONGODB_DATABASE is not configured. Add it to the application environment variables.');
 }
 
 if (!sessionSecret) {
@@ -58,6 +54,16 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(flash());
 
+// DATABASE STATE
+let db = null;
+let mongoClient = null;
+let isDatabaseReady = false;
+let shuttingDown = false;
+let connectPromise = null;
+let reconnectTimer = null;
+let httpServer = null;
+let shutdownPromise = null;
+
 // Global middleware to pass session data to templates
 app.use((req, res, next) => {
     res.locals.success_msg = req.flash('success_msg');
@@ -68,13 +74,8 @@ app.use((req, res, next) => {
     next();
 });
 
-// DATABASE STATE
-let db = null;
-let mongoClient = null;
-let isDatabaseReady = false;
-
 function requireDatabase(req, res, next) {
-    if (!isDatabaseReady || !db) {
+    if (shuttingDown || !isDatabaseReady || !db) {
         return res.status(503).send('Database is temporarily unavailable. Please try again shortly.');
     }
     next();
@@ -82,8 +83,8 @@ function requireDatabase(req, res, next) {
 
 // HEALTH CHECK
 app.get('/health', (req, res) => {
-    res.status(isDatabaseReady ? 200 : 503).json({
-        status: isDatabaseReady ? 'ok' : 'database_unavailable'
+    res.status(!shuttingDown && isDatabaseReady ? 200 : 503).json({
+        status: !shuttingDown && isDatabaseReady ? 'ok' : 'database_unavailable'
     });
 });
 
@@ -93,40 +94,67 @@ app.get('/', (req, res) => {
 });
 
 // CONNECT TO MONGODB WITHOUT BLOCKING THE WEB SERVER STARTUP
-async function connectDB() {
-    if (!mongoUri) {
-        isDatabaseReady = false;
-        return;
+function connectDB() {
+    if (shuttingDown || isDatabaseReady || connectPromise) {
+        return connectPromise || Promise.resolve();
     }
 
-    try {
-        if (!mongoClient) {
-            mongoClient = new MongoClient(mongoUri, {
-                serverSelectionTimeoutMS: 10000,
-                connectTimeoutMS: 10000
-            });
-        }
-
-        await mongoClient.connect();
-        db = mongoClient.db(dbname);
-        await db.command({ ping: 1 });
-        isDatabaseReady = true;
-        console.log('Connected successfully to MongoDB');
-    } catch (error) {
+    if (!mongoUri || !dbname) {
         isDatabaseReady = false;
-        console.error('MongoDB connection failed:', error.message);
+        return Promise.resolve();
+    }
 
+    connectPromise = (async () => {
         try {
-            await mongoClient?.close();
-        } catch (closeError) {
-            console.error('MongoDB close failed:', closeError.message);
+            if (!mongoClient) {
+                mongoClient = new MongoClient(mongoUri, {
+                    serverSelectionTimeoutMS: 10000,
+                    connectTimeoutMS: 10000,
+                    maxPoolSize: 20,
+                    minPoolSize: 0
+                });
+            }
+
+            await mongoClient.connect();
+            const nextDb = mongoClient.db(dbname);
+            await nextDb.command({ ping: 1 });
+
+            if (shuttingDown) {
+                await mongoClient.close();
+                mongoClient = null;
+                db = null;
+                isDatabaseReady = false;
+                return;
+            }
+
+            db = nextDb;
+            isDatabaseReady = true;
+            console.log('Connected successfully to MongoDB');
+        } catch (error) {
+            isDatabaseReady = false;
+            db = null;
+            console.error('MongoDB connection failed:', error.message);
+
+            try {
+                await mongoClient?.close();
+            } catch (closeError) {
+                console.error('MongoDB close failed:', closeError.message);
+            }
+
+            mongoClient = null;
+
+            if (!shuttingDown) {
+                reconnectTimer = setTimeout(() => {
+                    reconnectTimer = null;
+                    connectDB();
+                }, 5000);
+            }
         }
+    })().finally(() => {
+        connectPromise = null;
+    });
 
-        mongoClient = null;
-        db = null;
-
-        setTimeout(connectDB, 5000);
-    }
+    return connectPromise;
 }
 
 // USER SIGN-UP
@@ -464,20 +492,77 @@ app.get('/roster', requireDatabase, async (req, res) => {
     }
 });
 
+// GRACEFUL SHUTDOWN
+async function shutdown(signal = 'shutdown') {
+    if (shutdownPromise) return shutdownPromise;
+
+    shuttingDown = true;
+    isDatabaseReady = false;
+    db = null;
+
+    if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+        reconnectTimer = null;
+    }
+
+    shutdownPromise = (async () => {
+        console.log(`${signal}: shutting down`);
+
+        // Wait for an in-progress connection attempt to finish before closing the client.
+        if (connectPromise) {
+            try {
+                await connectPromise;
+            } catch (error) {
+                console.error('Database connection shutdown error:', error.message);
+            }
+        }
+
+        // Stop accepting new HTTP requests and allow active requests to finish.
+        if (httpServer) {
+            await new Promise((resolve) => {
+                httpServer.close(() => resolve());
+            });
+        }
+
+        try {
+            await mongoClient?.close();
+        } catch (error) {
+            console.error('MongoDB shutdown error:', error.message);
+        } finally {
+            mongoClient = null;
+            process.exit(0);
+        }
+    })();
+
+    return shutdownPromise;
+}
+
 // START HTTP SERVER FIRST SO A DATABASE FAILURE DOES NOT CAUSE A HOST-LEVEL 503
-app.listen(PORT, '0.0.0.0', () => {
+httpServer = app.listen(PORT, '0.0.0.0', () => {
     console.log(`Drowsy Vocals server listening on port ${PORT}`);
     connectDB();
 });
 
-// GRACEFUL SHUTDOWN
-async function shutdown() {
-    try {
-        await mongoClient?.close();
-    } finally {
-        process.exit(0);
-    }
-}
+process.once('SIGINT', () => {
+    shutdown('SIGINT').catch((error) => {
+        console.error('SIGINT shutdown failed:', error);
+        process.exit(1);
+    });
+});
 
-process.on('SIGINT', shutdown);
-process.on('SIGTERM', shutdown);
+process.once('SIGTERM', () => {
+    shutdown('SIGTERM').catch((error) => {
+        console.error('SIGTERM shutdown failed:', error);
+        process.exit(1);
+    });
+});
+
+process.once('uncaughtException', (error) => {
+    console.error('uncaughtException:', error);
+    shutdown('uncaughtException').catch(() => process.exit(1));
+});
+
+process.once('unhandledRejection', (error) => {
+    console.error('unhandledRejection:', error);
+    shutdown('unhandledRejection').catch(() => process.exit(1));
+});
