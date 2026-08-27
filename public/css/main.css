@@ -198,6 +198,10 @@ th, td {
 .activity-semi-active {
     background-color: #FFF1C2;
 }
+.activity-loa {
+    background-color: #A9CAFF;
+}
+
 th {
     background-color: #242320;
     color: #B7B2A7;
