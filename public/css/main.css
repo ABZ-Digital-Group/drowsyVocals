@@ -125,6 +125,13 @@ nav ul li a {
     border-bottom: 6px solid #242320;
     padding-bottom: 24px;
 }
+.profile-subheading img{
+    width: 100%;
+}
+.profile-subheading img {
+    max-width: 100%;
+    height: auto;
+}
 .profile-eyebrow {
     margin: 0 0 8px;
     color: #6f6a60;
