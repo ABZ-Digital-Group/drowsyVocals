@@ -72,7 +72,12 @@
                     </thead>
                     <tbody>
                         
-                         <% users.forEach(function(user) { %>
+                         <% users.forEach(function(user, index) { %>
+                        <% if (index > 0 && users[index - 1].accountType !== user.accountType) { %>
+                        <tr class="rank-divider" aria-hidden="true">
+                            <td colspan="14"></td>
+                        </tr>
+                        <% } %>
                         <tr>
                             <!-- <td><input type="checkbox" name="attendance" /></td> -->
                             <td><%= user.accountType %></td>
