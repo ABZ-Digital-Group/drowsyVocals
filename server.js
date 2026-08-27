@@ -54,16 +54,37 @@ const client = new MongoClient(url);
 const dbname = 'drowsyDB';
 
 // --- DATABASE CONNECTION ---
-let db;
-connectDB();
-async function connectDB(){
-    await client.connect();
-    console.log('✅ Connected Successfully to Server');
-    db = client.db(dbname);
-    app.listen(process.env.PORT, '0.0.0.0', () => {
-        console.log(`✅ Drowsy Vocals server listening on Port: ${process.env.PORT}`);
-    });
-};
+// let db;
+// connectDB();
+// async function connectDB(){
+//     await client.connect();
+//     console.log('✅ Connected Successfully to Server');
+//     db = client.db(dbname);
+//     app.listen(process.env.PORT, '0.0.0.0', () => {
+//         console.log(`✅ Drowsy Vocals server listening on Port: ${process.env.PORT}`);
+//     });
+// };
+
+const PORT = Number(process.env.PORT) || 3000;
+
+async function startServer() {
+    try {
+        await client.connect();
+        console.log('Connected successfully to MongoDB');
+
+        db = client.db(dbname);
+
+        app.listen(PORT, '0.0.0.0', () => {
+            console.log(`Server listening on port ${PORT}`);
+        });
+    } catch (error) {
+        console.error('MongoDB connection failed:', error);
+        process.exit(1);
+    }
+}
+
+startServer();
+
 
 // --- EMAIL ROUTE ---
 // app.post('/send-email', async (req, res) => {
