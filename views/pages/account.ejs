@@ -16,9 +16,9 @@
             <section class="profile-page">
                 <div class="profile-heading">
                     <p class="profile-eyebrow">Account profile</p>
-                    <div class="profile-subheading">
+                    <!-- <div class="profile-subheading">
                         <img src="/assets/background.jpg" alt="background profile Image">
-                    </div>
+                    </div> -->
                     <h1><%= user.displayName || user.discordUser || user.login.discordId %></h1>
                     <p class="profile-subtitle">Your Drowsy Vocals member details.</p>
                 </div>
@@ -54,6 +54,10 @@
                     <div class="profile-detail">
                         <span>Activity</span>
                         <strong><%= user.activity || 'Not assigned' %></strong>
+                    </div>
+                    <div class="profile-detail">
+                        <span>Strikes</span>
+                        <strong><%= user.strikes || 'Not provided' %></strong>
                     </div>
                 </div>
             </section>
