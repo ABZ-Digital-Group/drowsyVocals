@@ -443,6 +443,26 @@ app.get('/dashboard', requireDatabase, async (req, res) => {
     }
 });
 
+//ACCOUNT
+app.get('/account', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin) return res.redirect('/');
+
+    try {
+        const currentDiscordId = req.session.currentuser;
+        const user = await db.collection('users').findOne({ 'login.discordId': currentDiscordId });
+
+        if (!user) return res.redirect('/logout');
+
+        res.render('pages/account', {
+            page: 'account',
+            user
+        });
+    } catch (error) {
+        console.error('Error loading account page:', error);
+        res.status(500).send('Error loading account page.');
+    }
+});
+
 // ROSTER
 app.get('/roster', requireDatabase, async (req, res) => {
     if (!req.session.loggedin) return res.redirect('/');
