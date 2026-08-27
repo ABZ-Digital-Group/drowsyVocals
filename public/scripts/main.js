@@ -20,6 +20,8 @@ const editUserPopup = document.getElementById("editUserPopup");
 const closeEditUserPopup = document.getElementById("closeEditUserPopup");
 const promoteUserPopup = document.getElementById("promoteUserPopup");
 const closePromoteUserPopup = document.getElementById("closePromoteUserPopup");
+const viewUserPopup = document.getElementById("viewUserPopup");
+const closeViewUserPopup = document.getElementById("closeViewUserPopup");
 
 if (addUserPopup && openAddUserPopup && closeAddUserPopup) {
   // Add user button opens a modal dialog.
@@ -89,6 +91,11 @@ if (editUserPopup && closeEditUserPopup) {
 
   closeEditUserPopup.addEventListener("click", () => {
     editUserPopup.close();
+  });
+}
+if (viewUserPopup && closeViewUserPopup) {
+  closeViewUserPopup.addEventListener("click", () => {
+    viewUserPopup.close();
   });
 }
 
