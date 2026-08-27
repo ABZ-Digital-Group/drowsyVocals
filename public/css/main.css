@@ -131,7 +131,7 @@ nav ul li a {
 }
 
 .roster-content table input[type="checkbox"] {
-    transform: scale(1.5);
+    /* transform: scale(1.5); */
     margin-right: 10px;
     background-color: #242320;
 
