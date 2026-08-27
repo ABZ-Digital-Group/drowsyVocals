@@ -421,6 +421,29 @@ app.get('/dashboard', requireDatabase, async (req, res) => {
     }
 });
 
+// DASHBOARD
+app.get('/dashboard', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin) return res.redirect('/');
+
+    try {
+        const currentDiscordId = req.session.currentuser;
+        const userDoc = await db.collection('users').findOne({ 'login.discordId': currentDiscordId });
+        const currentDisplayName = userDoc?.displayName || currentDiscordId;
+        const accountType = userDoc ? userDoc.accountType : null;
+
+        res.render('pages/dashboard', {
+            page: 'dashboard',
+            currentDisplayName,
+            currentDiscordId,
+            accountType
+        });
+    } catch (error) {
+        console.error('Error loading dashboard:', error);
+        res.status(500).send('Error loading dashboard.');
+    }
+});
+
+
 // ROSTER
 app.get('/roster', requireDatabase, async (req, res) => {
     //if (!req.session.loggedin) return res.redirect('/');
