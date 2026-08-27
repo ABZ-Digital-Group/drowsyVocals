@@ -84,7 +84,7 @@
                             <td><%= user.lastPromotion %></td>
                             <td><%= user.timeInGrade %></td>
                             <td><%= user.shift %></td>
-                            <td><%= user.house %></td>
+                            <td class="house-cell <%= user.house === 'Penguin Force' ? 'house-penguin-force' : user.house === 'Stubo United' ? 'house-stubo-united' : user.house === 'Drowsy Operators' ? 'house-drowsy-operators' : '' %>"><%= user.house %></td>
                             <td><%= user.housePoints %></td>
                             <td><%= user.activity %></td>
                             <td><%= user.weeksActivity %></td>

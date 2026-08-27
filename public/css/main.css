@@ -162,6 +162,18 @@ th, td {
     padding: 10px;
     text-align: center;
 }
+.house-cell {
+    font-weight: bold;
+}
+.house-penguin-force {
+    background-color: #38d7e2;
+}
+.house-stubo-united {
+    background-color: #9b82f2;
+}
+.house-drowsy-operators {
+    background-color: #eb6b5b;
+}
 th {
     background-color: #242320;
     color: #B7B2A7;
