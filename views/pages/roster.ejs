@@ -96,6 +96,22 @@
                             <td><%= user.weeksActivity %></td>
                             <td>
                                 <button
+                                    class="viewBtn"
+                                    type="button"
+                                    data-discord-id="<%= user.login.discordId %>"
+                                    data-display-name="<%= user.displayName || '' %>"
+                                    data-discord-user="<%= user.discordUser || '' %>"
+                                    data-account-type="<%= user.accountType || '' %>"
+                                    data-hire-date="<%= user.hireDate || '' %>"
+                                    data-house="<%= user.house || '' %>"
+                                    data-house-points="<%= user.housePoints || '' %>"
+                                    data-shift="<%= user.shift || '' %>"
+                                    data-activity="<%= user.activity || '' %>"
+                                    data-weeks-activity="<%= user.weeksActivity || '' %>"
+                                >
+                                    <span class="material-symbols-outlined">visibility</span>
+                                </button>
+                                <button
                                     class="editBtn"
                                     type="button"
                                     data-discord-id="<%= user.login.discordId %>"
@@ -183,6 +199,15 @@
                         <button type="button" id="closeAddUserPopup">Cancel</button>
                     </div>
                 </form>
+            </dialog>
+
+            <dialog id="viewUserPopup">
+                    <p><b>Name:</b> <span id="viewDisplayName"></span></p>
+                    <p><b>Discord User:</b> <span id="viewDiscordUser"></span></p>
+                    <p><b>Rank:</b> <span id="viewAccountType"></span></p>
+                    <p><b>House:</b> <span id="viewHouse"></span></p>
+                    <p><b>House Points:</b> <span id="viewHousePoints"></span></p>
+                    <button type="button" id="closeViewUserPopup">Close</button>
             </dialog>
 
             <dialog id="editUserPopup">
