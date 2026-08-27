@@ -120,9 +120,8 @@ nav ul li a {
 
 
 .roster-content button {
-    padding: 10px;
+    padding: 2px;
     font-size: 1.2em;
-    width: 10%;
     border: none;
     cursor: pointer;
     background-color: #242320;
