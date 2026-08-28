@@ -532,6 +532,137 @@ app.post('/mark-attendance', requireDatabase, async (req, res) => {
     }
 });
 
+// ADD DAYS TO A YYYY-MM-DD DATE STRING, RETURNING A YYYY-MM-DD STRING
+function addDays(dateStr, days) {
+    const d = new Date(`${dateStr}T00:00:00`);
+    d.setDate(d.getDate() + days);
+    return d.toISOString().slice(0, 10);
+}
+
+// CHECK WHETHER A STORED DATE/TIMESTAMP FALLS WITHIN A YYYY-MM-DD RANGE (INCLUSIVE)
+function isDateInWeek(dateStr, weekStart, weekEnd) {
+    if (!dateStr) return false;
+    const datePart = dateStr.toString().slice(0, 10);
+    return datePart >= weekStart && datePart <= weekEnd;
+}
+
+// WEEKLY ANALYTICS REPORT
+app.get('/reports', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin) return res.redirect('/');
+
+    if (!MANAGEMENT_ROLES.includes(req.session.accountType)) {
+        req.flash('error_msg', 'You are not authorized to view reports.');
+        return res.redirect('/dashboard');
+    }
+
+    try {
+        const requestedWeek = /^\d{4}-\d{2}-\d{2}$/.test(req.query.week || '')
+            ? getWeekStart(req.query.week)
+            : getWeekStart(new Date());
+        const weekStart = requestedWeek;
+        const weekEnd = addDays(weekStart, 6);
+
+        const users = await db.collection('users').find().toArray();
+
+        const displayNameOf = (user) => user.displayName || user.discordUser || user.login.discordId;
+
+        const attendanceRecords = users.map((user) => (user.attendance || []).find((record) => record.week === weekStart));
+        const attendanceTaken = attendanceRecords.some(Boolean);
+        const attendedCount = attendanceRecords.filter((record) => record && record.attended).length;
+        const absentStaff = users
+            .filter((user, index) => attendanceRecords[index] && !attendanceRecords[index].attended)
+            .map(displayNameOf);
+        const notMarkedStaff = users
+            .filter((user, index) => !attendanceRecords[index])
+            .map(displayNameOf);
+
+        const strikesThisWeek = [];
+        let strikesIssuedCount = 0;
+
+        const loaSubmitted = [];
+        const loaReviewed = [];
+
+        users.forEach((user) => {
+            (user.strikes || []).forEach((strike) => {
+                if (isDateInWeek(strike.date, weekStart, weekEnd)) {
+                    strikesThisWeek.push({
+                        displayName: displayNameOf(user),
+                        count: strike.count,
+                        reason: strike.reason
+                    });
+                    strikesIssuedCount += Number(strike.count) || 0;
+                }
+            });
+
+            (user.loaRequests || []).forEach((request) => {
+                if (isDateInWeek(request.requestedAt, weekStart, weekEnd)) {
+                    loaSubmitted.push({
+                        displayName: displayNameOf(user),
+                        startDate: request.startDate,
+                        endDate: request.endDate,
+                        status: request.status
+                    });
+                }
+
+                if (request.reviewedAt && isDateInWeek(request.reviewedAt, weekStart, weekEnd)) {
+                    loaReviewed.push({
+                        displayName: displayNameOf(user),
+                        status: request.status,
+                        reviewedBy: request.reviewedBy
+                    });
+                }
+            });
+        });
+
+        const newHires = users
+            .filter((user) => isDateInWeek(user.hireDate, weekStart, weekEnd))
+            .map(displayNameOf);
+
+        const promotions = users
+            .filter((user) => user.lastPromotion
+                && user.lastPromotion !== user.hireDate
+                && isDateInWeek(user.lastPromotion, weekStart, weekEnd))
+            .map((user) => ({ displayName: displayNameOf(user), accountType: user.accountType }));
+
+        const houseTotals = {};
+        users.forEach((user) => {
+            if (!user.house) return;
+            houseTotals[user.house] = (houseTotals[user.house] || 0) + (Number(user.housePoints) || 0);
+        });
+
+        const activitySummary = {
+            active: users.filter((user) => user.activity === 'Active').length,
+            semiActive: users.filter((user) => user.activity === 'Semi-Active').length,
+            inactive: users.filter((user) => user.activity === 'Inactive').length,
+            loa: users.filter((user) => user.activity === 'LOA').length
+        };
+
+        res.render('pages/reports', {
+            page: 'reports',
+            weekStart,
+            weekEnd,
+            previousWeek: addDays(weekStart, -7),
+            nextWeek: addDays(weekStart, 7),
+            totalStaff: users.length,
+            attendanceTaken,
+            attendedCount,
+            absentStaff,
+            notMarkedStaff,
+            strikesThisWeek,
+            strikesIssuedCount,
+            loaSubmitted,
+            loaReviewed,
+            newHires,
+            promotions,
+            houseTotals,
+            activitySummary
+        });
+    } catch (error) {
+        console.error('Error generating weekly report:', error);
+        res.status(500).send('Error generating weekly report.');
+    }
+});
+
 // SETTINGS PAGE
 app.get('/settings', requireDatabase, async (req, res) => {
     if (!req.session.loggedin) return res.redirect('/');

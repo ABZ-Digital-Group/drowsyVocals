@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <%- include('../partials/head') %>
+        <title>Drowsy Weekly Report</title>
+    </head>
+    <body>
+        <header>
+            <%- include('../partials/nav') %>
+        </header>
+        <main>
+            <section class="profile-page">
+                <div class="profile-heading">
+                    <p class="profile-eyebrow">Management</p>
+                    <h1>Weekly Report</h1>
+                    <p class="profile-subtitle">Week of <%= weekStart %> to <%= weekEnd %></p>
+                </div>
+
+                <form class="report-week-nav" action="/reports" method="GET">
+                    <button type="submit" name="week" value="<%= previousWeek %>">Previous Week</button>
+                    <button type="submit" name="week" value="<%= weekStart %>">This Week</button>
+                    <button type="submit" name="week" value="<%= nextWeek %>">Next Week</button>
+                </form>
+
+                <div class="profile-details">
+                    <div class="profile-detail">
+                        <span>Total Staff</span>
+                        <strong><%= totalStaff %></strong>
+                    </div>
+                    <div class="profile-detail">
+                        <span>Meeting Attendance</span>
+                        <strong><%= attendanceTaken ? `${attendedCount} of ${totalStaff} attended` : 'Not recorded yet' %></strong>
+                    </div>
+                    <div class="profile-detail">
+                        <span>Strikes Issued</span>
+                        <strong><%= strikesIssuedCount %></strong>
+                    </div>
+                    <div class="profile-detail">
+                        <span>Currently on LOA</span>
+                        <strong><%= activitySummary.loa %></strong>
+                    </div>
+                    <div class="profile-detail">
+                        <span>Active Staff</span>
+                        <strong><%= activitySummary.active %></strong>
+                    </div>
+                    <div class="profile-detail">
+                        <span>Semi-Active Staff</span>
+                        <strong><%= activitySummary.semiActive %></strong>
+                    </div>
+                    <div class="profile-detail">
+                        <span>Inactive Staff</span>
+                        <strong><%= activitySummary.inactive %></strong>
+                    </div>
+                    <div class="profile-detail">
+                        <span>New Hires</span>
+                        <strong><%= newHires.length %></strong>
+                    </div>
+
+                    <div class="profile-detail-full">
+                        <span>Absent This Week</span>
+                        <% if (!attendanceTaken) { %>
+                        <strong>Attendance has not been recorded for this week.</strong>
+                        <% } else if (absentStaff.length === 0) { %>
+                        <strong>No absences recorded.</strong>
+                        <% } else { %>
+                        <ul class="settings-list">
+                            <% absentStaff.forEach(function(name) { %>
+                            <li><%= name %></li>
+                            <% }); %>
+                        </ul>
+                        <% } %>
+                        <% if (notMarkedStaff.length > 0) { %>
+                        <small><%= notMarkedStaff.length %> staff member(s) were not marked at all: <%= notMarkedStaff.join(', ') %></small>
+                        <% } %>
+                    </div>
+
+                    <div class="profile-detail-full">
+                        <span>Strikes Issued This Week</span>
+                        <% if (strikesThisWeek.length === 0) { %>
+                        <strong>No strikes issued this week.</strong>
+                        <% } else { %>
+                        <ul class="settings-list">
+                            <% strikesThisWeek.forEach(function(strike) { %>
+                            <li><strong><%= strike.displayName %></strong> — <%= strike.count %> strike(s): <%= strike.reason %></li>
+                            <% }); %>
+                        </ul>
+                        <% } %>
+                    </div>
+
+                    <div class="profile-detail-full">
+                        <span>LOA Requests Submitted This Week</span>
+                        <% if (loaSubmitted.length === 0) { %>
+                        <strong>No LOA requests submitted this week.</strong>
+                        <% } else { %>
+                        <ul class="settings-list">
+                            <% loaSubmitted.forEach(function(request) { %>
+                            <li><strong><%= request.displayName %></strong> — <%= request.startDate %> to <%= request.endDate %> (<%= request.status %>)</li>
+                            <% }); %>
+                        </ul>
+                        <% } %>
+                    </div>
+
+                    <div class="profile-detail-full">
+                        <span>LOA Requests Reviewed This Week</span>
+                        <% if (loaReviewed.length === 0) { %>
+                        <strong>No LOA requests reviewed this week.</strong>
+                        <% } else { %>
+                        <ul class="settings-list">
+                            <% loaReviewed.forEach(function(request) { %>
+                            <li><strong><%= request.displayName %></strong> — <%= request.status %> by <%= request.reviewedBy %></li>
+                            <% }); %>
+                        </ul>
+                        <% } %>
+                    </div>
+
+                    <div class="profile-detail-full">
+                        <span>Promotions This Week</span>
+                        <% if (promotions.length === 0) { %>
+                        <strong>No promotions this week.</strong>
+                        <% } else { %>
+                        <ul class="settings-list">
+                            <% promotions.forEach(function(promotion) { %>
+                            <li><strong><%= promotion.displayName %></strong> — now <%= promotion.accountType %></li>
+                            <% }); %>
+                        </ul>
+                        <% } %>
+                    </div>
+
+                    <div class="profile-detail-full">
+                        <span>New Hires This Week</span>
+                        <% if (newHires.length === 0) { %>
+                        <strong>No new hires this week.</strong>
+                        <% } else { %>
+                        <ul class="settings-list">
+                            <% newHires.forEach(function(name) { %>
+                            <li><%= name %></li>
+                            <% }); %>
+                        </ul>
+                        <% } %>
+                    </div>
+
+                    <div class="profile-detail-full">
+                        <span>House Points Totals</span>
+                        <% var houseNames = Object.keys(houseTotals); %>
+                        <% if (houseNames.length === 0) { %>
+                        <strong>No house points recorded.</strong>
+                        <% } else { %>
+                        <ul class="settings-list">
+                            <% houseNames.forEach(function(houseName) { %>
+                            <li><strong><%= houseName %></strong>: <%= houseTotals[houseName] %> points</li>
+                            <% }); %>
+                        </ul>
+                        <% } %>
+                    </div>
+                </div>
+            </section>
+        </main>
+        <div class="footer">
+            <p>&copy; 2026 Drowsy Vocals | All rights reserved.</p>
+        </div>
+    </body>
+</html>
