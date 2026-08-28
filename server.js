@@ -316,7 +316,9 @@ app.post('/add-user', requireDatabase, async (req, res) => {
         shift,
         housePoints = 0,
         activity = 'Active',
-        weeksActivity = 0
+        weeksActivity = 0,
+        onboardingComplete,
+        hostTrainingComplete
     } = req.body;
 
     try {
@@ -339,6 +341,8 @@ app.post('/add-user', requireDatabase, async (req, res) => {
             activity,
             weeksActivity,
             shift,
+            onboardingComplete: Boolean(onboardingComplete),
+            hostTrainingComplete: Boolean(hostTrainingComplete),
             created: new Date().toISOString().slice(0, 19)
         };
 
@@ -366,7 +370,9 @@ app.post('/update-user', requireDatabase, async (req, res) => {
         housePoints,
         activity,
         weeksActivity,
-        shift
+        shift,
+        onboardingComplete,
+        hostTrainingComplete
     } = req.body;
 
     try {
@@ -397,7 +403,9 @@ app.post('/update-user', requireDatabase, async (req, res) => {
                 shift,
                 housePoints,
                 activity,
-                weeksActivity
+                weeksActivity,
+                onboardingComplete: Boolean(onboardingComplete),
+                hostTrainingComplete: Boolean(hostTrainingComplete)
             }
         };
 
