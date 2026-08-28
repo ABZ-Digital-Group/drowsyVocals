@@ -5,7 +5,7 @@
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <script src="/scripts/main.js?Version=1.6" defer></script>
-        <link rel="stylesheet" href="/css/main.css?Version=1.9">
+        <link rel="stylesheet" href="/css/main.css?Version=1.10">
         <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
         
         <link rel="icon" href="/assets/DrowsyLogo.png" type="image/png">
@@ -22,7 +22,7 @@
                 <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Dreamy Defender') { %>
                 <div class="roster-actions">
                     <button class="createBtn" type="button" id="openAddUserPopup">Add User</button>
-                    <button onclick="window.location.href='/save'">Save</button>
+                    <button form="attendanceForm" type="submit">Save Attendance (Week of <%= currentWeek %>)</button>
                 </div>
                 <% } %>
                 
@@ -44,11 +44,15 @@
                     </div>
                 </div>
             </section>
-            <section class="roster-content">   
+            <section class="roster-content">
+                <form id="attendanceForm" action="/mark-attendance" method="POST">
+                <input type="hidden" name="week" value="<%= currentWeek %>">
                 <table>
                     <thead>
                         <tr>
-                            <!-- <th>Meeting <br>Attendance</th> -->
+                            <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Dreamy Defender') { %>
+                            <th>Meeting <br>Attendance</th>
+                            <% } %>
                             <th>Account <br>Type</th>
                             <th>Display Name</th>
                             <th>Discord User</th>
@@ -73,11 +77,13 @@
                          <% users.forEach(function(user, index) { %>
                         <% if (index > 0 && users[index - 1].accountType !== user.accountType) { %>
                         <tr class="rank-divider" aria-hidden="true">
-                            <td colspan="14"></td>
+                            <td colspan="<%= (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Dreamy Defender') ? 16 : 13 %>"></td>
                         </tr>
                         <% } %>
                         <tr>
-                            <!-- <td><input type="checkbox" name="attendance" /></td> -->
+                            <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Dreamy Defender') { %>
+                            <td><input type="checkbox" name="attendees" value="<%= user.login.discordId %>" <%= user.attendedThisWeek ? 'checked' : '' %>></td>
+                            <% } %>
                             <td><%= user.accountType %></td>
                             <td><%= user.displayName %></td>
                             <td><%= user.discordUser %></td>
@@ -164,6 +170,7 @@
                         <% }); %>
                     </tbody>
                 </table>
+                </form>
             </section>
             <dialog id="addUserPopup">
                 <form action="/add-user" method="POST">
