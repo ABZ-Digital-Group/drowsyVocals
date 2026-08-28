@@ -19,10 +19,13 @@
             <section class="roster-content">
                 <h1>Roster</h1>
                 <p>List of team members will be displayed here.</p>
+                <% if (user.accountType === 'Mr. Sandman' || user.accountType === 'Realm God' || user.accountType === 'Dreamy Defender') { %>
                 <div class="roster-actions">
                     <button class="createBtn" type="button" id="openAddUserPopup">Add User</button>
                     <button onclick="window.location.href='/save'">Save</button>
                 </div>
+                <% } %>
+                
                 <div class="roster-stats">
                     <div>
                         <p>Total Staff: <%= totalUsers %></p>
