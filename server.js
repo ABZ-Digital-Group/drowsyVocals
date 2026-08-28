@@ -87,8 +87,8 @@ function requireDatabase(req, res, next) {
     next();
 }
 
-// ROLES ALLOWED TO ISSUE/REMOVE STAFF STRIKES
-const STRIKE_MANAGER_ROLES = ['Mr. Sandman', 'Realm God', 'Dreamy Defender'];
+// ROLES ALLOWED TO MANAGE STRIKES, ATTENDANCE, AND LOA APPROVALS
+const MANAGEMENT_ROLES = ['Mr. Sandman', 'Realm God', 'Dreamy Defender'];
 
 // MONDAY-STARTING ISO DATE FOR THE WEEK CONTAINING THE GIVEN DATE
 function getWeekStart(date) {
@@ -372,7 +372,7 @@ app.post('/promote-user', requireDatabase, async (req, res) => {
 app.post('/add-strike', requireDatabase, async (req, res) => {
     if (!req.session.loggedin) return res.redirect('/');
 
-    if (!STRIKE_MANAGER_ROLES.includes(req.session.accountType)) {
+    if (!MANAGEMENT_ROLES.includes(req.session.accountType)) {
         req.flash('error_msg', 'You are not authorized to issue strikes.');
         return res.redirect('/roster');
     }
@@ -415,7 +415,7 @@ app.post('/add-strike', requireDatabase, async (req, res) => {
 app.post('/remove-strike', requireDatabase, async (req, res) => {
     if (!req.session.loggedin) return res.redirect('/');
 
-    if (!STRIKE_MANAGER_ROLES.includes(req.session.accountType)) {
+    if (!MANAGEMENT_ROLES.includes(req.session.accountType)) {
         req.flash('error_msg', 'You are not authorized to remove strikes.');
         return res.redirect('/roster');
     }
@@ -439,7 +439,7 @@ app.post('/remove-strike', requireDatabase, async (req, res) => {
 app.post('/mark-attendance', requireDatabase, async (req, res) => {
     if (!req.session.loggedin) return res.redirect('/');
 
-    if (!STRIKE_MANAGER_ROLES.includes(req.session.accountType)) {
+    if (!MANAGEMENT_ROLES.includes(req.session.accountType)) {
         req.flash('error_msg', 'You are not authorized to record attendance.');
         return res.redirect('/roster');
     }
@@ -593,6 +593,130 @@ app.get('/account', requireDatabase, async (req, res) => {
     } catch (error) {
         console.error('Error loading account page:', error);
         res.status(500).send('Error loading account page.');
+    }
+});
+
+// LOA
+app.get('/loa', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin) return res.redirect('/');
+
+    try {
+        const currentDiscordId = req.session.currentuser;
+        const user = await db.collection('users').findOne({ 'login.discordId': currentDiscordId });
+
+        if (!user) return res.redirect('/logout');
+
+        const loaHistory = (Array.isArray(user.loaRequests) ? user.loaRequests : [])
+            .slice()
+            .sort((a, b) => new Date(b.requestedAt) - new Date(a.requestedAt));
+
+        let pendingRequests = [];
+
+        if (MANAGEMENT_ROLES.includes(req.session.accountType)) {
+            const usersWithLoa = await db.collection('users')
+                .find({ 'loaRequests.status': 'Pending' })
+                .toArray();
+
+            pendingRequests = usersWithLoa.flatMap((loaUser) => (loaUser.loaRequests || [])
+                .filter((request) => request.status === 'Pending')
+                .map((request) => ({
+                    ...request,
+                    discordId: loaUser.login.discordId,
+                    displayName: loaUser.displayName || loaUser.discordUser || loaUser.login.discordId
+                })));
+        }
+
+        res.render('pages/loa', {
+            page: 'loa',
+            loaHistory,
+            pendingRequests
+        });
+    } catch (error) {
+        console.error('Error loading LOA page:', error);
+        res.status(500).send('Error loading LOA page.');
+    }
+});
+
+// APPLY FOR LOA
+app.post('/apply-loa', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin) return res.redirect('/');
+
+    const { startDate, endDate, reason } = req.body;
+    const trimmedReason = (reason || '').toString().trim();
+
+    if (!startDate || !endDate || !trimmedReason) {
+        req.flash('error_msg', 'A start date, end date, and reason are required.');
+        return res.redirect('/loa');
+    }
+
+    if (new Date(endDate) < new Date(startDate)) {
+        req.flash('error_msg', 'End date cannot be before the start date.');
+        return res.redirect('/loa');
+    }
+
+    try {
+        const request = {
+            id: crypto.randomUUID(),
+            startDate,
+            endDate,
+            reason: trimmedReason,
+            status: 'Pending',
+            requestedAt: new Date().toISOString().slice(0, 19)
+        };
+
+        await db.collection('users').updateOne(
+            { 'login.discordId': req.session.currentuser },
+            { $push: { loaRequests: request } }
+        );
+
+        req.flash('success_msg', 'LOA request submitted for review.');
+        res.redirect('/loa');
+    } catch (error) {
+        console.error('Error submitting LOA request:', error);
+        res.redirect('/loa');
+    }
+});
+
+// REVIEW LOA
+app.post('/review-loa', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin) return res.redirect('/');
+
+    if (!MANAGEMENT_ROLES.includes(req.session.accountType)) {
+        req.flash('error_msg', 'You are not authorized to review LOA requests.');
+        return res.redirect('/loa');
+    }
+
+    const { discordId, requestId, decision } = req.body;
+    const allowedDecisions = ['Approved', 'Denied'];
+
+    if (!discordId || !requestId || !allowedDecisions.includes(decision)) {
+        return res.redirect('/loa');
+    }
+
+    try {
+        const updateDoc = {
+            $set: {
+                'loaRequests.$[request].status': decision,
+                'loaRequests.$[request].reviewedBy': req.session.currentuser,
+                'loaRequests.$[request].reviewedAt': new Date().toISOString().slice(0, 19)
+            }
+        };
+
+        if (decision === 'Approved') {
+            updateDoc.$set.activity = 'LOA';
+        }
+
+        await db.collection('users').updateOne(
+            { 'login.discordId': discordId },
+            updateDoc,
+            { arrayFilters: [{ 'request.id': requestId }] }
+        );
+
+        req.flash('success_msg', `LOA request ${decision.toLowerCase()}.`);
+        res.redirect('/loa');
+    } catch (error) {
+        console.error('Error reviewing LOA request:', error);
+        res.redirect('/loa');
     }
 });
 
