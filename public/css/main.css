@@ -204,13 +204,31 @@ nav ul li a {
 }
 
 .roster-content table input[type="checkbox"] {
-    /* transform: scale(1.5); */
     margin-right: 10px;
     background-color: #242320;
+    width: 18px;
+    height: 18px;
+    border: 1px solid #B7B2A7;
+    border-radius: 3px;
+    -webkit-appearance: none;
+    appearance: none;
+    cursor: pointer;
+    vertical-align: middle;
+}
 
--webkit-appearance: none;
-  appearance: none;
+.roster-content table input[type="checkbox"]:checked {
+    background-color: #B7B2A7;
+}
 
+.roster-content table input[type="checkbox"]:checked::after {
+    content: "";
+    display: block;
+    width: 5px;
+    height: 10px;
+    margin: 1px auto;
+    border: solid #242320;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
 }   
 
 
