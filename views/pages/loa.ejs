@@ -13,92 +13,72 @@
             <%- include('../partials/nav') %>
         </header>
         <main>
-            <section class="roster-content">
-                <h1>Leave of Absence</h1>
-                <p>Apply for a leave of absence and track the status of your requests.</p>
+            <section class="profile-page">
+                <div class="profile-heading">
+                    <p class="profile-eyebrow">Leave of absence</p>
+                    <h1>Leave of Absence</h1>
+                    <p class="profile-subtitle">Apply for time off and track the status of your requests.</p>
+                </div>
+                <div class="profile-details">
+                    <div class="profile-detail-full">
+                        <span>Apply for Leave</span>
+                        <form class="login-form-actions" action="/apply-loa" method="POST">
+                            <label for="startDate">Start Date:</label>
+                            <input type="date" id="startDate" name="startDate" required>
 
-                <form class="login-form-actions" action="/apply-loa" method="POST">
-                    <label for="startDate">Start Date:</label>
-                    <input type="date" id="startDate" name="startDate" required>
+                            <label for="endDate">End Date:</label>
+                            <input type="date" id="endDate" name="endDate" required>
 
-                    <label for="endDate">End Date:</label>
-                    <input type="date" id="endDate" name="endDate" required>
+                            <label for="reason">Reason:</label>
+                            <textarea id="reason" name="reason" rows="3" required></textarea>
 
-                    <label for="reason">Reason:</label>
-                    <textarea id="reason" name="reason" rows="3" required></textarea>
+                            <button type="submit">Submit Request</button>
+                        </form>
+                    </div>
 
-                    <button type="submit">Submit Request</button>
-                </form>
-            </section>
+                    <div class="profile-detail-full">
+                        <span>Your LOA History</span>
+                        <% if (loaHistory.length === 0) { %>
+                        <strong>No LOA requests on record</strong>
+                        <% } else { %>
+                        <ul class="strikes-list">
+                            <% loaHistory.forEach(function(request) { %>
+                            <li>
+                                <strong><%= request.startDate %> to <%= request.endDate %></strong> - <%= request.reason %>
+                                <br>
+                                <small class="status-badge status-<%= request.status.toLowerCase() %>"><%= request.status %></small>
+                                <small><%= (request.requestedAt || '').slice(0, 10) %></small>
+                            </li>
+                            <% }); %>
+                        </ul>
+                        <% } %>
+                    </div>
 
-            <section class="roster-content">
-                <h2>Your LOA History</h2>
-                <% if (loaHistory.length === 0) { %>
-                <p>No LOA requests on record.</p>
-                <% } else { %>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Start Date</th>
-                            <th>End Date</th>
-                            <th>Reason</th>
-                            <th>Status</th>
-                            <th>Requested</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <% loaHistory.forEach(function(request) { %>
-                        <tr>
-                            <td><%= request.startDate %></td>
-                            <td><%= request.endDate %></td>
-                            <td><%= request.reason %></td>
-                            <td class="activity-cell status-<%= request.status.toLowerCase() %>"><%= request.status %></td>
-                            <td><%= (request.requestedAt || '').slice(0, 10) %></td>
-                        </tr>
-                        <% }); %>
-                    </tbody>
-                </table>
-                <% } %>
-            </section>
-
-            <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Dreamy Defender') { %>
-            <section class="roster-content">
-                <h2>Pending LOA Requests</h2>
-                <% if (pendingRequests.length === 0) { %>
-                <p>No pending LOA requests.</p>
-                <% } else { %>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Staff Member</th>
-                            <th>Start Date</th>
-                            <th>End Date</th>
-                            <th>Reason</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <% pendingRequests.forEach(function(request) { %>
-                        <tr>
-                            <td><%= request.displayName %></td>
-                            <td><%= request.startDate %></td>
-                            <td><%= request.endDate %></td>
-                            <td><%= request.reason %></td>
-                            <td>
-                                <form action="/review-loa" method="POST" style="display:inline;">
+                    <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Dreamy Defender') { %>
+                    <div class="profile-detail-full">
+                        <span>Pending LOA Requests</span>
+                        <% if (pendingRequests.length === 0) { %>
+                        <strong>No pending LOA requests</strong>
+                        <% } else { %>
+                        <ul class="strikes-list">
+                            <% pendingRequests.forEach(function(request) { %>
+                            <li>
+                                <strong><%= request.displayName %></strong>: <%= request.startDate %> to <%= request.endDate %> - <%= request.reason %>
+                                <br>
+                                <form action="/review-loa" method="POST">
                                     <input type="hidden" name="discordId" value="<%= request.discordId %>">
                                     <input type="hidden" name="requestId" value="<%= request.id %>">
                                     <button type="submit" name="decision" value="Approved">Approve</button>
                                     <button type="submit" name="decision" value="Denied">Deny</button>
                                 </form>
-                            </td>
-                        </tr>
-                        <% }); %>
-                    </tbody>
-                </table>
-                <% } %>
+                            </li>
+                            <% }); %>
+                        </ul>
+                        <% } %>
+                    </div>
+                    <% } %>
+                </div>
             </section>
-            <% } %>
         </main>
         <div class="footer">
             <p>&copy; 2026 Drowsy Vocals | All rights reserved.</p>
