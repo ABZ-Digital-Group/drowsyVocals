@@ -13,29 +13,31 @@
             <section class="roster-content">
                 <h1>Roster</h1>
                 <p>List of team members will be displayed here.</p>
+                <div class="roster-sub">
+                    <div class="online-now-bar" id="onlineNowBar">
+                        <span class="online-now-label">Online now:</span>
+                        <% onlineUsers.forEach(function(onlineUser) { %>
+                        <%- include('../partials/avatar', {
+                            avatarUrl: onlineUser.avatarUrl,
+                            displayName: onlineUser.displayName,
+                            discordId: onlineUser.discordId,
+                            size: 32,
+                            online: true
+                        }) %>
+                        <% }); %>
+                        <% if (onlineUsers.length === 0) { %>
+                        <span class="online-now-empty">No one else online right now.</span>
+                        <% } %>
+                    </div>
 
-                <div class="online-now-bar" id="onlineNowBar">
-                    <span class="online-now-label">Online now:</span>
-                    <% onlineUsers.forEach(function(onlineUser) { %>
-                    <%- include('../partials/avatar', {
-                        avatarUrl: onlineUser.avatarUrl,
-                        displayName: onlineUser.displayName,
-                        discordId: onlineUser.discordId,
-                        size: 32,
-                        online: true
-                    }) %>
-                    <% }); %>
-                    <% if (onlineUsers.length === 0) { %>
-                    <span class="online-now-empty">No one else online right now.</span>
+                    <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Dreamy Defender') { %>
+                    <div class="roster-actions">
+                        <button class="createBtn" type="button" id="openAddUserPopup">Add User</button>
+                        <button form="attendanceForm" type="submit">Save Attendance</button>
+                    </div>
                     <% } %>
                 </div>
-
-                <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Dreamy Defender') { %>
-                <div class="roster-actions">
-                    <button class="createBtn" type="button" id="openAddUserPopup">Add User</button>
-                    <button form="attendanceForm" type="submit">Save Attendance</button>
-                </div>
-                <% } %>
+                
                 
                 <div class="roster-stats">
                     <div>
@@ -61,7 +63,6 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>Avatar</th>
                             <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Dreamy Defender') { %>
                             <th>Meeting <br>Attendance</th>
                             <% } %>
@@ -107,15 +108,6 @@
                         </tr>
                         <% } else { %>
                         <tr>
-                            <td>
-                                <%- include('../partials/avatar', {
-                                    avatarUrl: user.avatarUrl,
-                                    displayName: user.displayName || user.discordUser || user.login.discordId,
-                                    discordId: user.login.discordId,
-                                    size: 32,
-                                    online: user.isOnline
-                                }) %>
-                            </td>
                             <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Dreamy Defender') { %>
                             <td><input type="checkbox" name="attendees" value="<%= user.login.discordId %>" <%= user.attendedThisWeek ? 'checked' : '' %>></td>
                             <% } %>

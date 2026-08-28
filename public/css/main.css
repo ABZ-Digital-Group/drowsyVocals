@@ -217,7 +217,12 @@ nav ul li a {
     border-radius: 5px;
     outline: none;
 }
-
+.roster-sub {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+}
+    
 .roster-content button {
     padding: 2px;
     font-size: 1.2em;
