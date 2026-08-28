@@ -6,6 +6,8 @@
         <li><a href="/loa">LOA</a></li>
         <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Dreamy Defender') { %>
         <li><a href="/reports">Reports</a></li>
+        <% } %>
+        <% if (userType === 'Mr. Sandman' || userType === 'Realm God') { %>
         <li><a href="/settings">Settings</a></li>
         <% } %>
         <li><a href="/account">Account</a></li>
