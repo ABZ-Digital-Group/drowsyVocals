@@ -207,9 +207,9 @@ nav ul li a {
     gap: 10px;
 }
 .roster-actions button{
-    padding: 10px 20px;
+    padding: 10px;
     font-size: 1.2em;
-    width: auto;
+    width: 80%;
     border: none;
     cursor: pointer;
     background-color: #242320;
