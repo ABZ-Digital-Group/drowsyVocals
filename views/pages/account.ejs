@@ -58,6 +58,7 @@
                     <div class="profile-detail-full">
                         <span>Strikes</span>
                         <% if (user.strikes && user.strikes.length) { %>
+                        <strong><%= user.strikes.reduce((sum, strike) => sum + (Number(strike.count) || 0), 0) %> total strike(s)</strong>
                         <ul class="strikes-list">
                             <% user.strikes.forEach(function(strike) { %>
                             <li>
