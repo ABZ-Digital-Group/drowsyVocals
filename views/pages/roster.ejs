@@ -82,8 +82,6 @@
                             <th>Weeks <br>Activity</th>
                             <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Dreamy Defender') { %>
                                 <th>Strikes</th>
-                                <th>Onboarding</th>
-                                <th>Host Training</th>
                                 <th>Actions</th>
                             <% } %>
                         </tr>
@@ -93,7 +91,7 @@
                          <% users.forEach(function(user, index) { %>
                         <% if (index > 0 && users[index - 1].accountType !== user.accountType) { %>
                         <tr class="rank-divider" aria-hidden="true">
-                            <td colspan="<%= (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Dreamy Defender') ? 18 : 13 %>"></td>
+                            <td colspan="<%= (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Dreamy Defender') ? 16 : 13 %>"></td>
                         </tr>
                         <% } %>
                         <% if (user.isVacant) { %>
@@ -104,8 +102,6 @@
                             <td><%= user.accountType %></td>
                             <td colspan="12">Vacant</td>
                             <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Dreamy Defender') { %>
-                            <td></td>
-                            <td></td>
                             <td></td>
                             <td></td>
                             <% } %>
@@ -131,8 +127,6 @@
                             <td><%= user.weeksActivity %></td>
                             <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Dreamy Defender') { %>
                             <td><%= (user.strikes || []).reduce((sum, strike) => sum + (Number(strike.count) || 0), 0) %></td>
-                                <td class="status-cell <%= user.onboardingComplete ? 'status-yes' : 'status-no' %>"><%= user.onboardingComplete ? 'Complete' : 'Pending' %></td>
-                                <td class="status-cell <%= user.hostTrainingComplete ? 'status-yes' : 'status-no' %>"><%= user.hostTrainingComplete ? 'Complete' : 'Pending' %></td>
                                 <td>
                                 <button
                                     class="viewBtn"
