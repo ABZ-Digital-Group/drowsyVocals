@@ -943,6 +943,55 @@ app.get('/account', requireDatabase, async (req, res) => {
     }
 });
 
+// CHANGE OWN PASSWORD
+app.post('/change-password', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin) return res.redirect('/');
+
+    const { currentPassword, newPassword, confirmPassword } = req.body;
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+        req.flash('error_msg', 'All password fields are required.');
+        return res.redirect('/account');
+    }
+
+    if (newPassword.length < 8) {
+        req.flash('error_msg', 'New password must be at least 8 characters.');
+        return res.redirect('/account');
+    }
+
+    if (newPassword !== confirmPassword) {
+        req.flash('error_msg', 'New password and confirmation do not match.');
+        return res.redirect('/account');
+    }
+
+    try {
+        const currentDiscordId = req.session.currentuser;
+        const user = await db.collection('users').findOne({ 'login.discordId': currentDiscordId });
+
+        if (!user) return res.redirect('/logout');
+
+        const isMatch = await bcrypt.compare(currentPassword, user.login.password);
+        if (!isMatch) {
+            req.flash('error_msg', 'Current password is incorrect.');
+            return res.redirect('/account');
+        }
+
+        const hash = await bcrypt.hash(newPassword, saltRounds);
+
+        await db.collection('users').updateOne(
+            { 'login.discordId': currentDiscordId },
+            { $set: { 'login.password': hash } }
+        );
+
+        req.flash('success_msg', 'Password updated successfully.');
+        res.redirect('/account');
+    } catch (error) {
+        console.error('Error changing password:', error);
+        req.flash('error_msg', 'Unable to update password right now. Please try again.');
+        res.redirect('/account');
+    }
+});
+
 // LOA
 app.get('/loa', requireDatabase, async (req, res) => {
     if (!req.session.loggedin) return res.redirect('/');

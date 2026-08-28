@@ -68,6 +68,21 @@
                         <strong>No strikes on record</strong>
                         <% } %>
                     </div>
+                    <div class="profile-detail-full">
+                        <span>Change Password</span>
+                        <form class="login-form-actions" action="/change-password" method="POST">
+                            <label for="currentPassword">Current Password:</label>
+                            <input type="password" id="currentPassword" name="currentPassword" required>
+
+                            <label for="newPassword">New Password:</label>
+                            <input type="password" id="newPassword" name="newPassword" minlength="8" required>
+
+                            <label for="confirmPassword">Confirm New Password:</label>
+                            <input type="password" id="confirmPassword" name="confirmPassword" minlength="8" required>
+
+                            <button type="submit">Update Password</button>
+                        </form>
+                    </div>
                 </div>
             </section>
         </main>
