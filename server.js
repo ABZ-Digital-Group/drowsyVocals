@@ -5,11 +5,13 @@ const crypto = require('crypto');
 
 require('dotenv').config();
 const path = require('path');
+const fs = require('fs');
 
 // LOAD NPM PACKAGES
 const express = require('express');
 const session = require('express-session');
 const flash = require('connect-flash');
+const multer = require('multer');
 const { MongoClient } = require('mongodb');
 
 const app = express();
@@ -80,6 +82,17 @@ app.use((req, res, next) => {
     next();
 });
 
+// FIRE-AND-FORGET PRESENCE PING SO OTHER USERS CAN SEE WHO IS ONLINE
+app.use((req, res, next) => {
+    if (isDatabaseReady && db && req.session.loggedin && req.session.currentuser) {
+        db.collection('users').updateOne(
+            { 'login.discordId': req.session.currentuser },
+            { $set: { lastSeen: new Date() } }
+        ).catch((error) => console.error('Presence update failed:', error.message));
+    }
+    next();
+});
+
 function requireDatabase(req, res, next) {
     if (shuttingDown || !isDatabaseReady || !db) {
         return res.status(503).send('Database is temporarily unavailable. Please try again shortly.');
@@ -89,6 +102,37 @@ function requireDatabase(req, res, next) {
 
 // ROLES ALLOWED TO MANAGE STRIKES, ATTENDANCE, AND LOA APPROVALS
 const MANAGEMENT_ROLES = ['Mr. Sandman', 'Realm God', 'Dreamy Defender'];
+
+// A USER IS CONSIDERED "ONLINE" IF SEEN WITHIN THIS WINDOW
+const ONLINE_THRESHOLD_MS = 2 * 60 * 1000;
+
+// AVATAR UPLOAD STORAGE
+const AVATAR_UPLOAD_DIR = path.join(__dirname, 'public', 'uploads', 'avatars');
+fs.mkdirSync(AVATAR_UPLOAD_DIR, { recursive: true });
+
+const AVATAR_MIME_EXTENSIONS = {
+    'image/png': '.png',
+    'image/jpeg': '.jpg',
+    'image/webp': '.webp'
+};
+
+const avatarUpload = multer({
+    storage: multer.diskStorage({
+        destination: (req, file, cb) => cb(null, AVATAR_UPLOAD_DIR),
+        filename: (req, file, cb) => {
+            const extension = AVATAR_MIME_EXTENSIONS[file.mimetype] || '';
+            const safeId = (req.session.currentuser || 'user').replace(/[^a-zA-Z0-9_-]/g, '');
+            cb(null, `${safeId}-${Date.now()}${extension}`);
+        }
+    }),
+    limits: { fileSize: 2 * 1024 * 1024 },
+    fileFilter: (req, file, cb) => {
+        if (!AVATAR_MIME_EXTENSIONS[file.mimetype]) {
+            return cb(new Error('Only PNG, JPEG, or WEBP images are allowed.'));
+        }
+        cb(null, true);
+    }
+});
 
 // MONDAY-STARTING ISO DATE FOR THE WEEK CONTAINING THE GIVEN DATE
 function getWeekStart(date) {
@@ -952,6 +996,46 @@ app.get('/account', requireDatabase, async (req, res) => {
     }
 });
 
+// UPLOAD OWN PROFILE PICTURE
+app.post('/account/upload-avatar', requireDatabase, (req, res) => {
+    if (!req.session.loggedin) return res.redirect('/');
+
+    avatarUpload.single('avatar')(req, res, async (uploadError) => {
+        if (uploadError) {
+            req.flash('error_msg', uploadError.message || 'Unable to upload that image.');
+            return res.redirect('/account');
+        }
+
+        if (!req.file) {
+            req.flash('error_msg', 'Please choose an image to upload.');
+            return res.redirect('/account');
+        }
+
+        try {
+            const currentDiscordId = req.session.currentuser;
+            const user = await db.collection('users').findOne({ 'login.discordId': currentDiscordId });
+            const newAvatarUrl = `/uploads/avatars/${req.file.filename}`;
+
+            await db.collection('users').updateOne(
+                { 'login.discordId': currentDiscordId },
+                { $set: { avatarUrl: newAvatarUrl } }
+            );
+
+            if (user?.avatarUrl) {
+                const oldPath = path.join(__dirname, 'public', user.avatarUrl);
+                fs.unlink(oldPath, () => {});
+            }
+
+            req.flash('success_msg', 'Profile picture updated.');
+            res.redirect('/account');
+        } catch (error) {
+            console.error('Error saving avatar:', error);
+            req.flash('error_msg', 'Unable to update profile picture right now.');
+            res.redirect('/account');
+        }
+    });
+});
+
 // CHANGE OWN PASSWORD
 app.post('/change-password', requireDatabase, async (req, res) => {
     if (!req.session.loggedin) return res.redirect('/');
@@ -1125,6 +1209,31 @@ app.post('/review-loa', requireDatabase, async (req, res) => {
     }
 });
 
+// LIVE PRESENCE: WHO IS CURRENTLY ONLINE
+app.get('/api/online-users', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin) return res.status(401).json({ error: 'Not authenticated.' });
+
+    try {
+        const cutoff = new Date(Date.now() - ONLINE_THRESHOLD_MS);
+        const onlineDocs = await db.collection('users')
+            .find({ lastSeen: { $gte: cutoff } }, {
+                projection: { displayName: 1, discordUser: 1, avatarUrl: 1, 'login.discordId': 1 }
+            })
+            .toArray();
+
+        const onlineUsers = onlineDocs.map((user) => ({
+            discordId: user.login.discordId,
+            displayName: user.displayName || user.discordUser || user.login.discordId,
+            avatarUrl: user.avatarUrl || null
+        }));
+
+        res.json({ onlineUsers });
+    } catch (error) {
+        console.error('Error fetching online users:', error);
+        res.status(500).json({ error: 'Unable to fetch online users.' });
+    }
+});
+
 // ROSTER
 app.get('/roster', requireDatabase, async (req, res) => {
     if (!req.session.loggedin) return res.redirect('/');
@@ -1183,11 +1292,14 @@ app.get('/roster', requireDatabase, async (req, res) => {
             const attendanceRecord = (Array.isArray(user.attendance) ? user.attendance : [])
                 .find((record) => record.week === currentWeek);
 
+            const isOnline = Boolean(user.lastSeen) && (today - new Date(user.lastSeen)) < ONLINE_THRESHOLD_MS;
+
             return {
                 ...user,
                 timeInService: daysInService,
                 timeInGrade: daysInGrade,
-                attendedThisWeek: attendanceRecord ? attendanceRecord.attended : false
+                attendedThisWeek: attendanceRecord ? attendanceRecord.attended : false,
+                isOnline
             };
         });
 
@@ -1223,6 +1335,14 @@ app.get('/roster', requireDatabase, async (req, res) => {
         // KEEP ANY USERS WHOSE RANK NO LONGER EXISTS IN SETTINGS AT THE END
         rosterRows.push(...usersWithService.filter((user) => !knownRankKeys.has(normalizeRank(user.accountType))));
 
+        const onlineUsers = usersWithService
+            .filter((user) => user.isOnline)
+            .map((user) => ({
+                discordId: user.login.discordId,
+                displayName: user.displayName || user.discordUser || user.login.discordId,
+                avatarUrl: user.avatarUrl || null
+            }));
+
         res.render('pages/roster', {
             page: 'roster',
             users: rosterRows,
@@ -1235,7 +1355,8 @@ app.get('/roster', requireDatabase, async (req, res) => {
             settings,
             houseColorMap,
             shiftColorMap,
-            activityColorMap
+            activityColorMap,
+            onlineUsers
         });
     } catch (error) {
         console.error('Error fetching users:', error);
