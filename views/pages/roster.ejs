@@ -111,6 +111,14 @@
                             
                                 </button>
                                 <button
+                                    class="strikeBtn"
+                                    type="button"
+                                    data-discord-id="<%= user.login.discordId %>"
+                                    data-display-name="<%= user.displayName || user.discordUser || user.login.discordId %>"
+                                >
+                                    <span class="material-symbols-outlined">warning</span>
+                                </button>
+                                <button
                                     class="editBtn"
                                     type="button"
                                     data-discord-id="<%= user.login.discordId %>"
@@ -208,6 +216,32 @@
                     <p><b>House:</b> <span id="viewHouse"></span></p>
                     <p><b>House Points:</b> <span id="viewHousePoints"></span></p>
                     <button type="button" id="closeViewUserPopup">Close</button>
+            </dialog>
+
+            <dialog id="addStrikePopup">
+                <form action="/add-strike" method="POST">
+                    <input type="hidden" id="strikeDiscordId" name="discordId" required>
+
+                    <label for="strikeDisplayName">User:</label>
+                    <input type="text" id="strikeDisplayName" readonly>
+                    <br>
+
+                    <label for="strikeCount"><b>Strike Count</b></label>
+                    <select name="count" id="strikeCount" required>
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                    </select>
+                    <br>
+
+                    <label for="strikeReason">Reason:</label>
+                    <textarea id="strikeReason" name="reason" rows="3" required></textarea>
+
+                    <div class="dialog-buttons">
+                        <button type="submit">Issue Strike</button>
+                        <button type="button" id="closeAddStrikePopup">Cancel</button>
+                    </div>
+                </form>
             </dialog>
 
             <dialog id="editUserPopup">

@@ -126,6 +126,35 @@ if (viewUserPopup && closeViewUserPopup) {
   });
 }
 
+const addStrikePopup = document.getElementById("addStrikePopup");
+const closeAddStrikePopup = document.getElementById("closeAddStrikePopup");
+
+if (addStrikePopup && closeAddStrikePopup) {
+  const strikeButtons = document.querySelectorAll(".strikeBtn");
+  const strikeDiscordId = document.getElementById("strikeDiscordId");
+  const strikeDisplayName = document.getElementById("strikeDisplayName");
+  const strikeCount = document.getElementById("strikeCount");
+  const strikeReason = document.getElementById("strikeReason");
+
+  strikeButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      const { discordId, displayName } = button.dataset;
+
+      strikeDiscordId.value = discordId || "";
+      strikeDisplayName.value = displayName || "";
+      strikeCount.value = "1";
+      strikeReason.value = "";
+
+      addStrikePopup.returnValue = "";
+      addStrikePopup.showModal();
+    });
+  });
+
+  closeAddStrikePopup.addEventListener("click", () => {
+    addStrikePopup.close();
+  });
+}
+
 if (promoteUserPopup && closePromoteUserPopup) {
   const promoteButtons = document.querySelectorAll(".promoteBtn");
   const demoteButtons = document.querySelectorAll(".demoteBtn");
