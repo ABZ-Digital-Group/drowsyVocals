@@ -455,19 +455,24 @@ th, td {
 
 .online-now-bar {
     display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    margin: 14px 0;
+}
+.online-now-avatars {
+    display: flex;
     align-items: center;
     gap: 6px;
     flex-wrap: wrap;
-    margin: 14px 0;
 }
-.online-now-bar .avatar-wrapper {
+.online-now-avatars .avatar-wrapper {
     margin-right: -6px;
     border: 2px solid #B7B2A7;
     border-radius: 50%;
 }
 .online-now-label {
     font-weight: bold;
-    margin-right: 8px;
 }
 .online-now-empty {
     color: #6f6a60;

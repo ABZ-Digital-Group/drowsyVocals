@@ -22,19 +22,20 @@
                     <% } %>
                     <div class="online-now-bar" id="onlineNowBar">
                         <span class="online-now-label">Online now:</span>
-                        <br>
-                        <% onlineUsers.forEach(function(onlineUser) { %>
-                        <%- include('../partials/avatar', {
-                            avatarUrl: onlineUser.avatarUrl,
-                            displayName: onlineUser.displayName,
-                            discordId: onlineUser.discordId,
-                            size: 32,
-                            online: true
-                        }) %>
-                        <% }); %>
-                        <% if (onlineUsers.length === 0) { %>
-                        <span class="online-now-empty">No one else online right now.</span>
-                        <% } %>
+                        <div class="online-now-avatars">
+                            <% onlineUsers.forEach(function(onlineUser) { %>
+                            <%- include('../partials/avatar', {
+                                avatarUrl: onlineUser.avatarUrl,
+                                displayName: onlineUser.displayName,
+                                discordId: onlineUser.discordId,
+                                size: 32,
+                                online: true
+                            }) %>
+                            <% }); %>
+                            <% if (onlineUsers.length === 0) { %>
+                            <span class="online-now-empty">No one else online right now.</span>
+                            <% } %>
+                        </div>
                     </div>
                 </div>
                 
@@ -103,7 +104,7 @@
                             <td colspan="12">Vacant</td>
                             <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Dreamy Defender') { %>
                             <td></td>
-                            <td></td>
+                            
                             <% } %>
                         </tr>
                         <% } else { %>
