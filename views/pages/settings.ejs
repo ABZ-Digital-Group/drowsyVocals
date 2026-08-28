@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <%- include('../partials/head') %>
+        <title>Drowsy Settings</title>
+    </head>
+    <body>
+        <header>
+            <%- include('../partials/nav') %>
+        </header>
+        <main>
+            <section class="profile-page">
+                <div class="profile-heading">
+                    <p class="profile-eyebrow">Management</p>
+                    <h1>Settings</h1>
+                    <p class="profile-subtitle">Manage the rank, house, shift, and activity options used across the roster forms.</p>
+                </div>
+                <div class="profile-details">
+                    <div class="profile-detail-full">
+                        <span>Ranks</span>
+                        <ul class="settings-list">
+                            <% settings.ranks.forEach(function(rank) { %>
+                            <li>
+                                <form class="login-form-actions settings-inline-form" action="/settings/update-option" method="POST">
+                                    <input type="hidden" name="category" value="ranks">
+                                    <input type="hidden" name="originalName" value="<%= rank.name %>">
+                                    <input type="text" name="name" value="<%= rank.name %>" required>
+                                    <input type="number" name="order" value="<%= rank.order %>" required>
+                                    <button type="submit">Save</button>
+                                </form>
+                                <form action="/settings/delete-option" method="POST">
+                                    <input type="hidden" name="category" value="ranks">
+                                    <input type="hidden" name="name" value="<%= rank.name %>">
+                                    <button type="submit">Delete</button>
+                                </form>
+                            </li>
+                            <% }); %>
+                        </ul>
+                        <form class="login-form-actions settings-add-form" action="/settings/add-option" method="POST">
+                            <input type="hidden" name="category" value="ranks">
+                            <label for="newRankName">New Rank:</label>
+                            <input type="text" id="newRankName" name="name" placeholder="Rank name" required>
+                            <label for="newRankOrder">Sort Order:</label>
+                            <input type="number" id="newRankOrder" name="order" value="<%= settings.ranks.length %>" required>
+                            <button type="submit">Add Rank</button>
+                        </form>
+                    </div>
+
+                    <div class="profile-detail-full">
+                        <span>Houses</span>
+                        <ul class="settings-list">
+                            <% settings.houses.forEach(function(house) { %>
+                            <li>
+                                <form class="login-form-actions settings-inline-form" action="/settings/update-option" method="POST">
+                                    <input type="hidden" name="category" value="houses">
+                                    <input type="hidden" name="originalName" value="<%= house.name %>">
+                                    <input type="text" name="name" value="<%= house.name %>" required>
+                                    <input type="color" name="color" value="<%= house.color %>">
+                                    <button type="submit">Save</button>
+                                </form>
+                                <form action="/settings/delete-option" method="POST">
+                                    <input type="hidden" name="category" value="houses">
+                                    <input type="hidden" name="name" value="<%= house.name %>">
+                                    <button type="submit">Delete</button>
+                                </form>
+                            </li>
+                            <% }); %>
+                        </ul>
+                        <form class="login-form-actions settings-add-form" action="/settings/add-option" method="POST">
+                            <input type="hidden" name="category" value="houses">
+                            <label for="newHouseName">New House:</label>
+                            <input type="text" id="newHouseName" name="name" placeholder="House name" required>
+                            <label for="newHouseColor">Color:</label>
+                            <input type="color" id="newHouseColor" name="color" value="#242320">
+                            <button type="submit">Add House</button>
+                        </form>
+                    </div>
+
+                    <div class="profile-detail-full">
+                        <span>Shifts</span>
+                        <ul class="settings-list">
+                            <% settings.shifts.forEach(function(shift) { %>
+                            <li>
+                                <form class="login-form-actions settings-inline-form" action="/settings/update-option" method="POST">
+                                    <input type="hidden" name="category" value="shifts">
+                                    <input type="hidden" name="originalName" value="<%= shift.name %>">
+                                    <input type="text" name="name" value="<%= shift.name %>" required>
+                                    <input type="color" name="color" value="<%= shift.color %>">
+                                    <button type="submit">Save</button>
+                                </form>
+                                <form action="/settings/delete-option" method="POST">
+                                    <input type="hidden" name="category" value="shifts">
+                                    <input type="hidden" name="name" value="<%= shift.name %>">
+                                    <button type="submit">Delete</button>
+                                </form>
+                            </li>
+                            <% }); %>
+                        </ul>
+                        <form class="login-form-actions settings-add-form" action="/settings/add-option" method="POST">
+                            <input type="hidden" name="category" value="shifts">
+                            <label for="newShiftName">New Shift:</label>
+                            <input type="text" id="newShiftName" name="name" placeholder="Shift name" required>
+                            <label for="newShiftColor">Color:</label>
+                            <input type="color" id="newShiftColor" name="color" value="#242320">
+                            <button type="submit">Add Shift</button>
+                        </form>
+                    </div>
+
+                    <div class="profile-detail-full">
+                        <span>Activities</span>
+                        <ul class="settings-list">
+                            <% settings.activities.forEach(function(activity) { %>
+                            <li>
+                                <form class="login-form-actions settings-inline-form" action="/settings/update-option" method="POST">
+                                    <input type="hidden" name="category" value="activities">
+                                    <input type="hidden" name="originalName" value="<%= activity.name %>">
+                                    <input type="text" name="name" value="<%= activity.name %>" required>
+                                    <input type="color" name="color" value="<%= activity.color %>">
+                                    <button type="submit">Save</button>
+                                </form>
+                                <form action="/settings/delete-option" method="POST">
+                                    <input type="hidden" name="category" value="activities">
+                                    <input type="hidden" name="name" value="<%= activity.name %>">
+                                    <button type="submit">Delete</button>
+                                </form>
+                            </li>
+                            <% }); %>
+                        </ul>
+                        <form class="login-form-actions settings-add-form" action="/settings/add-option" method="POST">
+                            <input type="hidden" name="category" value="activities">
+                            <label for="newActivityName">New Activity:</label>
+                            <input type="text" id="newActivityName" name="name" placeholder="Activity name" required>
+                            <label for="newActivityColor">Color:</label>
+                            <input type="color" id="newActivityColor" name="color" value="#242320">
+                            <button type="submit">Add Activity</button>
+                        </form>
+                    </div>
+                </div>
+            </section>
+        </main>
+        <div class="footer">
+            <p>&copy; 2026 Drowsy Vocals | All rights reserved.</p>
+        </div>
+    </body>
+</html>

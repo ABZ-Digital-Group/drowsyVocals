@@ -13,6 +13,73 @@
                 <h1><span id="time-greeting"></span> <%= currentDisplayName %></h1>
                 <p>Here you can manage your account, view your roster, and access online coaching resources.</p>
             </section>
+
+            <section class="profile-page">
+                <div class="profile-details">
+                    <div class="profile-detail">
+                        <span>Rank</span>
+                        <strong><%= accountType || 'Not assigned' %></strong>
+                    </div>
+                    <div class="profile-detail">
+                        <span>House</span>
+                        <strong><%= house || 'Not assigned' %></strong>
+                    </div>
+                    <div class="profile-detail">
+                        <span>House Points</span>
+                        <strong><%= housePoints ?? 0 %></strong>
+                    </div>
+                    <div class="profile-detail">
+                        <span>Activity</span>
+                        <strong><%= activity || 'Not assigned' %></strong>
+                    </div>
+                    <div class="profile-detail">
+                        <span>Total Strikes</span>
+                        <strong><%= totalStrikes %></strong>
+                    </div>
+                    <div class="profile-detail">
+                        <span>This Week's Meeting</span>
+                        <strong><%= attendedThisWeek ? 'Attended' : 'Not marked yet' %></strong>
+                    </div>
+                    <div class="profile-detail">
+                        <span>Your Pending LOA Requests</span>
+                        <strong><%= pendingLoaCount %></strong>
+                    </div>
+                </div>
+            </section>
+
+            <% if (staffSummary) { %>
+            <section class="roster-content">
+                <h2>Staff Overview</h2>
+                <div class="roster-stats">
+                    <div>
+                        <p>Total Staff: <%= staffSummary.total %></p>
+                    </div>
+                    <div>
+                        <p>Active Staff: <%= staffSummary.active %></p>
+                    </div>
+                    <div>
+                        <p>Semi-Active Staff: <%= staffSummary.semiActive %></p>
+                    </div>
+                    <div>
+                        <p>LOA: <%= staffSummary.loa %></p>
+                    </div>
+                    <div>
+                        <p>Inactive Staff: <%= staffSummary.inactive %></p>
+                    </div>
+                    <div>
+                        <p>Pending LOA Requests: <%= pendingLoaTotal %></p>
+                    </div>
+                </div>
+            </section>
+            <% } %>
+
+            <section class="roster-content">
+                <div class="roster-actions">
+                    <button onclick="window.location.href='/roster'">Go to Roster</button>
+                    <button onclick="window.location.href='/loa'">Go to LOA</button>
+                    <button onclick="window.location.href='/account'">Go to Account</button>
+                </div>
+            </section>
         </main>
         <div class="footer">
             <p>&copy; 2026 Drowsy Vocals | All rights reserved.</p>
