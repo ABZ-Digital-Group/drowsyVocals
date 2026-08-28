@@ -397,6 +397,12 @@ th, td {
     background-color: #A9CAFF;
 }
 
+.vacant-row td {
+    background-color: #24232011;
+    color: #6f6a60;
+    font-style: italic;
+}
+
 th {
     background-color: #242320;
     color: #B7B2A7;
