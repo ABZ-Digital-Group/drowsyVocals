@@ -180,6 +180,7 @@ nav ul li a {
     background-color: #B7B2A7;
 }
 .profile-detail-full {
+    grid-column: 1 / -1;
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -202,18 +203,19 @@ nav ul li a {
     display: flex;
     justify-content: start;
     flex-direction: row;
+    flex-wrap: wrap;
+    gap: 10px;
 }
 .roster-actions button{
-    padding: 100px;
+    padding: 10px 20px;
     font-size: 1.2em;
-    width: 15%;
+    width: auto;
     border: none;
     cursor: pointer;
     background-color: #242320;
     color: #B7B2A7;
     border-radius: 5px;
     outline: none;
-    margin-right: 20px;
 }
 
 .roster-content button {
@@ -274,15 +276,23 @@ nav ul li a {
     padding: 10px 0;
     border-bottom: 1px solid #24232022;
 }
+.settings-hint {
+    margin: 4px 0 0;
+    color: #6f6a60;
+    font-size: 0.85em;
+}
 .settings-inline-form {
     flex-direction: row;
+    flex-wrap: wrap;
     align-items: center;
+    justify-content: flex-start;
     gap: 8px;
     margin: 0;
 }
 .settings-add-form {
     flex-direction: row;
     align-items: center;
+    justify-content: flex-start;
     flex-wrap: wrap;
     gap: 10px;
 }
@@ -521,7 +531,8 @@ dialog button {
     display: flex;
     justify-content: start;
     flex-direction: row;
-    /* gap: 10%; */
+    flex-wrap: wrap;
+    gap: 10px;
     margin-top: 20px;
 }
 .roster-stats div {
@@ -529,10 +540,9 @@ dialog button {
     color: #B7B2A7;
     border-radius: 5px;
     font-size: 1.2em;
+    padding: 10px 14px;
     width: 15%;
-    height: 10%;
     text-align: center;
-    margin-right: 20px;
 }
 
 
@@ -566,4 +576,109 @@ dialog button {
     width: 60%;
     padding: 0;
     margin-top: 0;
+}
+
+/* ============ RESPONSIVE / MOBILE LAYOUT ============ */
+
+@media (max-width: 900px) {
+    .profile-page {
+        max-width: 92%;
+        margin: 30px auto;
+    }
+    .profile-details {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    main {
+        margin: 12px;
+    }
+
+    nav {
+        flex-direction: column;
+        gap: 12px;
+        padding: 16px;
+    }
+    nav img {
+        max-width: 30%;
+    }
+    nav ul {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 10px 20px;
+    }
+    nav ul li {
+        margin: 0;
+    }
+
+    .login-container {
+        flex-direction: column;
+        height: auto;
+        min-height: 100vh;
+    }
+    .Logo {
+        width: 100%;
+        height: auto;
+        padding: 30px 0;
+    }
+    .Logo img {
+        max-width: 40%;
+    }
+    .login-form {
+        width: 100%;
+        height: auto;
+        padding: 30px 20px;
+        box-sizing: border-box;
+    }
+    .login-form .footer {
+        position: static;
+        width: 100%;
+        margin-top: 20px;
+    }
+
+    .profile-heading h1 {
+        font-size: 2em;
+    }
+
+    .roster-stats div {
+        width: calc(50% - 5px);
+        box-sizing: border-box;
+    }
+
+    .roster-content {
+        overflow-x: auto;
+    }
+    table {
+        min-width: 700px;
+    }
+
+    dialog {
+        width: 92vw;
+        padding: 18px;
+    }
+
+    .settings-inline-form,
+    .settings-add-form {
+        width: 100%;
+    }
+    .settings-inline-form input[type="text"],
+    .settings-inline-form input[type="number"],
+    .settings-add-form input[type="text"],
+    .settings-add-form input[type="number"] {
+        width: auto;
+        flex: 1 1 110px;
+    }
+}
+
+@media (max-width: 480px) {
+    .profile-heading h1 {
+        font-size: 1.6em;
+    }
+    .roster-stats div {
+        width: 100%;
+    }
+    .profile-page form.login-form-actions {
+        max-width: 100%;
+    }
 }
