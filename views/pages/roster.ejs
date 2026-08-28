@@ -14,8 +14,15 @@
                 <h1>Roster</h1>
                 <p>List of team members will be displayed here.</p>
                 <div class="roster-sub">
+                    <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Dreamy Defender') { %>
+                    <div class="roster-actions">
+                        <button class="createBtn" type="button" id="openAddUserPopup">Add User</button>
+                        <button form="attendanceForm" type="submit">Save Attendance</button>
+                    </div>
+                    <% } %>
                     <div class="online-now-bar" id="onlineNowBar">
                         <span class="online-now-label">Online now:</span>
+                        <br>
                         <% onlineUsers.forEach(function(onlineUser) { %>
                         <%- include('../partials/avatar', {
                             avatarUrl: onlineUser.avatarUrl,
@@ -29,13 +36,6 @@
                         <span class="online-now-empty">No one else online right now.</span>
                         <% } %>
                     </div>
-
-                    <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Dreamy Defender') { %>
-                    <div class="roster-actions">
-                        <button class="createBtn" type="button" id="openAddUserPopup">Add User</button>
-                        <button form="attendanceForm" type="submit">Save Attendance</button>
-                    </div>
-                    <% } %>
                 </div>
                 
                 
