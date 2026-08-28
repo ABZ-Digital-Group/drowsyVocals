@@ -82,6 +82,8 @@
                             <th>Weeks <br>Activity</th>
                             <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Dreamy Defender') { %>
                                 <th>Strikes</th>
+                                <th>Onboarding</th>
+                                <th>Host Training</th>
                                 <th>Actions</th>
                             <% } %>
                         </tr>
@@ -91,12 +93,11 @@
                          <% users.forEach(function(user, index) { %>
                         <% if (index > 0 && users[index - 1].accountType !== user.accountType) { %>
                         <tr class="rank-divider" aria-hidden="true">
-                            <td colspan="<%= (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Dreamy Defender') ? 17 : 14 %>"></td>
+                            <td colspan="<%= (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Dreamy Defender') ? 18 : 13 %>"></td>
                         </tr>
                         <% } %>
                         <% if (user.isVacant) { %>
                         <tr class="vacant-row">
-                            <td></td>
                             <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Dreamy Defender') { %>
                             <td></td>
                             <% } %>
@@ -104,7 +105,9 @@
                             <td colspan="12">Vacant</td>
                             <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Dreamy Defender') { %>
                             <td></td>
-                            
+                            <td></td>
+                            <td></td>
+                            <td></td>
                             <% } %>
                         </tr>
                         <% } else { %>
@@ -128,6 +131,8 @@
                             <td><%= user.weeksActivity %></td>
                             <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Dreamy Defender') { %>
                             <td><%= (user.strikes || []).reduce((sum, strike) => sum + (Number(strike.count) || 0), 0) %></td>
+                                <td class="status-cell <%= user.onboardingComplete ? 'status-yes' : 'status-no' %>"><%= user.onboardingComplete ? 'Complete' : 'Pending' %></td>
+                                <td class="status-cell <%= user.hostTrainingComplete ? 'status-yes' : 'status-no' %>"><%= user.hostTrainingComplete ? 'Complete' : 'Pending' %></td>
                                 <td>
                                 <button
                                     class="viewBtn"
@@ -142,6 +147,9 @@
                                     data-shift="<%= user.shift || '' %>"
                                     data-activity="<%= user.activity || '' %>"
                                     data-weeks-activity="<%= user.weeksActivity || '' %>"
+                                    data-avatar-url="<%= user.avatarUrl || '' %>"
+                                    data-onboarding-complete="<%= user.onboardingComplete ? '1' : '' %>"
+                                    data-host-training-complete="<%= user.hostTrainingComplete ? '1' : '' %>"
                                 >
                                     <span class="material-symbols-outlined">visibility</span>
                             
@@ -168,6 +176,8 @@
                                     data-shift="<%= user.shift || '' %>"
                                     data-activity="<%= user.activity || '' %>"
                                     data-weeks-activity="<%= user.weeksActivity || '' %>"
+                                    data-onboarding-complete="<%= user.onboardingComplete ? '1' : '' %>"
+                                    data-host-training-complete="<%= user.hostTrainingComplete ? '1' : '' %>"
                                 >
                                     <span class="material-symbols-outlined">edit</span>
                                 </button>
@@ -238,6 +248,15 @@
                         <option value="<%= shift.name %>"><%= shift.name %></option>
                         <% }); %>
                     </select>
+                    <hr>
+                    <label class="checkbox-label" for="onboardingComplete">
+                        <input type="checkbox" id="onboardingComplete" name="onboardingComplete">
+                        Onboarding Complete
+                    </label>
+                    <label class="checkbox-label" for="hostTrainingComplete">
+                        <input type="checkbox" id="hostTrainingComplete" name="hostTrainingComplete">
+                        Host Training Complete
+                    </label>
                     <div class="dialog-buttons">
                         <button type="submit">Add User</button>
                         <button type="button" id="closeAddUserPopup">Cancel</button>
@@ -246,12 +265,56 @@
             </dialog>
 
             <dialog id="viewUserPopup">
-                    <p><b>Name:</b> <span id="viewDisplayName"></span></p>
-                    <p><b>Discord User:</b> <span id="viewDiscordUser"></span></p>
-                    <p><b>Rank:</b> <span id="viewAccountType"></span></p>
-                    <p><b>House:</b> <span id="viewHouse"></span></p>
-                    <p><b>House Points:</b> <span id="viewHousePoints"></span></p>
-                    <button type="button" id="closeViewUserPopup">Close</button>
+                <div class="view-user-header">
+                    <div id="viewAvatar" class="view-user-avatar"></div>
+                    <div>
+                        <h2 id="viewDisplayName"></h2>
+                        <p class="view-user-subtitle" id="viewDiscordUser"></p>
+                    </div>
+                </div>
+                <div class="view-user-details">
+                    <div class="view-user-detail">
+                        <span>Rank</span>
+                        <strong id="viewAccountType"></strong>
+                    </div>
+                    <div class="view-user-detail">
+                        <span>Discord ID</span>
+                        <strong id="viewDiscordId"></strong>
+                    </div>
+                    <div class="view-user-detail">
+                        <span>House</span>
+                        <strong id="viewHouse"></strong>
+                    </div>
+                    <div class="view-user-detail">
+                        <span>House Points</span>
+                        <strong id="viewHousePoints"></strong>
+                    </div>
+                    <div class="view-user-detail">
+                        <span>Shift</span>
+                        <strong id="viewShift"></strong>
+                    </div>
+                    <div class="view-user-detail">
+                        <span>Activity</span>
+                        <strong id="viewActivity"></strong>
+                    </div>
+                    <div class="view-user-detail">
+                        <span>Weeks Activity</span>
+                        <strong id="viewWeeksActivity"></strong>
+                    </div>
+                    <div class="view-user-detail">
+                        <span>Hire Date</span>
+                        <strong id="viewHireDate"></strong>
+                    </div>
+                    <div class="view-user-detail">
+                        <span>Onboarding</span>
+                        <strong id="viewOnboarding"></strong>
+                    </div>
+                    <div class="view-user-detail">
+                        <span>Host Training</span>
+                        <strong id="viewHostTraining"></strong>
+                    </div>
+                </div>
+                <button type="button" id="closeViewUserPopup">Close</button>
             </dialog>
 
             <dialog id="addStrikePopup">
@@ -344,6 +407,15 @@
                         <option value="<%= shift.name %>"><%= shift.name %></option>
                         <% }); %>
                     </select>
+                    <hr>
+                    <label class="checkbox-label" for="editOnboardingComplete">
+                        <input type="checkbox" id="editOnboardingComplete" name="onboardingComplete">
+                        Onboarding Complete
+                    </label>
+                    <label class="checkbox-label" for="editHostTrainingComplete">
+                        <input type="checkbox" id="editHostTrainingComplete" name="hostTrainingComplete">
+                        Host Training Complete
+                    </label>
 
                     <div class="dialog-buttons">
                         <button type="submit">Save Changes</button>

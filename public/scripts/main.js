@@ -13,28 +13,29 @@ for (var i = 0; i < data.length; i++) {
     }
 }
 
+// SHARED AVATAR RENDERING HELPERS (USED BY THE ONLINE-NOW BAR AND VIEW-USER POPUP)
+const escapeHtml = (str) => (str || "").toString().replace(/[&<>"']/g, (c) => ({
+  "&": "&amp;",
+  "<": "&lt;",
+  ">": "&gt;",
+  '"': "&quot;",
+  "'": "&#39;"
+}[c]));
+
+const renderAvatarHtml = (user, size, online) => {
+  const initial = escapeHtml((user.displayName || "?").trim().charAt(0).toUpperCase() || "?");
+  const inner = user.avatarUrl
+    ? `<img class="avatar-img" src="${escapeHtml(user.avatarUrl)}" alt="${escapeHtml(user.displayName)}" style="width:${size}px;height:${size}px;">`
+    : `<span class="avatar-initials" style="width:${size}px;height:${size}px;font-size:${Math.floor(size / 2.2)}px;">${initial}</span>`;
+
+  return `<span class="avatar-wrapper${online ? " is-online" : ""}" data-discord-id="${escapeHtml(user.discordId)}" style="width:${size}px;height:${size}px;" title="${escapeHtml(user.displayName)}">${inner}<span class="avatar-online-dot"></span></span>`;
+};
+
 // LIVE "WHO'S ONLINE" PRESENCE, POLLED WHILE THE ROSTER IS OPEN
 const onlineNowBar = document.getElementById("onlineNowBar");
 
 if (onlineNowBar) {
   const onlineNowAvatars = onlineNowBar.querySelector(".online-now-avatars");
-
-  const escapeHtml = (str) => (str || "").toString().replace(/[&<>"']/g, (c) => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#39;"
-  }[c]));
-
-  const renderAvatarHtml = (user, size) => {
-    const initial = escapeHtml((user.displayName || "?").trim().charAt(0).toUpperCase() || "?");
-    const inner = user.avatarUrl
-      ? `<img class="avatar-img" src="${escapeHtml(user.avatarUrl)}" alt="${escapeHtml(user.displayName)}" style="width:${size}px;height:${size}px;">`
-      : `<span class="avatar-initials" style="width:${size}px;height:${size}px;font-size:${Math.floor(size / 2.2)}px;">${initial}</span>`;
-
-    return `<span class="avatar-wrapper is-online" data-discord-id="${escapeHtml(user.discordId)}" style="width:${size}px;height:${size}px;" title="${escapeHtml(user.displayName)}">${inner}<span class="avatar-online-dot"></span></span>`;
-  };
 
   const refreshOnlineUsers = () => {
     if (!onlineNowAvatars) return;
@@ -53,7 +54,7 @@ if (onlineNowBar) {
           onlineNowAvatars.appendChild(empty);
         } else {
           onlineUsers.forEach((user) => {
-            onlineNowAvatars.insertAdjacentHTML("beforeend", renderAvatarHtml(user, 32));
+            onlineNowAvatars.insertAdjacentHTML("beforeend", renderAvatarHtml(user, 32, true));
           });
         }
 
@@ -111,6 +112,8 @@ if (editUserPopup && closeEditUserPopup) {
   const editWeeksActivity = document.getElementById("editWeeksActivity");
   const editShift = document.getElementById("editShift");
   const editPassword = document.getElementById("editPassword");
+  const editOnboardingComplete = document.getElementById("editOnboardingComplete");
+  const editHostTrainingComplete = document.getElementById("editHostTrainingComplete");
 
   editButtons.forEach((button) => {
     button.addEventListener("click", () => {
@@ -124,7 +127,9 @@ if (editUserPopup && closeEditUserPopup) {
         housePoints,
         activity,
         weeksActivity,
-        shift
+        shift,
+        onboardingComplete,
+        hostTrainingComplete
       } = button.dataset;
 
       editOriginalDiscordId.value = discordId || "";
@@ -139,6 +144,8 @@ if (editUserPopup && closeEditUserPopup) {
       editWeeksActivity.value = weeksActivity || 0;
       editShift.value = shift || "NA";
       editPassword.value = "";
+      editOnboardingComplete.checked = Boolean(onboardingComplete);
+      editHostTrainingComplete.checked = Boolean(hostTrainingComplete);
 
       editUserPopup.returnValue = "";
       editUserPopup.showModal();
@@ -151,27 +158,54 @@ if (editUserPopup && closeEditUserPopup) {
 }
 if (viewUserPopup && closeViewUserPopup) {
   const viewButtons = document.querySelectorAll(".viewBtn");
+  const viewAvatar = document.getElementById("viewAvatar");
   const viewDisplayName = document.getElementById("viewDisplayName");
   const viewDiscordUser = document.getElementById("viewDiscordUser");
+  const viewDiscordId = document.getElementById("viewDiscordId");
   const viewAccountType = document.getElementById("viewAccountType");
   const viewHouse = document.getElementById("viewHouse");
   const viewHousePoints = document.getElementById("viewHousePoints");
+  const viewShift = document.getElementById("viewShift");
+  const viewActivity = document.getElementById("viewActivity");
+  const viewWeeksActivity = document.getElementById("viewWeeksActivity");
+  const viewHireDate = document.getElementById("viewHireDate");
+  const viewOnboarding = document.getElementById("viewOnboarding");
+  const viewHostTraining = document.getElementById("viewHostTraining");
 
   viewButtons.forEach((button) => {
     button.addEventListener("click", () => {
       const {
+        discordId,
         displayName,
         discordUser,
         accountType,
         house,
-        housePoints
+        housePoints,
+        shift,
+        activity,
+        weeksActivity,
+        hireDate,
+        avatarUrl,
+        onboardingComplete,
+        hostTrainingComplete
       } = button.dataset;
+
+      if (viewAvatar) {
+        viewAvatar.innerHTML = renderAvatarHtml({ discordId, displayName, avatarUrl }, 96, false);
+      }
 
       viewDisplayName.textContent = displayName || "";
       viewDiscordUser.textContent = discordUser || "";
+      viewDiscordId.textContent = discordId || "";
       viewAccountType.textContent = accountType || "";
       viewHouse.textContent = house || "";
       viewHousePoints.textContent = housePoints || "0";
+      viewShift.textContent = shift || "";
+      viewActivity.textContent = activity || "";
+      viewWeeksActivity.textContent = weeksActivity || "0";
+      viewHireDate.textContent = hireDate || "";
+      viewOnboarding.textContent = onboardingComplete ? "Complete" : "Pending";
+      viewHostTraining.textContent = hostTrainingComplete ? "Complete" : "Pending";
 
       viewUserPopup.showModal();
     });
