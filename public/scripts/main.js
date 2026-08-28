@@ -135,15 +135,52 @@ if (addStrikePopup && closeAddStrikePopup) {
   const strikeDisplayName = document.getElementById("strikeDisplayName");
   const strikeCount = document.getElementById("strikeCount");
   const strikeReason = document.getElementById("strikeReason");
+  const manageStrikesList = document.getElementById("manageStrikesList");
 
   strikeButtons.forEach((button) => {
     button.addEventListener("click", () => {
-      const { discordId, displayName } = button.dataset;
+      const { discordId, displayName, strikes } = button.dataset;
 
       strikeDiscordId.value = discordId || "";
       strikeDisplayName.value = displayName || "";
       strikeCount.value = "1";
       strikeReason.value = "";
+
+      if (manageStrikesList) {
+        manageStrikesList.innerHTML = "";
+
+        let strikeList = [];
+        try {
+          strikeList = strikes ? JSON.parse(strikes) : [];
+        } catch (error) {
+          strikeList = [];
+        }
+
+        if (strikeList.length === 0) {
+          const li = document.createElement("li");
+          li.textContent = "No strikes on record.";
+          manageStrikesList.appendChild(li);
+        } else {
+          strikeList.forEach((strike) => {
+            const li = document.createElement("li");
+            const date = strike.date ? strike.date.slice(0, 10) : "Unknown date";
+
+            const label = document.createElement("span");
+            label.textContent = `${date} - ${strike.count} strike(s): ${strike.reason}`;
+
+            const removeButton = document.createElement("button");
+            removeButton.type = "button";
+            removeButton.textContent = "Remove";
+            removeButton.addEventListener("click", () => {
+              removeStrike(discordId, strike.id);
+            });
+
+            li.appendChild(label);
+            li.appendChild(removeButton);
+            manageStrikesList.appendChild(li);
+          });
+        }
+      }
 
       addStrikePopup.returnValue = "";
       addStrikePopup.showModal();

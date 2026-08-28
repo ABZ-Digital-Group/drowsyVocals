@@ -5,7 +5,7 @@
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <script src="/scripts/main.js?Version=1.6" defer></script>
-        <link rel="stylesheet" href="/css/main.css?Version=1.8">
+        <link rel="stylesheet" href="/css/main.css?Version=1.9">
         <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
         
         <link rel="icon" href="/assets/DrowsyLogo.png" type="image/png">
@@ -115,6 +115,7 @@
                                     type="button"
                                     data-discord-id="<%= user.login.discordId %>"
                                     data-display-name="<%= user.displayName || user.discordUser || user.login.discordId %>"
+                                    data-strikes="<%= JSON.stringify(user.strikes || []) %>"
                                 >
                                     <span class="material-symbols-outlined">warning</span>
                                 </button>
@@ -242,6 +243,9 @@
                         <button type="button" id="closeAddStrikePopup">Cancel</button>
                     </div>
                 </form>
+                <hr>
+                <p><b>Existing Strikes</b></p>
+                <ul id="manageStrikesList"></ul>
             </dialog>
 
             <dialog id="editUserPopup">
@@ -358,11 +362,23 @@
         <form id="deleteUserForm" action="/deleteUser" method="POST" style="display:none;">
             <input type="hidden" name="discordId" id="deleteDiscordId">
         </form>
+        <form id="removeStrikeForm" action="/remove-strike" method="POST" style="display:none;">
+            <input type="hidden" name="discordId" id="removeStrikeDiscordId">
+            <input type="hidden" name="strikeId" id="removeStrikeId">
+        </form>
         <script>
             function deleteUser(discordId) {
                 if(confirm('Are you sure you want to delete this user?')) {
                     document.getElementById('deleteDiscordId').value = discordId;
                     document.getElementById('deleteUserForm').submit();
+                }
+            }
+
+            function removeStrike(discordId, strikeId) {
+                if(confirm('Remove this strike?')) {
+                    document.getElementById('removeStrikeDiscordId').value = discordId;
+                    document.getElementById('removeStrikeId').value = strikeId;
+                    document.getElementById('removeStrikeForm').submit();
                 }
             }
         </script>
