@@ -305,6 +305,12 @@ nav ul li a {
     margin-bottom: 0;
 }
 
+.report-week-nav {
+    display: flex;
+    gap: 10px;
+    margin: 16px 0;
+}
+
 .roster-content table input[type="checkbox"] {
     margin-right: 10px;
     background-color: #242320;
