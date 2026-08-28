@@ -13,6 +13,60 @@ for (var i = 0; i < data.length; i++) {
     }
 }
 
+// LIVE "WHO'S ONLINE" PRESENCE, POLLED WHILE THE ROSTER IS OPEN
+const onlineNowBar = document.getElementById("onlineNowBar");
+
+if (onlineNowBar) {
+  const escapeHtml = (str) => (str || "").toString().replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  }[c]));
+
+  const renderAvatarHtml = (user, size) => {
+    const initial = escapeHtml((user.displayName || "?").trim().charAt(0).toUpperCase() || "?");
+    const inner = user.avatarUrl
+      ? `<img class="avatar-img" src="${escapeHtml(user.avatarUrl)}" alt="${escapeHtml(user.displayName)}" style="width:${size}px;height:${size}px;">`
+      : `<span class="avatar-initials" style="width:${size}px;height:${size}px;font-size:${Math.floor(size / 2.2)}px;">${initial}</span>`;
+
+    return `<span class="avatar-wrapper is-online" data-discord-id="${escapeHtml(user.discordId)}" style="width:${size}px;height:${size}px;" title="${escapeHtml(user.displayName)}">${inner}<span class="avatar-online-dot"></span></span>`;
+  };
+
+  const refreshOnlineUsers = () => {
+    fetch("/api/online-users")
+      .then((response) => (response.ok ? response.json() : Promise.reject(new Error("Request failed"))))
+      .then((payload) => {
+        const onlineUsers = payload.onlineUsers || [];
+        const label = onlineNowBar.querySelector(".online-now-label");
+
+        onlineNowBar.innerHTML = "";
+        if (label) onlineNowBar.appendChild(label);
+
+        if (onlineUsers.length === 0) {
+          const empty = document.createElement("span");
+          empty.className = "online-now-empty";
+          empty.textContent = "No one else online right now.";
+          onlineNowBar.appendChild(empty);
+        } else {
+          onlineUsers.forEach((user) => {
+            onlineNowBar.insertAdjacentHTML("beforeend", renderAvatarHtml(user, 32));
+          });
+        }
+
+        document.querySelectorAll(".roster-content table .avatar-wrapper").forEach((el) => {
+          const isOnline = onlineUsers.some((user) => user.discordId === el.dataset.discordId);
+          el.classList.toggle("is-online", isOnline);
+        });
+      })
+      .catch(() => {});
+  };
+
+  setInterval(refreshOnlineUsers, 20000);
+}
+
+
 const addUserPopup = document.getElementById("addUserPopup");
 const openAddUserPopup = document.getElementById("openAddUserPopup");
 const closeAddUserPopup = document.getElementById("closeAddUserPopup");

@@ -1,0 +1,20 @@
+<%
+var _size = typeof size !== 'undefined' ? size : 40;
+var _online = typeof online !== 'undefined' && online;
+var _discordId = typeof discordId !== 'undefined' ? discordId : '';
+var _displayName = typeof displayName !== 'undefined' ? displayName : '';
+var _initial = (_displayName || '?').trim().charAt(0).toUpperCase() || '?';
+%>
+<span
+    class="avatar-wrapper<%= _online ? ' is-online' : '' %>"
+    data-discord-id="<%= _discordId %>"
+    style="width: <%= _size %>px; height: <%= _size %>px;"
+    title="<%= _displayName %>"
+>
+    <% if (typeof avatarUrl !== 'undefined' && avatarUrl) { %>
+    <img class="avatar-img" src="<%= avatarUrl %>" alt="<%= _displayName %>" style="width: <%= _size %>px; height: <%= _size %>px;">
+    <% } else { %>
+    <span class="avatar-initials" style="width: <%= _size %>px; height: <%= _size %>px; font-size: <%= Math.floor(_size / 2.2) %>px;"><%= _initial %></span>
+    <% } %>
+    <span class="avatar-online-dot"></span>
+</span>

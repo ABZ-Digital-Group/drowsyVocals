@@ -13,9 +13,11 @@
             <section class="profile-page">
                 <div class="profile-heading">
                     <p class="profile-eyebrow">Account profile</p>
-                    <!-- <div class="profile-subheading">
-                        <img src="/assets/background.jpg" alt="background profile Image">
-                    </div> -->
+                    <%- include('../partials/avatar', {
+                        avatarUrl: user.avatarUrl,
+                        displayName: user.displayName || user.discordUser || user.login.discordId,
+                        size: 96
+                    }) %>
                     <h1><%= user.displayName || user.discordUser || user.login.discordId %></h1>
                     <p class="profile-subtitle">Your Drowsy Vocals member details.</p>
                 </div>
@@ -67,6 +69,15 @@
                         <% } else { %>
                         <strong>No strikes on record</strong>
                         <% } %>
+                    </div>
+                    <div class="profile-detail-full">
+                        <span>Profile Picture</span>
+                        <form class="login-form-actions" action="/account/upload-avatar" method="POST" enctype="multipart/form-data">
+                            <label for="avatar">Upload New Photo (PNG, JPEG, or WEBP, max 2MB):</label>
+                            <input type="file" id="avatar" name="avatar" accept="image/png, image/jpeg, image/webp" required>
+
+                            <button type="submit">Upload Photo</button>
+                        </form>
                     </div>
                     <div class="profile-detail-full">
                         <span>Change Password</span>
