@@ -180,6 +180,11 @@ nav ul li a {
     font-size: 1.15em;
 }
 
+.roster-actions {
+    display: flex;
+    justify-content: start;
+    flex-direction: row;
+}
 .roster-actions button{
     padding: 100px;
     font-size: 1.2em;
