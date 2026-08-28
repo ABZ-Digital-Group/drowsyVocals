@@ -17,6 +17,8 @@ for (var i = 0; i < data.length; i++) {
 const onlineNowBar = document.getElementById("onlineNowBar");
 
 if (onlineNowBar) {
+  const onlineNowAvatars = onlineNowBar.querySelector(".online-now-avatars");
+
   const escapeHtml = (str) => (str || "").toString().replace(/[&<>"']/g, (c) => ({
     "&": "&amp;",
     "<": "&lt;",
@@ -35,23 +37,23 @@ if (onlineNowBar) {
   };
 
   const refreshOnlineUsers = () => {
+    if (!onlineNowAvatars) return;
+
     fetch("/api/online-users")
       .then((response) => (response.ok ? response.json() : Promise.reject(new Error("Request failed"))))
       .then((payload) => {
         const onlineUsers = payload.onlineUsers || [];
-        const label = onlineNowBar.querySelector(".online-now-label");
 
-        onlineNowBar.innerHTML = "";
-        if (label) onlineNowBar.appendChild(label);
+        onlineNowAvatars.innerHTML = "";
 
         if (onlineUsers.length === 0) {
           const empty = document.createElement("span");
           empty.className = "online-now-empty";
           empty.textContent = "No one else online right now.";
-          onlineNowBar.appendChild(empty);
+          onlineNowAvatars.appendChild(empty);
         } else {
           onlineUsers.forEach((user) => {
-            onlineNowBar.insertAdjacentHTML("beforeend", renderAvatarHtml(user, 32));
+            onlineNowAvatars.insertAdjacentHTML("beforeend", renderAvatarHtml(user, 32));
           });
         }
 
