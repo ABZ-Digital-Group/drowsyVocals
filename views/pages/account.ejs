@@ -57,7 +57,18 @@
                     </div>
                     <div class="profile-detail-full">
                         <span>Strikes</span>
-                        <strong><%= user.strikes || 'Not provided' %></strong>
+                        <% if (user.strikes && user.strikes.length) { %>
+                        <ul class="strikes-list">
+                            <% user.strikes.forEach(function(strike) { %>
+                            <li>
+                                <strong><%= strike.count %> strike(s)</strong> - <%= strike.reason %>
+                                <br><small><%= (strike.date || '').slice(0, 10) %></small>
+                            </li>
+                            <% }); %>
+                        </ul>
+                        <% } else { %>
+                        <strong>No strikes on record</strong>
+                        <% } %>
                     </div>
                 </div>
             </section>

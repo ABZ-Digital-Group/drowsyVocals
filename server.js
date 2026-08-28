@@ -1,6 +1,7 @@
 // BCRYPT SETUP
 const bcrypt = require('bcrypt');
 const saltRounds = 10;
+const crypto = require('crypto');
 
 require('dotenv').config();
 const path = require('path');
@@ -85,6 +86,9 @@ function requireDatabase(req, res, next) {
     }
     next();
 }
+
+// ROLES ALLOWED TO ISSUE/REMOVE STAFF STRIKES
+const STRIKE_MANAGER_ROLES = ['Mr. Sandman', 'Realm God', 'Dreamy Defender'];
 
 // HEALTH CHECK
 app.get('/health', (req, res) => {
@@ -351,6 +355,73 @@ app.post('/promote-user', requireDatabase, async (req, res) => {
         res.redirect('/roster');
     } catch (error) {
         console.error('Error during user promotion:', error);
+        res.redirect('/roster');
+    }
+});
+
+// ADD STRIKE
+app.post('/add-strike', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin) return res.redirect('/');
+
+    if (!STRIKE_MANAGER_ROLES.includes(req.session.accountType)) {
+        req.flash('error_msg', 'You are not authorized to issue strikes.');
+        return res.redirect('/roster');
+    }
+
+    const { discordId, count, reason } = req.body;
+    const strikeCount = Number(count);
+    const trimmedReason = (reason || '').toString().trim();
+
+    if (!discordId || !trimmedReason || !Number.isInteger(strikeCount) || strikeCount < 1 || strikeCount > 3) {
+        req.flash('error_msg', 'A valid strike count (1-3) and reason are required.');
+        return res.redirect('/roster');
+    }
+
+    try {
+        const user = await db.collection('users').findOne({ 'login.discordId': discordId });
+        if (!user) return res.redirect('/roster');
+
+        const strike = {
+            id: crypto.randomUUID(),
+            count: strikeCount,
+            reason: trimmedReason,
+            issuedBy: req.session.currentuser,
+            date: new Date().toISOString().slice(0, 19)
+        };
+
+        await db.collection('users').updateOne(
+            { 'login.discordId': discordId },
+            { $push: { strikes: strike } }
+        );
+
+        req.flash('success_msg', 'Strike issued successfully.');
+        res.redirect('/roster');
+    } catch (error) {
+        console.error('Error adding strike:', error);
+        res.redirect('/roster');
+    }
+});
+
+// REMOVE STRIKE
+app.post('/remove-strike', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin) return res.redirect('/');
+
+    if (!STRIKE_MANAGER_ROLES.includes(req.session.accountType)) {
+        req.flash('error_msg', 'You are not authorized to remove strikes.');
+        return res.redirect('/roster');
+    }
+
+    const { discordId, strikeId } = req.body;
+    if (!discordId || !strikeId) return res.redirect('/roster');
+
+    try {
+        await db.collection('users').updateOne(
+            { 'login.discordId': discordId },
+            { $pull: { strikes: { id: strikeId } } }
+        );
+        res.redirect('/roster');
+    } catch (error) {
+        console.error('Error removing strike:', error);
         res.redirect('/roster');
     }
 });
