@@ -90,6 +90,15 @@ function requireDatabase(req, res, next) {
 // ROLES ALLOWED TO ISSUE/REMOVE STAFF STRIKES
 const STRIKE_MANAGER_ROLES = ['Mr. Sandman', 'Realm God', 'Dreamy Defender'];
 
+// MONDAY-STARTING ISO DATE FOR THE WEEK CONTAINING THE GIVEN DATE
+function getWeekStart(date) {
+    const d = new Date(date);
+    const dayOffset = (d.getDay() + 6) % 7;
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() - dayOffset);
+    return d.toISOString().slice(0, 10);
+}
+
 // HEALTH CHECK
 app.get('/health', (req, res) => {
     res.status(!shuttingDown && isDatabaseReady ? 200 : 503).json({
@@ -426,6 +435,59 @@ app.post('/remove-strike', requireDatabase, async (req, res) => {
     }
 });
 
+// MARK WEEKLY MEETING ATTENDANCE FOR ALL USERS AT ONCE
+app.post('/mark-attendance', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin) return res.redirect('/');
+
+    if (!STRIKE_MANAGER_ROLES.includes(req.session.accountType)) {
+        req.flash('error_msg', 'You are not authorized to record attendance.');
+        return res.redirect('/roster');
+    }
+
+    const { week } = req.body;
+    let { attendees } = req.body;
+
+    if (!week) return res.redirect('/roster');
+    if (!attendees) attendees = [];
+    if (!Array.isArray(attendees)) attendees = [attendees];
+
+    try {
+        const allUsers = await db.collection('users')
+            .find({}, { projection: { 'login.discordId': 1 } })
+            .toArray();
+
+        // Drop any existing record for this week before re-recording it.
+        await db.collection('users').updateMany({}, { $pull: { attendance: { week } } });
+
+        const recordedAt = new Date().toISOString().slice(0, 19);
+        const bulkOps = allUsers.map((user) => ({
+            updateOne: {
+                filter: { 'login.discordId': user.login.discordId },
+                update: {
+                    $push: {
+                        attendance: {
+                            week,
+                            attended: attendees.includes(user.login.discordId),
+                            recordedBy: req.session.currentuser,
+                            recordedAt
+                        }
+                    }
+                }
+            }
+        }));
+
+        if (bulkOps.length) {
+            await db.collection('users').bulkWrite(bulkOps);
+        }
+
+        req.flash('success_msg', `Attendance saved for week of ${week}.`);
+        res.redirect('/roster');
+    } catch (error) {
+        console.error('Error recording attendance:', error);
+        res.redirect('/roster');
+    }
+});
+
 // DELETE USER
 app.post('/deleteUser', requireDatabase, async (req, res) => {
     if (!req.session.loggedin) return res.redirect('/');
@@ -575,6 +637,7 @@ app.get('/roster', requireDatabase, async (req, res) => {
 
         const msPerDay = 1000 * 60 * 60 * 24;
         const today = new Date();
+        const currentWeek = getWeekStart(today);
 
         const usersWithService = users.map((user) => {
             const hire = user.hireDate ? new Date(user.hireDate) : null;
@@ -590,10 +653,14 @@ app.get('/roster', requireDatabase, async (req, res) => {
                 ? Math.max(0, Math.floor((today - promotion) / msPerDay))
                 : 0;
 
+            const attendanceRecord = (Array.isArray(user.attendance) ? user.attendance : [])
+                .find((record) => record.week === currentWeek);
+
             return {
                 ...user,
                 timeInService: daysInService,
-                timeInGrade: daysInGrade
+                timeInGrade: daysInGrade,
+                attendedThisWeek: attendanceRecord ? attendanceRecord.attended : false
             };
         });
 
@@ -615,7 +682,8 @@ app.get('/roster', requireDatabase, async (req, res) => {
             activeUsers,
             inactiveUsers,
             semiActiveUsers,
-            loaUsers
+            loaUsers,
+            currentWeek
         });
     } catch (error) {
         console.error('Error fetching users:', error);
