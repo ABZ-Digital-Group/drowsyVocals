@@ -99,6 +99,55 @@ function getWeekStart(date) {
     return d.toISOString().slice(0, 10);
 }
 
+// CONFIGURABLE FORM OPTIONS (RANK, HOUSE, SHIFT, ACTIVITY) MANAGED VIA /settings
+const SETTINGS_CATEGORIES = ['ranks', 'houses', 'shifts', 'activities'];
+
+const DEFAULT_SETTINGS = {
+    ranks: [
+        { name: 'Mr. Sandman', order: 0 },
+        { name: 'Realm God', order: 1 },
+        { name: 'Dreamy Defender', order: 2 },
+        { name: 'Dreamland Guard', order: 3 },
+        { name: 'Nighty Knights', order: 4 },
+        { name: 'Tired Esquire', order: 5 }
+    ],
+    houses: [
+        { name: 'Stubo United', color: '#B29EFA' },
+        { name: 'Penguin Force', color: '#90F8FF' },
+        { name: 'Drowsy Operators', color: '#FF9B8E' }
+    ],
+    shifts: [
+        { name: 'NA', color: '#7AADFF' },
+        { name: 'EU', color: '#faa9a4' },
+        { name: 'AU', color: '#FFC978' }
+    ],
+    activities: [
+        { name: 'Active', color: '#E4FFE8' },
+        { name: 'Semi-Active', color: '#FFF1C2' },
+        { name: 'Inactive', color: '#F9C0BC' },
+        { name: 'LOA', color: '#A9CAFF' }
+    ]
+};
+
+// FETCH THE SINGLE APP SETTINGS DOCUMENT, SEEDING DEFAULTS ON FIRST USE
+async function getSettings() {
+    let settingsDoc = await db.collection('settings').findOne({ _id: 'appSettings' });
+
+    if (!settingsDoc) {
+        settingsDoc = { _id: 'appSettings', ...DEFAULT_SETTINGS };
+        await db.collection('settings').insertOne(settingsDoc);
+    }
+
+    return settingsDoc;
+}
+
+function buildColorMap(list) {
+    return (list || []).reduce((map, item) => {
+        map[item.name] = item.color || '';
+        return map;
+    }, {});
+}
+
 // HEALTH CHECK
 app.get('/health', (req, res) => {
     res.status(!shuttingDown && isDatabaseReady ? 200 : 503).json({
@@ -323,16 +372,11 @@ app.post('/promote-user', requireDatabase, async (req, res) => {
     if (!req.session.loggedin) return res.redirect('/');
 
     const { discordId, accountType, effectiveDate, rankActionType } = req.body;
-    const allowedRanks = [
-        'Mr. Sandman',
-        'Realm God',
-        'Dreamy Defender',
-        'Dreamland Guard',
-        'Nighty Knights',
-        'Tired Esquire'
-    ];
 
     try {
+        const settings = await getSettings();
+        const allowedRanks = settings.ranks.map((rank) => rank.name);
+
         if (!discordId || !allowedRanks.includes(accountType)) {
             return res.redirect('/roster');
         }
@@ -488,6 +532,144 @@ app.post('/mark-attendance', requireDatabase, async (req, res) => {
     }
 });
 
+// SETTINGS PAGE
+app.get('/settings', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin) return res.redirect('/');
+
+    if (!MANAGEMENT_ROLES.includes(req.session.accountType)) {
+        req.flash('error_msg', 'You are not authorized to view settings.');
+        return res.redirect('/dashboard');
+    }
+
+    try {
+        const settings = await getSettings();
+        res.render('pages/settings', { page: 'settings', settings });
+    } catch (error) {
+        console.error('Error loading settings:', error);
+        res.status(500).send('Error loading settings.');
+    }
+});
+
+// ADD SETTINGS OPTION
+app.post('/settings/add-option', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin) return res.redirect('/');
+
+    if (!MANAGEMENT_ROLES.includes(req.session.accountType)) {
+        req.flash('error_msg', 'You are not authorized to manage settings.');
+        return res.redirect('/settings');
+    }
+
+    const { category, name, color, order } = req.body;
+    const trimmedName = (name || '').toString().trim();
+
+    if (!SETTINGS_CATEGORIES.includes(category) || !trimmedName) {
+        req.flash('error_msg', 'A category and name are required.');
+        return res.redirect('/settings');
+    }
+
+    try {
+        const settings = await getSettings();
+        const alreadyExists = (settings[category] || [])
+            .some((item) => item.name.toLowerCase() === trimmedName.toLowerCase());
+
+        if (alreadyExists) {
+            req.flash('error_msg', 'That option already exists.');
+            return res.redirect('/settings');
+        }
+
+        const option = { name: trimmedName };
+        if (category === 'ranks') {
+            const parsedOrder = Number(order);
+            option.order = Number.isFinite(parsedOrder) ? parsedOrder : settings.ranks.length;
+        } else {
+            option.color = color || '#242320';
+        }
+
+        await db.collection('settings').updateOne(
+            { _id: 'appSettings' },
+            { $push: { [category]: option } },
+            { upsert: true }
+        );
+
+        req.flash('success_msg', 'Option added.');
+        res.redirect('/settings');
+    } catch (error) {
+        console.error('Error adding settings option:', error);
+        res.redirect('/settings');
+    }
+});
+
+// UPDATE SETTINGS OPTION
+app.post('/settings/update-option', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin) return res.redirect('/');
+
+    if (!MANAGEMENT_ROLES.includes(req.session.accountType)) {
+        req.flash('error_msg', 'You are not authorized to manage settings.');
+        return res.redirect('/settings');
+    }
+
+    const { category, originalName, name, color, order } = req.body;
+    const trimmedName = (name || '').toString().trim();
+
+    if (!SETTINGS_CATEGORIES.includes(category) || !originalName || !trimmedName) {
+        return res.redirect('/settings');
+    }
+
+    try {
+        const updateFields = {
+            [`${category}.$[item].name`]: trimmedName
+        };
+
+        if (category === 'ranks') {
+            const parsedOrder = Number(order);
+            updateFields[`${category}.$[item].order`] = Number.isFinite(parsedOrder) ? parsedOrder : 0;
+        } else {
+            updateFields[`${category}.$[item].color`] = color || '#242320';
+        }
+
+        await db.collection('settings').updateOne(
+            { _id: 'appSettings' },
+            { $set: updateFields },
+            { arrayFilters: [{ 'item.name': originalName }] }
+        );
+
+        req.flash('success_msg', 'Option updated.');
+        res.redirect('/settings');
+    } catch (error) {
+        console.error('Error updating settings option:', error);
+        res.redirect('/settings');
+    }
+});
+
+// DELETE SETTINGS OPTION
+app.post('/settings/delete-option', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin) return res.redirect('/');
+
+    if (!MANAGEMENT_ROLES.includes(req.session.accountType)) {
+        req.flash('error_msg', 'You are not authorized to manage settings.');
+        return res.redirect('/settings');
+    }
+
+    const { category, name } = req.body;
+
+    if (!SETTINGS_CATEGORIES.includes(category) || !name) {
+        return res.redirect('/settings');
+    }
+
+    try {
+        await db.collection('settings').updateOne(
+            { _id: 'appSettings' },
+            { $pull: { [category]: { name } } }
+        );
+
+        req.flash('success_msg', 'Option removed.');
+        res.redirect('/settings');
+    } catch (error) {
+        console.error('Error deleting settings option:', error);
+        res.redirect('/settings');
+    }
+});
+
 // DELETE USER
 app.post('/deleteUser', requireDatabase, async (req, res) => {
     if (!req.session.loggedin) return res.redirect('/');
@@ -564,11 +746,45 @@ app.get('/dashboard', requireDatabase, async (req, res) => {
         const currentDisplayName = userDoc?.displayName || currentDiscordId;
         const accountType = userDoc ? userDoc.accountType : null;
 
+        const totalStrikes = (userDoc?.strikes || []).reduce((sum, strike) => sum + (Number(strike.count) || 0), 0);
+        const pendingLoaCount = (userDoc?.loaRequests || []).filter((request) => request.status === 'Pending').length;
+        const currentWeek = getWeekStart(new Date());
+        const attendedThisWeek = (userDoc?.attendance || []).some((record) => record.week === currentWeek && record.attended);
+
+        let staffSummary = null;
+        let pendingLoaTotal = 0;
+
+        if (MANAGEMENT_ROLES.includes(accountType)) {
+            const allUsers = await db.collection('users').find({}, {
+                projection: { activity: 1, loaRequests: 1 }
+            }).toArray();
+
+            staffSummary = {
+                total: allUsers.length,
+                active: allUsers.filter((u) => u.activity === 'Active').length,
+                inactive: allUsers.filter((u) => u.activity === 'Inactive').length,
+                semiActive: allUsers.filter((u) => u.activity === 'Semi-Active').length,
+                loa: allUsers.filter((u) => u.activity === 'LOA').length
+            };
+
+            pendingLoaTotal = allUsers.reduce((sum, u) => (
+                sum + (u.loaRequests || []).filter((request) => request.status === 'Pending').length
+            ), 0);
+        }
+
         res.render('pages/dashboard', {
             page: 'dashboard',
             currentDisplayName,
             currentDiscordId,
-            accountType
+            accountType,
+            house: userDoc?.house || null,
+            housePoints: userDoc?.housePoints ?? null,
+            activity: userDoc?.activity || null,
+            totalStrikes,
+            pendingLoaCount,
+            attendedThisWeek,
+            staffSummary,
+            pendingLoaTotal
         });
     } catch (error) {
         console.error('Error loading dashboard:', error);
@@ -740,24 +956,22 @@ app.get('/roster', requireDatabase, async (req, res) => {
         res.locals.loaUsers = loaUsers;
         res.locals.totalUsers = totalUsers;
 
-        const rankOrder = {
-            'mr sandman': 0,
-            'realm god': 1,
-            'realm gods': 1,
-            'drowsy defender': 2,
-            'drowsy defenders': 2,
-            'dreamy defender': 2,
-            'dreamland guard': 3,
-            'nighty knight': 4,
-            'nighty knights': 4,
-            'tired esquire': 5
-        };
+        const settings = await getSettings();
 
         const normalizeRank = (rank) => (rank || '')
             .toString()
             .toLowerCase()
             .replace(/\./g, '')
             .trim();
+
+        const rankOrder = {};
+        settings.ranks.forEach((rank, index) => {
+            rankOrder[normalizeRank(rank.name)] = Number.isFinite(rank.order) ? rank.order : index;
+        });
+
+        const houseColorMap = buildColorMap(settings.houses);
+        const shiftColorMap = buildColorMap(settings.shifts);
+        const activityColorMap = buildColorMap(settings.activities);
 
         const msPerDay = 1000 * 60 * 60 * 24;
         const today = new Date();
@@ -807,7 +1021,11 @@ app.get('/roster', requireDatabase, async (req, res) => {
             inactiveUsers,
             semiActiveUsers,
             loaUsers,
-            currentWeek
+            currentWeek,
+            settings,
+            houseColorMap,
+            shiftColorMap,
+            activityColorMap
         });
     } catch (error) {
         console.error('Error fetching users:', error);

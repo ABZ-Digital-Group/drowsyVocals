@@ -201,7 +201,7 @@ if (promoteUserPopup && closePromoteUserPopup) {
   const currentRank = document.getElementById("currentRank");
   const promoteAccountType = document.getElementById("promoteAccountType");
   const effectiveDate = document.getElementById("effectiveDate");
-  const rankOrder = [
+  const rankOrder = window.APP_RANKS || [
     "Mr. Sandman",
     "Realm God",
     "Dreamy Defender",

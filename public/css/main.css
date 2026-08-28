@@ -11,12 +11,16 @@
 body{
     margin: 0;
     width: 100%;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
     color: #242320;
     font-family: DrowsyFont, sans-serif;
     background-color: #B7B2A7;
 }
 main{
     margin: 20px;
+    flex: 1 0 auto;
 }
 .login-page {
     margin: 0;
@@ -257,6 +261,50 @@ nav ul li a {
     background-color: #FFF1C2;
 }
 
+.settings-list {
+    list-style: none;
+    padding: 0;
+    margin: 10px 0 20px;
+}
+.settings-list li {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 10px 0;
+    border-bottom: 1px solid #24232022;
+}
+.settings-inline-form {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+}
+.settings-add-form {
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+.settings-add-form label {
+    width: auto;
+    margin: 0;
+}
+.settings-inline-form input[type="text"],
+.settings-inline-form input[type="number"],
+.settings-add-form input[type="text"],
+.settings-add-form input[type="number"] {
+    width: 160px;
+    margin-bottom: 0;
+}
+.settings-inline-form input[type="color"],
+.settings-add-form input[type="color"] {
+    width: 50px;
+    height: 38px;
+    padding: 2px;
+    margin-bottom: 0;
+}
+
 .roster-content table input[type="checkbox"] {
     margin-right: 10px;
     background-color: #242320;
@@ -488,12 +536,22 @@ dialog button {
 
 
 .footer {
+    flex-shrink: 0;
     margin-top: 20px;
+    padding: 20px 0;
     text-align: center;
     color: #242320;
     font-size: 1em;
     font-weight: bold;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Preserve the login page's original overlaid footer positioning. */
+.login-form .footer {
     position: absolute;
     bottom: 20px;
     width: 60%;
+    padding: 0;
+    margin-top: 0;
 }
