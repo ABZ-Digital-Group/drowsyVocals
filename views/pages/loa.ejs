@@ -17,16 +17,16 @@
                 <h1>Leave of Absence</h1>
                 <p>Apply for a leave of absence and track the status of your requests.</p>
 
-                <form action="/apply-loa" method="POST">
+                <form class="login-form-actions" action="/apply-loa" method="POST">
                     <label for="startDate">Start Date:</label>
                     <input type="date" id="startDate" name="startDate" required>
-                    <br>
+
                     <label for="endDate">End Date:</label>
                     <input type="date" id="endDate" name="endDate" required>
-                    <br>
+
                     <label for="reason">Reason:</label>
                     <textarea id="reason" name="reason" rows="3" required></textarea>
-                    <br>
+
                     <button type="submit">Submit Request</button>
                 </form>
             </section>
@@ -52,7 +52,7 @@
                             <td><%= request.startDate %></td>
                             <td><%= request.endDate %></td>
                             <td><%= request.reason %></td>
-                            <td><%= request.status %></td>
+                            <td class="activity-cell status-<%= request.status.toLowerCase() %>"><%= request.status %></td>
                             <td><%= (request.requestedAt || '').slice(0, 10) %></td>
                         </tr>
                         <% }); %>

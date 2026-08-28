@@ -76,6 +76,20 @@ main{
     border-radius: 5px;
     outline: none;
 }
+.login-form-actions textarea,
+.login-form-actions select {
+    margin-bottom: 20px;
+    padding: 10px;
+    font-size: 1em;
+    width: 100%;
+    border: none;
+    background-color: #242320;
+    color: #B7B2A7;
+    border-radius: 5px;
+    outline: none;
+    font-family: inherit;
+    box-sizing: border-box;
+}
 .login-form-actions button {
     padding: 10px;
     font-size: 1.2em;
@@ -208,6 +222,20 @@ nav ul li a {
     border-radius: 5px;
     outline: none;
 
+}
+
+.roster-content form.login-form-actions {
+    max-width: 400px;
+}
+
+.status-approved {
+    background-color: #E4FFE8;
+}
+.status-denied {
+    background-color: #F9C0BC;
+}
+.status-pending {
+    background-color: #FFF1C2;
 }
 
 .roster-content table input[type="checkbox"] {
