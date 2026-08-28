@@ -99,7 +99,7 @@
                             <td class="activity-cell <%= user.activity === 'Active' ? 'activity-active' : user.activity === 'Inactive' ? 'activity-inactive' : user.activity === 'Semi-Active' ? 'activity-semi-active' : user.activity === 'LOA' ? 'activity-loa' : '' %>"><%= user.activity %></td>
                             <td><%= user.weeksActivity %></td>
                             <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Dreamy Defender') { %>
-                            <td><%= user.strikes ? user.strikes.length : 0 %></td>
+                            <td><%= (user.strikes || []).reduce((sum, strike) => sum + (Number(strike.count) || 0), 0) %></td>
                                 <td>
                                 <button
                                     class="viewBtn"
