@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <script src="/scripts/main.js" defer></script>
+        <link rel="stylesheet" href="/css/main.css">
+        <title>Drowsy LOA</title>
+    </head>
+    <body>
+        <header>
+            <%- include('../partials/nav') %>
+        </header>
+        <main>
+            <section class="roster-content">
+                <h1>Leave of Absence</h1>
+                <p>Apply for a leave of absence and track the status of your requests.</p>
+
+                <form action="/apply-loa" method="POST">
+                    <label for="startDate">Start Date:</label>
+                    <input type="date" id="startDate" name="startDate" required>
+                    <br>
+                    <label for="endDate">End Date:</label>
+                    <input type="date" id="endDate" name="endDate" required>
+                    <br>
+                    <label for="reason">Reason:</label>
+                    <textarea id="reason" name="reason" rows="3" required></textarea>
+                    <br>
+                    <button type="submit">Submit Request</button>
+                </form>
+            </section>
+
+            <section class="roster-content">
+                <h2>Your LOA History</h2>
+                <% if (loaHistory.length === 0) { %>
+                <p>No LOA requests on record.</p>
+                <% } else { %>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Start Date</th>
+                            <th>End Date</th>
+                            <th>Reason</th>
+                            <th>Status</th>
+                            <th>Requested</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% loaHistory.forEach(function(request) { %>
+                        <tr>
+                            <td><%= request.startDate %></td>
+                            <td><%= request.endDate %></td>
+                            <td><%= request.reason %></td>
+                            <td><%= request.status %></td>
+                            <td><%= (request.requestedAt || '').slice(0, 10) %></td>
+                        </tr>
+                        <% }); %>
+                    </tbody>
+                </table>
+                <% } %>
+            </section>
+
+            <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Dreamy Defender') { %>
+            <section class="roster-content">
+                <h2>Pending LOA Requests</h2>
+                <% if (pendingRequests.length === 0) { %>
+                <p>No pending LOA requests.</p>
+                <% } else { %>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Staff Member</th>
+                            <th>Start Date</th>
+                            <th>End Date</th>
+                            <th>Reason</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% pendingRequests.forEach(function(request) { %>
+                        <tr>
+                            <td><%= request.displayName %></td>
+                            <td><%= request.startDate %></td>
+                            <td><%= request.endDate %></td>
+                            <td><%= request.reason %></td>
+                            <td>
+                                <form action="/review-loa" method="POST" style="display:inline;">
+                                    <input type="hidden" name="discordId" value="<%= request.discordId %>">
+                                    <input type="hidden" name="requestId" value="<%= request.id %>">
+                                    <button type="submit" name="decision" value="Approved">Approve</button>
+                                    <button type="submit" name="decision" value="Denied">Deny</button>
+                                </form>
+                            </td>
+                        </tr>
+                        <% }); %>
+                    </tbody>
+                </table>
+                <% } %>
+            </section>
+            <% } %>
+        </main>
+        <div class="footer">
+            <p>&copy; 2026 Drowsy Vocals | All rights reserved.</p>
+        </div>
+    </body>
+</html>
