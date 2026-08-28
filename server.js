@@ -104,12 +104,12 @@ const SETTINGS_CATEGORIES = ['ranks', 'houses', 'shifts', 'activities'];
 
 const DEFAULT_SETTINGS = {
     ranks: [
-        { name: 'Mr. Sandman', order: 0 },
-        { name: 'Realm God', order: 1 },
-        { name: 'Dreamy Defender', order: 2 },
-        { name: 'Dreamland Guard', order: 3 },
-        { name: 'Nighty Knights', order: 4 },
-        { name: 'Tired Esquire', order: 5 }
+        { name: 'Mr. Sandman', order: 0, capacity: null },
+        { name: 'Realm God', order: 1, capacity: null },
+        { name: 'Dreamy Defender', order: 2, capacity: null },
+        { name: 'Dreamland Guard', order: 3, capacity: null },
+        { name: 'Nighty Knights', order: 4, capacity: null },
+        { name: 'Tired Esquire', order: 5, capacity: null }
     ],
     houses: [
         { name: 'Stubo United', color: '#B29EFA' },
@@ -146,6 +146,13 @@ function buildColorMap(list) {
         map[item.name] = item.color || '';
         return map;
     }, {});
+}
+
+// PARSE A RANK CAPACITY INPUT: BLANK MEANS UNLIMITED SLOTS
+function parseCapacity(value) {
+    if (value === undefined || value === null || value === '') return null;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) && parsed >= 0 ? Math.floor(parsed) : null;
 }
 
 // HEALTH CHECK
@@ -690,7 +697,7 @@ app.post('/settings/add-option', requireDatabase, async (req, res) => {
         return res.redirect('/settings');
     }
 
-    const { category, name, color, order } = req.body;
+    const { category, name, color, order, capacity } = req.body;
     const trimmedName = (name || '').toString().trim();
 
     if (!SETTINGS_CATEGORIES.includes(category) || !trimmedName) {
@@ -712,6 +719,7 @@ app.post('/settings/add-option', requireDatabase, async (req, res) => {
         if (category === 'ranks') {
             const parsedOrder = Number(order);
             option.order = Number.isFinite(parsedOrder) ? parsedOrder : settings.ranks.length;
+            option.capacity = parseCapacity(capacity);
         } else {
             option.color = color || '#242320';
         }
@@ -739,7 +747,7 @@ app.post('/settings/update-option', requireDatabase, async (req, res) => {
         return res.redirect('/settings');
     }
 
-    const { category, originalName, name, color, order } = req.body;
+    const { category, originalName, name, color, order, capacity } = req.body;
     const trimmedName = (name || '').toString().trim();
 
     if (!SETTINGS_CATEGORIES.includes(category) || !originalName || !trimmedName) {
@@ -754,6 +762,7 @@ app.post('/settings/update-option', requireDatabase, async (req, res) => {
         if (category === 'ranks') {
             const parsedOrder = Number(order);
             updateFields[`${category}.$[item].order`] = Number.isFinite(parsedOrder) ? parsedOrder : 0;
+            updateFields[`${category}.$[item].capacity`] = parseCapacity(capacity);
         } else {
             updateFields[`${category}.$[item].color`] = color || '#242320';
         }
@@ -1193,9 +1202,30 @@ app.get('/roster', requireDatabase, async (req, res) => {
             return nameA.localeCompare(nameB);
         });
 
+        // INSERT BLANK PLACEHOLDER ROWS FOR ANY RANKS WITH UNFILLED CAPACITY
+        const sortedRanks = settings.ranks.slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+        const knownRankKeys = new Set(sortedRanks.map((rank) => normalizeRank(rank.name)));
+        const rosterRows = [];
+
+        sortedRanks.forEach((rank) => {
+            const rankKey = normalizeRank(rank.name);
+            const membersOfRank = usersWithService.filter((user) => normalizeRank(user.accountType) === rankKey);
+            rosterRows.push(...membersOfRank);
+
+            if (Number.isFinite(rank.capacity) && rank.capacity > membersOfRank.length) {
+                const vacancies = rank.capacity - membersOfRank.length;
+                for (let i = 0; i < vacancies; i += 1) {
+                    rosterRows.push({ isVacant: true, accountType: rank.name });
+                }
+            }
+        });
+
+        // KEEP ANY USERS WHOSE RANK NO LONGER EXISTS IN SETTINGS AT THE END
+        rosterRows.push(...usersWithService.filter((user) => !knownRankKeys.has(normalizeRank(user.accountType))));
+
         res.render('pages/roster', {
             page: 'roster',
-            users: usersWithService,
+            users: rosterRows,
             totalUsers,
             activeUsers,
             inactiveUsers,

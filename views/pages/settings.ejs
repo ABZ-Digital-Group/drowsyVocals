@@ -26,6 +26,7 @@
                                     <input type="hidden" name="originalName" value="<%= rank.name %>">
                                     <input type="text" name="name" value="<%= rank.name %>" required>
                                     <input type="number" name="order" value="<%= rank.order %>" required>
+                                    <input type="number" name="capacity" min="0" placeholder="Unlimited" value="<%= rank.capacity ?? '' %>">
                                     <button type="submit">Save</button>
                                 </form>
                                 <form action="/settings/delete-option" method="POST">
@@ -42,6 +43,8 @@
                             <input type="text" id="newRankName" name="name" placeholder="Rank name" required>
                             <label for="newRankOrder">Sort Order:</label>
                             <input type="number" id="newRankOrder" name="order" value="<%= settings.ranks.length %>" required>
+                            <label for="newRankCapacity">Capacity:</label>
+                            <input type="number" id="newRankCapacity" name="capacity" min="0" placeholder="Unlimited">
                             <button type="submit">Add Rank</button>
                         </form>
                     </div>
