@@ -1413,6 +1413,113 @@ app.get('/roster', requireDatabase, async (req, res) => {
     }
 });
 
+// FUTURE ROSTER PLANNER
+app.get('/roster-planner', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !MANAGEMENT_ROLES.includes(req.session.accountType)) {
+        req.flash('error_msg', 'You are not authorized to plan the roster.');
+        return res.redirect('/dashboard');
+    }
+
+    try {
+        const currentWeek = getWeekStart(new Date());
+        const requestedWeek = /^\d{4}-\d{2}-\d{2}$/.test(req.query.week || '')
+            ? getWeekStart(req.query.week)
+            : addDays(currentWeek, 7);
+        const [settings, users, savedPlan] = await Promise.all([
+            getSettings(),
+            db.collection('users').find().toArray(),
+            db.collection('rosterPlans').findOne({ week: requestedWeek })
+        ]);
+
+        const plannedAssignments = new Map((savedPlan?.assignments || []).map((assignment) => [
+            assignment.discordId,
+            assignment
+        ]));
+        const ranks = settings.ranks.slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+        const rankNames = new Set(ranks.map((rank) => rank.name));
+        const lanes = ranks.map((rank) => ({ ...rank, users: [] }));
+        const lanesByRank = new Map(lanes.map((lane) => [lane.name, lane]));
+
+        users.forEach((user) => {
+            const assignment = plannedAssignments.get(user.login.discordId);
+            const plannedRank = rankNames.has(assignment?.accountType) ? assignment.accountType : user.accountType;
+            const lane = lanesByRank.get(plannedRank);
+            if (lane) {
+                lane.users.push({
+                    ...user,
+                    plannedPosition: Number.isFinite(assignment?.position) ? assignment.position : Number.MAX_SAFE_INTEGER
+                });
+            }
+        });
+
+        lanes.forEach((lane) => lane.users.sort((a, b) => (
+            a.plannedPosition - b.plannedPosition || (a.displayName || a.discordUser || '').localeCompare(b.displayName || b.discordUser || '')
+        )));
+
+        res.render('pages/roster-planner', {
+            page: 'roster-planner',
+            planWeek: requestedWeek,
+            lanes,
+            hasSavedPlan: Boolean(savedPlan)
+        });
+    } catch (error) {
+        console.error('Error loading roster planner:', error);
+        res.status(500).send('Error loading roster planner.');
+    }
+});
+
+// SAVE A DRAFT OF FUTURE RANK ASSIGNMENTS AND ORDERING
+app.post('/roster-planner/save', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !MANAGEMENT_ROLES.includes(req.session.accountType)) {
+        req.flash('error_msg', 'You are not authorized to save roster plans.');
+        return res.redirect('/dashboard');
+    }
+
+    const { week, assignments } = req.body;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(week || '')) return res.redirect('/roster-planner');
+
+    try {
+        const parsedAssignments = JSON.parse(assignments || '[]');
+        if (!Array.isArray(parsedAssignments)) throw new Error('Assignments must be an array.');
+
+        const settings = await getSettings();
+        const rankNames = new Set(settings.ranks.map((rank) => rank.name));
+        const uniqueIds = new Set();
+        const validAssignments = parsedAssignments.map((assignment, position) => {
+            if (!assignment || typeof assignment.discordId !== 'string' || !rankNames.has(assignment.accountType)) {
+                throw new Error('Invalid roster plan assignment.');
+            }
+            if (uniqueIds.has(assignment.discordId)) throw new Error('Duplicate roster plan assignment.');
+            uniqueIds.add(assignment.discordId);
+            return { discordId: assignment.discordId, accountType: assignment.accountType, position };
+        });
+
+        const existingUsers = await db.collection('users').countDocuments({
+            'login.discordId': { $in: validAssignments.map((assignment) => assignment.discordId) }
+        });
+        if (existingUsers !== validAssignments.length) throw new Error('Roster plan references an unknown user.');
+
+        await db.collection('rosterPlans').updateOne(
+            { week },
+            {
+                $set: {
+                    assignments: validAssignments,
+                    updatedAt: new Date().toISOString().slice(0, 19),
+                    updatedBy: req.session.currentuser
+                }
+            },
+            { upsert: true }
+        );
+
+        req.flash('success_msg', `Roster plan saved for week of ${week}.`);
+        res.redirect(`/roster-planner?week=${week}`);
+    } catch (error) {
+        console.error('Error saving roster plan:', error);
+        req.flash('error_msg', 'Unable to save the roster plan.');
+        res.redirect(`/roster-planner?week=${week}`);
+    }
+});
+
 // BINGO BOARD
 app.get('/bingo', requireDatabase, async (req, res) => {
     if (!req.session.loggedin) return res.redirect('/');

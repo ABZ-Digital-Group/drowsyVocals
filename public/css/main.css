@@ -360,6 +360,132 @@ nav ul li a {
     text-align: left;
 }
 
+.planner-page {
+    max-width: 1440px;
+    width: calc(100% - 40px);
+    margin: 28px auto;
+}
+.planner-heading,
+.planner-actions,
+.planner-week-form {
+    display: flex;
+    align-items: end;
+    gap: 12px;
+}
+.planner-heading {
+    justify-content: space-between;
+    margin-bottom: 18px;
+}
+.planner-heading h1,
+.planner-heading p,
+.planner-actions p {
+    margin: 0;
+}
+.planner-heading h1 {
+    font-size: 2em;
+}
+.planner-heading p,
+.planner-actions p {
+    color: #4c483f;
+}
+.planner-week-form label {
+    font-weight: bold;
+}
+.planner-week-form input,
+.planner-week-form button,
+.planner-actions button {
+    min-height: 38px;
+    box-sizing: border-box;
+    border: 1px solid #242320;
+    font: inherit;
+}
+.planner-week-form input {
+    padding: 7px;
+    background-color: #B7B2A7;
+    color: #242320;
+}
+.planner-week-form button,
+.planner-actions button {
+    padding: 7px 12px;
+    background-color: #242320;
+    color: #B7B2A7;
+    cursor: pointer;
+}
+.planner-actions {
+    justify-content: space-between;
+    margin-bottom: 14px;
+}
+.planner-lanes {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(250px, 1fr));
+    gap: 12px;
+    align-items: start;
+}
+.planner-lane {
+    border: 1px solid #242320;
+    background-color: #d0cdc5;
+}
+.planner-lane-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px;
+    background-color: #242320;
+    color: #B7B2A7;
+}
+.planner-lane-header h2,
+.planner-lane-header span {
+    margin: 0;
+}
+.planner-lane-header h2 {
+    font-size: 1.05em;
+}
+.planner-lane-header span {
+    display: block;
+    font-size: 0.8em;
+}
+.planner-capacity {
+    text-align: right;
+}
+.planner-dropzone {
+    min-height: 104px;
+    padding: 8px;
+}
+.planner-dropzone.is-drag-over {
+    background-color: #b7dca8;
+}
+.planner-user {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 7px;
+    padding: 8px;
+    border: 1px solid #242320;
+    background-color: #B7B2A7;
+    cursor: grab;
+}
+.planner-user:last-child {
+    margin-bottom: 0;
+}
+.planner-user.is-dragging {
+    opacity: 0.45;
+}
+.planner-user strong,
+.planner-user span:not(.material-symbols-outlined) {
+    display: block;
+}
+.planner-user span:not(.material-symbols-outlined) {
+    color: #4c483f;
+    font-size: 0.85em;
+}
+.planner-drag-handle.material-symbols-outlined {
+    flex: 0 0 auto;
+    padding: 0;
+    background: transparent;
+    color: #242320;
+}
+
 .profile-page form.login-form-actions {
     max-width: 400px;
 }
@@ -917,9 +1043,20 @@ dialog button {
         width: auto;
         margin: 18px 12px;
     }
+    .planner-page {
+        width: auto;
+        margin: 18px 12px;
+    }
     .bingo-heading {
         align-items: flex-start;
         flex-direction: column;
+    }
+    .planner-heading {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+    .planner-lanes {
+        grid-template-columns: repeat(2, minmax(230px, 1fr));
     }
     table {
         min-width: 700px;
@@ -952,5 +1089,19 @@ dialog button {
     }
     .profile-page form.login-form-actions {
         max-width: 100%;
+    }
+    .planner-week-form,
+    .planner-actions {
+        align-items: stretch;
+        flex-direction: column;
+        width: 100%;
+    }
+    .planner-week-form input,
+    .planner-week-form button,
+    .planner-actions button {
+        width: 100%;
+    }
+    .planner-lanes {
+        grid-template-columns: 1fr;
     }
 }
