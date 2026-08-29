@@ -460,6 +460,13 @@ tbody tr:not(.rank-group-header):not(.bingo-rank-header):hover {
 .roster-actions form {
     margin: 0;
 }
+.roster-actions > .action-button,
+.roster-actions > form {
+    width: 240px;
+}
+.roster-actions > form .action-button {
+    width: 100%;
+}
 .dashboard-actions,
 .roster-actions {
     margin-top: 16px;
@@ -516,7 +523,7 @@ tbody tr:not(.rank-group-header):not(.bingo-rank-header):hover {
     justify-content: space-between;
 }
     
-.roster-content button {
+.roster-content button:not(.action-button) {
     padding: 2px;
     font-size: 1.2em;
     border: none;
@@ -796,6 +803,41 @@ tbody tr:not(.rank-group-header):not(.bingo-rank-header):hover {
 }
 .feedback-entry-meta small {
     color: #6f6a60;
+}
+.feedback-entry-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.feedback-entry-actions form {
+    margin: 0;
+}
+.feedback-delete-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 7px;
+    border: 1px solid #242320;
+    border-radius: 4px;
+    background: transparent;
+    color: #242320;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.82em;
+    font-weight: bold;
+}
+.feedback-delete-button .material-symbols-outlined {
+    padding: 0;
+    border-radius: 0;
+    background: transparent;
+    color: currentColor;
+    font-size: 1.1em;
+}
+.feedback-delete-button:not(:disabled):hover,
+.feedback-delete-button:not(:disabled):focus-visible {
+    background-color: #242320;
+    color: #B7B2A7;
+    outline: none;
 }
 .feedback-list p {
     margin: 8px 0 0;
