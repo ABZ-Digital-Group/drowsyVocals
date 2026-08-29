@@ -487,6 +487,31 @@ nav ul li a {
     background-color: transparent;
     color: #242320;
 }
+.feedback-list {
+    width: 100%;
+    margin: 12px 0 0;
+    padding: 0;
+    list-style: none;
+}
+.feedback-list li {
+    padding: 14px 0;
+    border-bottom: 1px solid #24232044;
+}
+.feedback-list li:last-child {
+    border-bottom: 0;
+}
+.feedback-entry-meta {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+}
+.feedback-entry-meta small {
+    color: #6f6a60;
+}
+.feedback-list p {
+    margin: 8px 0 0;
+    white-space: pre-wrap;
+}
 .planner-page {
     max-width: 1440px;
     width: calc(100% - 40px);

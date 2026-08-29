@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<%- include('../partials/head') %>
+		<title>Drowsy Feedback</title>
+	</head>
+	<body>
+		<header><%- include('../partials/nav') %></header>
+		<main>
+			<section class="profile-page">
+				<div class="profile-heading">
+					<p class="profile-eyebrow">Community</p>
+					<h1>Feedback</h1>
+					<p class="profile-subtitle">Share feedback to help improve the server.</p>
+				</div>
+				<div class="profile-details">
+					<div class="profile-detail-full">
+						<span>Send Feedback</span>
+						<form class="login-form-actions" action="/feedback" method="POST">
+							<label for="feedbackContent">Your feedback</label>
+							<textarea id="feedbackContent" name="content" rows="7" maxlength="5000" required></textarea>
+							<button type="submit">Submit Feedback</button>
+						</form>
+					</div>
+					<% if (canViewFeedback) { %>
+					<div class="profile-detail-full">
+						<span>Submitted Feedback</span>
+						<% if (feedbackEntries.length === 0) { %>
+						<strong>No feedback submitted yet.</strong>
+						<% } else { %>
+						<ul class="feedback-list">
+							<% feedbackEntries.forEach(function(entry) { %>
+							<li>
+								<div class="feedback-entry-meta">
+									<strong><%= entry.submittedBy %></strong>
+									<small><%= (entry.submittedAt || '').slice(0, 10) %></small>
+								</div>
+								<p><%= entry.content %></p>
+							</li>
+							<% }); %>
+						</ul>
+						<% } %>
+					</div>
+					<% } %>
+				</div>
+			</section>
+		</main>
+		<div class="footer"><p>&copy; 2026 Drowsy Vocals | All rights reserved.</p></div>
+	</body>
+</html>

@@ -1216,6 +1216,58 @@ app.post('/change-password', requireDatabase, async (req, res) => {
     }
 });
 
+// FEEDBACK
+app.get('/feedback', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin) return res.redirect('/');
+
+    try {
+        const feedbackEntries = hasManagementAccess(req)
+            ? await db.collection('feedback').find().sort({ submittedAt: -1 }).limit(100).toArray()
+            : [];
+        res.render('pages/feedback', {
+            page: 'feedback',
+            canViewFeedback: hasManagementAccess(req),
+            feedbackEntries
+        });
+    } catch (error) {
+        console.error('Error loading feedback:', error);
+        res.status(500).send('Error loading feedback.');
+    }
+});
+
+// SUBMIT FEEDBACK WITH THE AUTHENTICATED USER RECORDED INTERNALLY
+app.post('/feedback', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin) return res.redirect('/');
+
+    const content = (req.body.content || '').toString().trim();
+    if (!content || content.length > 5000) {
+        req.flash('error_msg', 'Feedback must be between 1 and 5,000 characters.');
+        return res.redirect('/feedback');
+    }
+
+    try {
+        const user = await db.collection('users').findOne(
+            { 'login.discordId': req.session.currentuser },
+            { projection: { displayName: 1, discordUser: 1, 'login.discordId': 1 } }
+        );
+        if (!user) return res.redirect('/logout');
+
+        await db.collection('feedback').insertOne({
+            content,
+            submittedBy: user.displayName || user.discordUser || user.login.discordId,
+            submittedByDiscordId: user.login.discordId,
+            submittedAt: new Date().toISOString().slice(0, 19)
+        });
+
+        req.flash('success_msg', 'Feedback submitted.');
+        res.redirect('/feedback');
+    } catch (error) {
+        console.error('Error submitting feedback:', error);
+        req.flash('error_msg', 'Unable to submit feedback.');
+        res.redirect('/feedback');
+    }
+});
+
 // LOA
 app.get('/loa', requireDatabase, async (req, res) => {
     if (!req.session.loggedin) return res.redirect('/');

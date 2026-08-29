@@ -14,7 +14,7 @@ for (var i = 0; i < data.length; i++) {
 }
 
 // REFRESH SHARED DATA VIEWS WHEN ANOTHER USER SAVES A CHANGE.
-if (window.io && ["/roster", "/bingo", "/roster-planner", "/settings", "/reports", "/loa", "/dashboard"].includes(window.location.pathname)) {
+if (window.io && ["/roster", "/bingo", "/roster-planner", "/settings", "/reports", "/loa", "/feedback", "/dashboard", "/staff-guidelines", "/higher-guidelines"].includes(window.location.pathname)) {
   const liveSocket = window.io();
   liveSocket.on("data-updated", () => window.location.reload());
 }
