@@ -477,3 +477,19 @@ if (guidelinesEditToggle && guidelinesEditor) {
     if (editor && content) content.value = editor.innerHTML;
   });
 }
+
+document.querySelectorAll(".nav-account-trigger").forEach((trigger) => {
+  trigger.addEventListener("click", () => {
+    const menu = trigger.closest(".nav-account-menu");
+    const isOpen = menu.classList.toggle("is-open");
+    trigger.setAttribute("aria-expanded", String(isOpen));
+  });
+});
+
+document.querySelectorAll(".nav-guidelines-trigger").forEach((trigger) => {
+  trigger.addEventListener("click", () => {
+    const menu = trigger.closest(".nav-guidelines-menu");
+    const isOpen = menu.classList.toggle("is-open");
+    trigger.setAttribute("aria-expanded", String(isOpen));
+  });
+});

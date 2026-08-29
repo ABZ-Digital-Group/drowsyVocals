@@ -6,16 +6,39 @@
         <li><a href="/bingo">Bingo</a></li>
         <li><a href="/loa">LOA</a></li>
         <li><a href="/feedback">Feedback</a></li>
-        <li><a href="/staff-guidelines">Staff Guidelines</a></li>
-        <li><a href="/higher-guidelines">Higher Guidelines</a></li>
+        <li class="nav-guidelines-menu">
+            <button class="nav-guidelines-trigger" type="button" aria-expanded="false" aria-controls="guidelinesMenu">
+                Guidelines
+                <span class="material-symbols-outlined nav-guidelines-arrow" aria-hidden="true">expand_more</span>
+            </button>
+            <div class="nav-guidelines-dropdown" id="guidelinesMenu">
+                <a href="/staff-guidelines">Staff Guidelines</a>
+                <a href="/higher-guidelines">Higher Guidelines</a>
+            </div>
+        </li>
         <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Dreamy Defender' || userIsDeveloper) { %>
         <li><a href="/roster-planner">Roster Planner</a></li>
         <li><a href="/reports">Reports</a></li>
         <% } %>
         <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userIsDeveloper) { %>
-        <li><a href="/settings">Settings</a></li>
         <% } %>
-        <li><a href="/account">Account</a></li>
-        <li><a href="/logout">Logout</a></li>
+        <li class="nav-account-menu">
+            <button class="nav-account-trigger" type="button" aria-expanded="false" aria-controls="accountMenu">
+                <% if (navUser && navUser.avatarUrl) { %>
+                <img src="<%= navUser.avatarUrl %>" alt="" class="nav-account-avatar">
+                <% } else { %>
+                <span class="nav-account-avatar nav-account-initial"><%= navUser ? navUser.displayName.charAt(0).toUpperCase() : '?' %></span>
+                <% } %>
+                <span class="nav-account-name"><%= navUser ? navUser.displayName : currentuser %></span>
+                <span class="material-symbols-outlined nav-account-arrow" aria-hidden="true">expand_more</span>
+            </button>
+            <div class="nav-account-dropdown" id="accountMenu">
+                <a href="/account">Account</a>
+                <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userIsDeveloper) { %>
+                <a href="/settings">Settings</a>
+                <% } %>
+                <a href="/logout">Logout</a>
+            </div>
+        </li>
     </ul>
 </nav>

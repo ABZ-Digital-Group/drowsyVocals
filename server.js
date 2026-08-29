@@ -121,9 +121,14 @@ app.use(async (req, res, next) => {
         try {
             const user = await db.collection('users').findOne(
                 { 'login.discordId': req.session.currentuser },
-                { projection: { isDeveloper: 1 } }
+                { projection: { isDeveloper: 1, displayName: 1, discordUser: 1, avatarUrl: 1, 'login.discordId': 1 } }
             );
             req.session.isDeveloper = Boolean(user?.isDeveloper);
+            res.locals.navUser = user ? {
+                displayName: user.displayName || user.discordUser || user.login.discordId,
+                avatarUrl: user.avatarUrl || null,
+                discordId: user.login.discordId
+            } : null;
         } catch (error) {
             console.error('Developer access refresh failed:', error.message);
         }
@@ -135,6 +140,7 @@ app.use(async (req, res, next) => {
     res.locals.currentuser = req.session.currentuser;
     res.locals.userType = req.session.isDeveloper ? 'Realm God' : req.session.accountType;
     res.locals.userIsDeveloper = Boolean(req.session.isDeveloper);
+    res.locals.navUser = res.locals.navUser || null;
     next();
 });
 
