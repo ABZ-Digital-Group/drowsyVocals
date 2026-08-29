@@ -13,6 +13,12 @@ for (var i = 0; i < data.length; i++) {
     }
 }
 
+// REFRESH SHARED DATA VIEWS WHEN ANOTHER USER SAVES A CHANGE.
+if (window.io && ["/roster", "/bingo", "/roster-planner", "/settings", "/reports", "/loa", "/dashboard"].includes(window.location.pathname)) {
+  const liveSocket = window.io();
+  liveSocket.on("data-updated", () => window.location.reload());
+}
+
 // SHARED AVATAR RENDERING HELPERS (USED BY THE ONLINE-NOW BAR AND VIEW-USER POPUP)
 const escapeHtml = (str) => (str || "").toString().replace(/[&<>"']/g, (c) => ({
   "&": "&amp;",

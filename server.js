@@ -6,6 +6,7 @@ const crypto = require('crypto');
 require('dotenv').config();
 const path = require('path');
 const fs = require('fs');
+const http = require('http');
 
 // LOAD NPM PACKAGES
 const express = require('express');
@@ -13,6 +14,7 @@ const session = require('express-session');
 const flash = require('connect-flash');
 const multer = require('multer');
 const { MongoClient } = require('mongodb');
+const { Server } = require('socket.io');
 
 const app = express();
 
@@ -71,6 +73,32 @@ let connectPromise = null;
 let reconnectTimer = null;
 let httpServer = null;
 let shutdownPromise = null;
+let io = null;
+let liveChangeStreams = [];
+
+function broadcastDataUpdate(collection) {
+    io?.emit('data-updated', { collection });
+}
+
+function startLiveUpdates() {
+    if (!db || liveChangeStreams.length) return;
+
+    const watchedCollections = ['users', 'settings', 'rosterPlans'];
+    liveChangeStreams = watchedCollections.map((collection) => {
+        const pipeline = collection === 'users'
+            ? [{ $match: { 'updateDescription.updatedFields.lastSeen': { $exists: false } } }]
+            : [];
+        const changeStream = db.collection(collection).watch(pipeline);
+
+        changeStream.on('change', () => broadcastDataUpdate(collection));
+        changeStream.on('error', (error) => {
+            console.error(`Live update stream failed for ${collection}:`, error.message);
+            liveChangeStreams = liveChangeStreams.filter((stream) => stream !== changeStream);
+        });
+
+        return changeStream;
+    });
+}
 
 // Global middleware to pass session data to templates
 app.use((req, res, next) => {
@@ -261,6 +289,7 @@ function connectDB() {
 
             db = nextDb;
             isDatabaseReady = true;
+            startLiveUpdates();
             console.log('Connected successfully to MongoDB');
         } catch (error) {
             isDatabaseReady = false;
@@ -1647,6 +1676,8 @@ async function shutdown(signal = 'shutdown') {
         }
 
         try {
+            await Promise.all(liveChangeStreams.map((stream) => stream.close()));
+            liveChangeStreams = [];
             await mongoClient?.close();
         } catch (error) {
             console.error('MongoDB shutdown error:', error.message);
@@ -1660,7 +1691,10 @@ async function shutdown(signal = 'shutdown') {
 }
 
 // START HTTP SERVER FIRST SO A DATABASE FAILURE DOES NOT CAUSE A HOST-LEVEL 503
-httpServer = app.listen(PORT, '0.0.0.0', () => {
+httpServer = http.createServer(app);
+io = new Server(httpServer);
+
+httpServer.listen(PORT, '0.0.0.0', () => {
     console.log(`Drowsy Vocals server listening on port ${PORT}`);
     connectDB();
 });

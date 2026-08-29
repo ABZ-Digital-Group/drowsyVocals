@@ -28,6 +28,7 @@
     "mongodb": "^7.5.0",
     "multer": "^2.2.0",
     "node-fetch": "^3.3.2",
-    "nodemailer": "^9.0.5"
+    "nodemailer": "^9.0.5",
+    "socket.io": "^4.8.3"
   }
 }
