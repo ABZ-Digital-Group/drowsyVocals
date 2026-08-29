@@ -993,7 +993,24 @@ app.post('/settings/update-option', requireDatabase, async (req, res) => {
             { arrayFilters: [{ 'item.name': originalName }] }
         );
 
-        req.flash('success_msg', 'Option updated.');
+        let renamedUsers = 0;
+        if (category === 'ranks' && originalName !== trimmedName) {
+            const result = await db.collection('users').updateMany(
+                { accountType: originalName },
+                { $set: { accountType: trimmedName } }
+            );
+            renamedUsers = result.modifiedCount;
+
+            if (req.session.accountType === originalName) {
+                req.session.accountType = trimmedName;
+            }
+
+            await writeAudit(req, 'Renamed rank', `${originalName} → ${trimmedName} (${renamedUsers} account${renamedUsers === 1 ? '' : 's'} updated)`);
+        }
+
+        req.flash('success_msg', category === 'ranks' && originalName !== trimmedName
+            ? `Rank updated and applied to ${renamedUsers} account${renamedUsers === 1 ? '' : 's'}.`
+            : 'Option updated.');
         res.redirect('/settings');
     } catch (error) {
         console.error('Error updating settings option:', error);
