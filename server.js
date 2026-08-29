@@ -103,6 +103,20 @@ function requireDatabase(req, res, next) {
 // ROLES ALLOWED TO MANAGE STRIKES, ATTENDANCE, AND LOA APPROVALS
 const MANAGEMENT_ROLES = ['Mr. Sandman', 'Realm God', 'Dreamy Defender'];
 
+// TARGETS DISPLAYED ON THE STAFF BINGO BOARD.
+const BINGO_GOALS = [
+    { id: '1', label: '1', target: '3 HP' },
+    { id: '2', label: '2', target: '2 HP' },
+    { id: '3', label: '3', target: '2 HP' },
+    { id: '4', label: '4', target: '2 HP' },
+    { id: '5', label: '5', target: '3 HP' },
+    { id: '6', label: '6', target: '2500 CC' },
+    { id: '7', label: '7', target: '2500 CC' },
+    { id: '8', label: '8', target: '6000 CC' },
+    { id: '9', label: '9', target: '1000 CC' },
+    { id: '10', label: '10', target: '1000 CC' }
+];
+
 // A USER IS CONSIDERED "ONLINE" IF SEEN WITHIN THIS WINDOW
 const ONLINE_THRESHOLD_MS = 2 * 60 * 1000;
 
@@ -587,6 +601,27 @@ app.post('/mark-attendance', requireDatabase, async (req, res) => {
         res.redirect('/roster');
     } catch (error) {
         console.error('Error recording attendance:', error);
+        res.redirect('/roster');
+    }
+});
+
+// CLEAR THE CURRENT WEEK'S MEETING ATTENDANCE SO IT CAN BE RECORDED AGAIN
+app.post('/reset-attendance', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !MANAGEMENT_ROLES.includes(req.session.accountType)) {
+        req.flash('error_msg', 'You are not authorized to reset attendance.');
+        return res.redirect('/roster');
+    }
+
+    const { week } = req.body;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(week || '')) return res.redirect('/roster');
+
+    try {
+        await db.collection('users').updateMany({}, { $pull: { attendance: { week } } });
+        req.flash('success_msg', `Attendance reset for week of ${week}.`);
+        res.redirect('/roster');
+    } catch (error) {
+        console.error('Error resetting attendance:', error);
+        req.flash('error_msg', 'Unable to reset attendance.');
         res.redirect('/roster');
     }
 });
@@ -1369,6 +1404,86 @@ app.get('/roster', requireDatabase, async (req, res) => {
     } catch (error) {
         console.error('Error fetching users:', error);
         res.status(500).send('Error fetching users.');
+    }
+});
+
+// BINGO BOARD
+app.get('/bingo', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin) return res.redirect('/');
+
+    try {
+        const [settings, users] = await Promise.all([
+            getSettings(),
+            db.collection('users').find().toArray()
+        ]);
+
+        const normalizeRank = (rank) => (rank || '').toString().toLowerCase().replace(/\./g, '').trim();
+        const sortedRanks = settings.ranks.slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+        const groups = sortedRanks.map((rank) => ({
+            name: rank.name,
+            users: users
+                .filter((user) => normalizeRank(user.accountType) === normalizeRank(rank.name))
+                .sort((a, b) => (a.displayName || a.discordUser || '').localeCompare(b.displayName || b.discordUser || ''))
+        })).filter((group) => group.users.length);
+
+        res.render('pages/bingo', {
+            page: 'bingo',
+            groups,
+            bingoGoals: BINGO_GOALS,
+            canManageBingo: MANAGEMENT_ROLES.includes(req.session.accountType)
+        });
+    } catch (error) {
+        console.error('Error loading Bingo board:', error);
+        res.status(500).send('Error loading Bingo board.');
+    }
+});
+
+// TOGGLE ONE BINGO TARGET FOR A STAFF MEMBER
+app.post('/bingo/toggle', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !MANAGEMENT_ROLES.includes(req.session.accountType)) {
+        req.flash('error_msg', 'You are not authorized to update the Bingo board.');
+        return res.redirect('/bingo');
+    }
+
+    const { discordId, goalId } = req.body;
+    if (!discordId || !BINGO_GOALS.some((goal) => goal.id === goalId)) return res.redirect('/bingo');
+
+    try {
+        const user = await db.collection('users').findOne(
+            { 'login.discordId': discordId },
+            { projection: { bingoProgress: 1 } }
+        );
+        if (!user) return res.redirect('/bingo');
+
+        const completed = Boolean(user.bingoProgress && user.bingoProgress[goalId]);
+        await db.collection('users').updateOne(
+            { 'login.discordId': discordId },
+            { $set: { [`bingoProgress.${goalId}`]: !completed } }
+        );
+
+        res.redirect('/bingo');
+    } catch (error) {
+        console.error('Error updating Bingo board:', error);
+        req.flash('error_msg', 'Unable to update the Bingo board.');
+        res.redirect('/bingo');
+    }
+});
+
+// CLEAR ALL BINGO TARGETS FOR THE NEW WEEK
+app.post('/bingo/reset', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !MANAGEMENT_ROLES.includes(req.session.accountType)) {
+        req.flash('error_msg', 'You are not authorized to reset the Bingo board.');
+        return res.redirect('/bingo');
+    }
+
+    try {
+        await db.collection('users').updateMany({}, { $unset: { bingoProgress: '' } });
+        req.flash('success_msg', 'Bingo board reset for the new week.');
+        res.redirect('/bingo');
+    } catch (error) {
+        console.error('Error resetting Bingo board:', error);
+        req.flash('error_msg', 'Unable to reset the Bingo board.');
+        res.redirect('/bingo');
     }
 });
 
