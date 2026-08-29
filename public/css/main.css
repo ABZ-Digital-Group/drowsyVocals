@@ -460,29 +460,55 @@ tbody tr:not(.rank-group-header):not(.bingo-rank-header):hover {
 .roster-actions form {
     margin: 0;
 }
-.dashboard-actions button{
-    margin-top: 10px;
-    padding: 10px 14px;
-    font-size: 1.2em;
-    width: 20%;
-    border: none;
+.dashboard-actions,
+.roster-actions {
+    margin-top: 16px;
+}
+.action-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 10px 16px;
+    border: 1px solid #242320;
+    border-radius: 5px;
+    box-shadow: 3px 3px 0 #6f6a60;
     cursor: pointer;
+    font-family: inherit;
+    font-size: 1em;
+    font-weight: bold;
+    line-height: 1;
+}
+.action-button .material-symbols-outlined {
+    padding: 0;
+    border-radius: 0;
+    background: transparent;
+    color: currentColor;
+    font-size: 1.2em;
+}
+.action-button-primary {
     background-color: #242320;
     color: #B7B2A7;
-    border-radius: 5px;
+}
+.action-button-secondary {
+    background-color: transparent;
+    color: #242320;
+}
+.action-button:not(:disabled):hover,
+.action-button:not(:disabled):focus-visible {
+    box-shadow: 5px 5px 0 #6f6a60;
     outline: none;
 }
-.roster-actions button{
-    margin-top: 10px;
-    padding: 10px 14px;
-    font-size: 1.2em;
-    width: 80%;
-    border: none;
-    cursor: pointer;
+.action-button-primary:not(:disabled):hover,
+.action-button-primary:not(:disabled):focus-visible {
+    background-color: #3a3935;
+    color: #fff;
+}
+.action-button-secondary:not(:disabled):hover,
+.action-button-secondary:not(:disabled):focus-visible {
     background-color: #242320;
     color: #B7B2A7;
-    border-radius: 5px;
-    outline: none;
 }
 .roster-sub {
     display: flex;

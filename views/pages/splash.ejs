@@ -11,15 +11,7 @@
         </main>
         <script>
             (() => {
-                const destination = '/index';
-                const hasSeenSplash = localStorage.getItem('drowsy-vocals-splash-seen');
-
-                if (hasSeenSplash) {
-                    window.location.replace(destination);
-                    return;
-                }
-
-                localStorage.setItem('drowsy-vocals-splash-seen', 'true');
+                const destination = '/index?splash=1';
                 window.setTimeout(() => {
                     document.body.classList.add('splash-leaving');
                     window.setTimeout(() => window.location.replace(destination), 350);
