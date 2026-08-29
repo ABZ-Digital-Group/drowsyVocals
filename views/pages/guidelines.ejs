@@ -23,16 +23,31 @@
                             <option value="p">Paragraph</option>
                             <option value="h2">Heading</option>
                             <option value="h3">Subheading</option>
+                            <option value="blockquote">Quote</option>
                         </select>
+                        <select data-guidelines-size aria-label="Text size">
+                            <option value="3">Normal size</option>
+                            <option value="2">Small</option>
+                            <option value="4">Large</option>
+                            <option value="5">Extra large</option>
+                        </select>
+                        <button type="button" data-guidelines-command="undo" aria-label="Undo"><span class="material-symbols-outlined">undo</span></button>
+                        <button type="button" data-guidelines-command="redo" aria-label="Redo"><span class="material-symbols-outlined">redo</span></button>
                         <button type="button" data-guidelines-command="bold" aria-label="Bold"><span class="material-symbols-outlined">format_bold</span></button>
                         <button type="button" data-guidelines-command="italic" aria-label="Italic"><span class="material-symbols-outlined">format_italic</span></button>
                         <button type="button" data-guidelines-command="underline" aria-label="Underline"><span class="material-symbols-outlined">format_underlined</span></button>
+                        <button type="button" data-guidelines-command="strikeThrough" aria-label="Strike through"><span class="material-symbols-outlined">format_strikethrough</span></button>
                         <button type="button" data-guidelines-command="insertUnorderedList" aria-label="Bullet list"><span class="material-symbols-outlined">format_list_bulleted</span></button>
                         <button type="button" data-guidelines-command="insertOrderedList" aria-label="Numbered list"><span class="material-symbols-outlined">format_list_numbered</span></button>
                         <button type="button" data-guidelines-command="justifyLeft" aria-label="Align left"><span class="material-symbols-outlined">format_align_left</span></button>
                         <button type="button" data-guidelines-command="justifyCenter" aria-label="Align center"><span class="material-symbols-outlined">format_align_center</span></button>
+                        <button type="button" data-guidelines-command="justifyRight" aria-label="Align right"><span class="material-symbols-outlined">format_align_right</span></button>
+                        <button type="button" data-guidelines-command="insertHorizontalRule" aria-label="Insert divider"><span class="material-symbols-outlined">horizontal_rule</span></button>
                         <input type="color" data-guidelines-color value="#242320" aria-label="Text color">
+                        <input type="color" data-guidelines-highlight value="#fff1c2" aria-label="Text highlight color">
                         <button type="button" data-guidelines-link aria-label="Add link"><span class="material-symbols-outlined">link</span></button>
+                        <button type="button" data-guidelines-command="unlink" aria-label="Remove link"><span class="material-symbols-outlined">link_off</span></button>
+                        <button type="button" data-guidelines-command="removeFormat" aria-label="Clear formatting"><span class="material-symbols-outlined">format_clear</span></button>
                     </div>
                     <div id="guidelineContent" class="guidelines-rich-editor" contenteditable="true" role="textbox" aria-multiline="true"><%- content %></div>
                     <input type="hidden" name="content" data-guidelines-content>

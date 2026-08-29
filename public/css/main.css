@@ -428,7 +428,13 @@ nav ul li a {
     display: flex;
     flex-wrap: wrap;
     gap: 4px;
+    position: sticky;
+    top: 12px;
+    z-index: 2;
     margin-bottom: 8px;
+    padding: 8px;
+    border: 1px solid #242320;
+    background-color: #B7B2A7;
 }
 .guidelines-toolbar button,
 .guidelines-toolbar select,
