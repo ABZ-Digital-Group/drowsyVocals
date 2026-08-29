@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+
+<html lang="en">
+    <head>
+        <%- include('../partials/head') %>
+        <title>Drowsy Bingo</title>
+    </head>
+    <body>
+        <header>
+            <%- include('../partials/nav') %>
+        </header>
+        <main class="bingo-page">
+            <section class="bingo-heading">
+                <div>
+                    <h1>Bingo Board</h1>
+                    <p>Staff activity progress</p>
+                </div>
+                <div class="bingo-legend" aria-label="Bingo status legend">
+                    <span><i class="bingo-key bingo-key-complete"></i>Complete</span>
+                    <span><i class="bingo-key bingo-key-pending"></i>Pending</span>
+                </div>
+                <% if (canManageBingo) { %>
+                <form class="bingo-reset-form" action="/bingo/reset" method="POST" onsubmit="return confirm('Reset the Bingo board for everyone?');">
+                    <button type="submit">Reset Weekly Bingo</button>
+                </form>
+                <% } %>
+            </section>
+
+            <section class="bingo-board" aria-label="Staff Bingo board">
+                <table class="bingo-table">
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Display Name</th>
+                            <th>Discord User</th>
+                            <% bingoGoals.forEach(function(goal) { %>
+                            <th><%= goal.label %></th>
+                            <% }); %>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% groups.forEach(function(group) { %>
+                        <tr class="bingo-rank-header">
+                            <th colspan="13"><%= group.name %></th>
+                        </tr>
+                        <% group.users.forEach(function(user) { %>
+                        <tr>
+                            <td><%= user.accountType %></td>
+                            <td><%= user.displayName || '-' %></td>
+                            <td><%= user.discordUser || user.login.discordId %></td>
+                            <% bingoGoals.forEach(function(goal) {
+                                const completed = Boolean(user.bingoProgress && user.bingoProgress[goal.id]);
+                            %>
+                            <td class="bingo-cell <%= completed ? 'is-complete' : 'is-pending' %>">
+                                <% if (canManageBingo) { %>
+                                <form action="/bingo/toggle" method="POST">
+                                    <input type="hidden" name="discordId" value="<%= user.login.discordId %>">
+                                    <input type="hidden" name="goalId" value="<%= goal.id %>">
+                                    <button type="submit" aria-label="Mark <%= goal.target %> <%= completed ? 'incomplete' : 'complete' %> for <%= user.displayName || user.discordUser || user.login.discordId %>"><%= goal.target %></button>
+                                </form>
+                                <% } else { %>
+                                <span><%= goal.target %></span>
+                                <% } %>
+                            </td>
+                            <% }); %>
+                        </tr>
+                        <% }); %>
+                        <% }); %>
+                    </tbody>
+                </table>
+            </section>
+        </main>
+        <div class="footer">
+            <p>&copy; 2026 Drowsy Vocals | All rights reserved.</p>
+        </div>
+    </body>
+</html>

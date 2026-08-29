@@ -206,6 +206,9 @@ nav ul li a {
     flex-wrap: wrap;
     gap: 10px;
 }
+.roster-actions form {
+    margin: 0;
+}
 .dashboard-actions button{
     margin-top: 10px;
     padding: 10px 14px;
@@ -246,6 +249,115 @@ nav ul li a {
     border-radius: 5px;
     outline: none;
 
+}
+
+.bingo-page {
+    max-width: 1680px;
+    width: calc(100% - 40px);
+    margin: 28px auto;
+}
+.bingo-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: end;
+    gap: 20px;
+    margin-bottom: 14px;
+}
+.bingo-heading h1 {
+    margin: 0;
+    font-size: 2em;
+}
+.bingo-heading p {
+    margin: 4px 0 0;
+    color: #4c483f;
+}
+.bingo-legend {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    font-size: 0.9em;
+    font-weight: bold;
+}
+.bingo-legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+.bingo-reset-form {
+    margin: 0;
+}
+.bingo-reset-form button {
+    padding: 8px 12px;
+    border: 1px solid #242320;
+    background-color: #242320;
+    color: #B7B2A7;
+    font: inherit;
+    font-weight: bold;
+    cursor: pointer;
+}
+.bingo-key {
+    width: 14px;
+    height: 14px;
+    border: 1px solid #242320;
+}
+.bingo-key-complete,
+.bingo-cell.is-complete {
+    background-color: #b7dca8;
+}
+.bingo-key-pending,
+.bingo-cell.is-pending {
+    background-color: #ea999d;
+}
+.bingo-board {
+    overflow-x: auto;
+    border: 1px solid #242320;
+}
+.bingo-table {
+    min-width: 1120px;
+    margin: 0;
+}
+.bingo-table th,
+.bingo-table td {
+    padding: 4px 8px;
+    white-space: nowrap;
+}
+.bingo-table thead th {
+    height: 34px;
+}
+.bingo-table .bingo-rank-header th {
+    padding: 3px 8px;
+    background-color: #4a5a69;
+    color: #fff;
+    text-align: left;
+}
+.bingo-cell {
+    padding: 0 !important;
+}
+.bingo-cell form,
+.bingo-cell button,
+.bingo-cell span {
+    display: block;
+    width: 100%;
+    min-width: 86px;
+    box-sizing: border-box;
+}
+.bingo-cell button {
+    padding: 4px 8px;
+    border: 0;
+    background: transparent;
+    color: #242320;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+.bingo-cell button:hover,
+.bingo-cell button:focus-visible {
+    outline: 2px solid #242320;
+    outline-offset: -2px;
+}
+.bingo-cell span {
+    padding: 4px 8px;
+    text-align: left;
 }
 
 .profile-page form.login-form-actions {
@@ -794,6 +906,14 @@ dialog button {
 
     .roster-content {
         overflow-x: auto;
+    }
+    .bingo-page {
+        width: auto;
+        margin: 18px 12px;
+    }
+    .bingo-heading {
+        align-items: flex-start;
+        flex-direction: column;
     }
     table {
         min-width: 700px;
