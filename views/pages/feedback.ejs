@@ -44,6 +44,19 @@
 									</div>
 								</div>
 								<p><%= entry.content %></p>
+								<form class="feedback-workflow" action="/feedback/<%= entry._id %>/update" method="POST">
+									<label>Status
+										<select name="status">
+											<% ['New', 'Reviewed', 'Resolved'].forEach(function(status) { %>
+											<option value="<%= status %>" <%= (entry.status || 'New') === status ? 'selected' : '' %>><%= status %></option>
+											<% }); %>
+										</select>
+									</label>
+									<label>Manager note
+										<textarea name="managerNote" rows="2" maxlength="2000" placeholder="Internal note"><%= entry.managerNote || '' %></textarea>
+									</label>
+									<button type="submit">Save review</button>
+								</form>
 							</li>
 							<% }); %>
 						</ul>

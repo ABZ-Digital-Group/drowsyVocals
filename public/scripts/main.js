@@ -13,6 +13,24 @@ for (var i = 0; i < data.length; i++) {
     }
 }
 
+const navMenuToggle = document.querySelector('.nav-menu-toggle');
+const primaryNavigation = document.getElementById('primaryNavigation');
+if (navMenuToggle && primaryNavigation) {
+  navMenuToggle.addEventListener('click', () => {
+    const isOpen = primaryNavigation.classList.toggle('is-open');
+    navMenuToggle.setAttribute('aria-expanded', String(isOpen));
+  });
+}
+
+document.querySelectorAll('.nav-notifications-trigger, .nav-account-trigger, .nav-guidelines-trigger').forEach((trigger) => {
+  trigger.addEventListener('click', () => {
+    const menu = document.getElementById(trigger.getAttribute('aria-controls'));
+    if (!menu) return;
+    const isOpen = menu.classList.toggle('is-open');
+    trigger.setAttribute('aria-expanded', String(isOpen));
+  });
+});
+
 // REFRESH SHARED DATA VIEWS WHEN ANOTHER USER SAVES A CHANGE.
 if (window.io && ["/roster", "/bingo", "/roster-planner", "/settings", "/reports", "/loa", "/feedback", "/dashboard", "/staff-guidelines", "/higher-guidelines"].includes(window.location.pathname)) {
   const liveSocket = window.io();

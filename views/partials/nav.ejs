@@ -1,6 +1,7 @@
 <nav>
     <img src="/assets/DrowsyLogo.png" alt="Drowsy Vocals Logo">
-    <ul>
+    <button class="nav-menu-toggle" type="button" aria-expanded="false" aria-controls="primaryNavigation"><span class="material-symbols-outlined" aria-hidden="true">menu</span> Menu</button>
+    <ul id="primaryNavigation">
         <li><a href="/dashboard">Dashboard</a></li>
         <li><a href="/roster">Roster</a></li>
         <li><a href="/bingo">Bingo</a></li>
@@ -21,9 +22,19 @@
         <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Dreamy Defender' || userIsDeveloper) { %>
         <li><a href="/roster-planner">Roster Planner</a></li>
         <li><a href="/reports">Reports</a></li>
+        <li><a href="/audit-log">Audit Log</a></li>
         <% } %>
         <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userIsDeveloper) { %>
         <% } %>
+        <li class="nav-notifications-menu">
+            <button class="nav-notifications-trigger" type="button" aria-expanded="false" aria-controls="notificationsMenu" aria-label="Notifications">
+                <span class="material-symbols-outlined" aria-hidden="true">notifications</span>
+                <% if (notifications && notifications.length) { %><span class="nav-notification-count"><%= notifications.length %></span><% } %>
+            </button>
+            <div class="nav-notifications-dropdown" id="notificationsMenu">
+                <% if (notifications && notifications.length) { %><% notifications.forEach(function(notification) { %><a href="<%= notification.href %>"><%= notification.text %></a><% }); %><% } else { %><span>All caught up.</span><% } %>
+            </div>
+        </li>
         <li class="nav-account-menu">
             <button class="nav-account-trigger" type="button" aria-expanded="false" aria-controls="accountMenu">
                 <% if (navUser && navUser.avatarUrl) { %>

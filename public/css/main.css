@@ -190,6 +190,30 @@ nav ul > li > a:focus-visible {
     position: relative;
     margin-left: 8px;
 }
+.nav-notifications-menu { position: relative; }
+.nav-menu-toggle { display: none; }
+.nav-notifications-trigger {
+    position: relative;
+    border: 0;
+    background: transparent;
+    color: #B7B2A7;
+    cursor: pointer;
+}
+.nav-notifications-trigger .material-symbols-outlined { padding: 0; background: transparent; color: inherit; }
+.nav-notification-count {
+    position: absolute;
+    top: -8px;
+    right: -9px;
+    display: grid;
+    place-items: center;
+    min-width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #B7B2A7;
+    color: #242320;
+    font-size: 0.7em;
+    font-weight: bold;
+}
 .nav-guidelines-menu {
     position: relative;
 }
@@ -460,6 +484,21 @@ tbody tr:not(.rank-group-header):not(.bingo-rank-header):hover {
 .roster-actions form {
     margin: 0;
 }
+.nav-notifications-dropdown {
+    position: absolute;
+    z-index: 10;
+    top: calc(100% + 8px);
+    right: 0;
+    display: none;
+    min-width: 240px;
+    padding: 6px;
+    border: 1px solid #242320;
+    background: #B7B2A7;
+    box-shadow: 4px 4px 0 #242320;
+}
+.nav-notifications-dropdown a, .nav-notifications-dropdown span { display: block; padding: 10px; color: #242320; font-weight: bold; text-decoration: none; }
+.nav-notifications-dropdown a:hover { background: #242320; color: #B7B2A7; }
+.nav-account-dropdown.is-open, .nav-guidelines-dropdown.is-open, .nav-notifications-dropdown.is-open { display: block; }
 .roster-actions > .action-button,
 .roster-actions > form {
     width: 240px;
@@ -1470,20 +1509,49 @@ dialog button {
 
     nav {
         flex-direction: column;
-        gap: 12px;
+        align-items: stretch;
+        gap: 10px;
         padding: 16px;
     }
     nav img {
         max-width: 30%;
+        align-self: center;
     }
-    nav ul {
-        flex-wrap: wrap;
+    .nav-menu-toggle {
+        display: inline-flex;
+        align-items: center;
         justify-content: center;
-        gap: 10px 20px;
+        gap: 6px;
+        align-self: center;
+        padding: 8px 12px;
+        border: 1px solid #B7B2A7;
+        border-radius: 4px;
+        background: transparent;
+        color: #B7B2A7;
+        font: inherit;
+        font-weight: bold;
+    }
+    .nav-menu-toggle .material-symbols-outlined { padding: 0; background: transparent; color: inherit; }
+    nav ul {
+        display: none;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0;
+        width: 100%;
+    }
+    nav ul.is-open {
+        display: flex;
     }
     nav ul li {
         margin: 0;
+        padding: 8px 0;
+        text-align: center;
     }
+    .nav-account-menu, .nav-notifications-menu { margin-left: 0; }
+    .nav-account-trigger, .nav-guidelines-trigger { justify-content: center; width: 100%; }
+    .nav-account-dropdown, .nav-guidelines-dropdown, .nav-notifications-dropdown { position: static; margin: 8px auto 0; text-align: left; }
+    .feedback-workflow { grid-template-columns: 1fr; }
+    .audit-log li { grid-template-columns: 1fr; gap: 5px; }
 
     .login-container {
         flex-direction: column;
@@ -1588,3 +1656,10 @@ dialog button {
         grid-template-columns: 1fr;
     }
 }
+.feedback-workflow { display: grid; grid-template-columns: 150px 1fr auto; gap: 10px; align-items: end; margin-top: 12px; }
+.feedback-workflow label { display: grid; gap: 4px; font-size: 0.82em; font-weight: bold; }
+.feedback-workflow select, .feedback-workflow textarea { box-sizing: border-box; width: 100%; padding: 7px; border: 1px solid #242320; border-radius: 4px; background: #d0cdc5; color: #242320; font: inherit; }
+.feedback-workflow button { padding: 8px 10px; border: 1px solid #242320; border-radius: 4px; background: #242320; color: #B7B2A7; cursor: pointer; font: inherit; font-weight: bold; }
+.audit-log { margin: 28px 0 0; padding: 0; list-style: none; border-top: 1px solid #242320; }
+.audit-log li { display: grid; grid-template-columns: minmax(160px, .7fr) 1fr minmax(180px, 1fr); gap: 12px; padding: 14px 0; border-bottom: 1px solid #24232044; }
+.audit-log small { color: #6f6a60; }

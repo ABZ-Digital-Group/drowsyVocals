@@ -168,6 +168,38 @@ const GOD_ROLES = ['Mr. Sandman', 'Realm God'];
 const hasManagementAccess = (req) => MANAGEMENT_ROLES.includes(req.session.accountType) || Boolean(req.session.isDeveloper);
 const hasGodAccess = (req) => GOD_ROLES.includes(req.session.accountType) || Boolean(req.session.isDeveloper);
 
+async function writeAudit(req, action, detail) {
+    if (!db || !req.session.currentuser) return;
+    try {
+        await db.collection('auditLog').insertOne({
+            action,
+            detail,
+            actor: req.session.currentuser,
+            createdAt: new Date().toISOString().slice(0, 19)
+        });
+    } catch (error) {
+        console.error('Audit logging failed:', error.message);
+    }
+}
+
+app.use(async (req, res, next) => {
+    res.locals.notifications = [];
+    if (!isDatabaseReady || !db || !req.session.loggedin) return next();
+    try {
+        if (hasManagementAccess(req)) {
+            const [pendingLoa, newFeedback] = await Promise.all([
+                db.collection('users').countDocuments({ 'loaRequests.status': 'Pending' }),
+                db.collection('feedback').countDocuments({ status: { $in: ['New', null] } })
+            ]);
+            if (pendingLoa) res.locals.notifications.push({ href: '/loa', text: `${pendingLoa} pending LOA request${pendingLoa === 1 ? '' : 's'}` });
+            if (newFeedback) res.locals.notifications.push({ href: '/feedback', text: `${newFeedback} feedback item${newFeedback === 1 ? '' : 's'} to review` });
+        }
+    } catch (error) {
+        console.error('Notification refresh failed:', error.message);
+    }
+    next();
+});
+
 // TARGETS DISPLAYED ON THE STAFF BINGO BOARD.
 const BINGO_GOALS = [
     { id: '1', label: '1', target: '3 HP' },
@@ -670,6 +702,7 @@ app.post('/mark-attendance', requireDatabase, async (req, res) => {
         }
 
         req.flash('success_msg', `Attendance saved for week of ${week}.`);
+        await writeAudit(req, 'Saved attendance', `Week of ${week}`);
         res.redirect('/roster');
     } catch (error) {
         console.error('Error recording attendance:', error);
@@ -689,6 +722,7 @@ app.post('/reset-attendance', requireDatabase, async (req, res) => {
 
     try {
         await db.collection('users').updateMany({}, { $pull: { attendance: { week } } });
+        await writeAudit(req, 'Reset attendance', `Week of ${week}`);
         req.flash('success_msg', `Attendance reset for week of ${week}.`);
         res.redirect('/roster');
     } catch (error) {
@@ -1266,6 +1300,7 @@ app.post('/feedback', requireDatabase, async (req, res) => {
 
         await db.collection('feedback').insertOne({
             content,
+            status: 'New',
             submittedBy: user.displayName || user.discordUser || user.login.discordId,
             submittedByDiscordId: user.login.discordId,
             submittedAt: new Date().toISOString().slice(0, 19)
@@ -1280,6 +1315,24 @@ app.post('/feedback', requireDatabase, async (req, res) => {
     }
 });
 
+app.post('/feedback/:feedbackId/update', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin) return res.redirect('/');
+    if (!hasManagementAccess(req)) return res.status(403).send('You do not have permission to update feedback.');
+    const { feedbackId } = req.params;
+    const status = (req.body.status || '').toString();
+    const managerNote = (req.body.managerNote || '').toString().trim();
+    if (!ObjectId.isValid(feedbackId) || !['New', 'Reviewed', 'Resolved'].includes(status) || managerNote.length > 2000) return res.redirect('/feedback');
+    try {
+        await db.collection('feedback').updateOne({ _id: new ObjectId(feedbackId) }, { $set: { status, managerNote, reviewedBy: req.session.currentuser, reviewedAt: new Date().toISOString().slice(0, 19) } });
+        await writeAudit(req, 'Updated feedback', `${feedbackId}: ${status}`);
+        req.flash('success_msg', 'Feedback updated.');
+    } catch (error) {
+        console.error('Error updating feedback:', error);
+        req.flash('error_msg', 'Unable to update feedback.');
+    }
+    res.redirect('/feedback');
+});
+
 // DELETE FEEDBACK (MANAGEMENT ONLY)
 app.post('/feedback/:feedbackId/delete', requireDatabase, async (req, res) => {
     if (!req.session.loggedin) return res.redirect('/');
@@ -1290,6 +1343,7 @@ app.post('/feedback/:feedbackId/delete', requireDatabase, async (req, res) => {
 
     try {
         await db.collection('feedback').deleteOne({ _id: new ObjectId(feedbackId) });
+        await writeAudit(req, 'Deleted feedback', feedbackId);
         req.flash('success_msg', 'Feedback deleted.');
     } catch (error) {
         console.error('Error deleting feedback:', error);
@@ -1297,6 +1351,18 @@ app.post('/feedback/:feedbackId/delete', requireDatabase, async (req, res) => {
     }
 
     res.redirect('/feedback');
+});
+
+app.get('/audit-log', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin) return res.redirect('/');
+    if (!hasManagementAccess(req)) return res.status(403).send('You do not have permission to view the audit log.');
+    try {
+        const entries = await db.collection('auditLog').find().sort({ createdAt: -1 }).limit(100).toArray();
+        res.render('pages/audit-log', { page: 'audit-log', entries });
+    } catch (error) {
+        console.error('Error loading audit log:', error);
+        res.status(500).send('Error loading audit log.');
+    }
 });
 
 // LOA
@@ -1415,6 +1481,7 @@ app.post('/review-loa', requireDatabase, async (req, res) => {
             { arrayFilters: [{ 'request.id': requestId }] }
         );
 
+        await writeAudit(req, 'Reviewed LOA request', `${decision}: ${discordId}`);
         req.flash('success_msg', `LOA request ${decision.toLowerCase()}.`);
         res.redirect('/loa');
     } catch (error) {
