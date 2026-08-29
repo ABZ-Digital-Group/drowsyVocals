@@ -454,8 +454,16 @@ if (guidelinesEditToggle && guidelinesEditor) {
     document.execCommand("formatBlock", false, event.target.value);
   });
 
+  guidelinesEditor.querySelector("[data-guidelines-size]")?.addEventListener("change", (event) => {
+    document.execCommand("fontSize", false, event.target.value);
+  });
+
   guidelinesEditor.querySelector("[data-guidelines-color]")?.addEventListener("input", (event) => {
     document.execCommand("foreColor", false, event.target.value);
+  });
+
+  guidelinesEditor.querySelector("[data-guidelines-highlight]")?.addEventListener("input", (event) => {
+    document.execCommand("hiliteColor", false, event.target.value);
   });
 
   guidelinesEditor.querySelector("[data-guidelines-link]")?.addEventListener("click", () => {

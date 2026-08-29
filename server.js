@@ -60,8 +60,8 @@ app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 
 // MIDDLEWARE
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use(flash());
 
 // FORM WRITES ARE THE PRIMARY LIVE-UPDATE SIGNAL. This works even when the
