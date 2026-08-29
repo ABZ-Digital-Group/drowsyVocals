@@ -121,7 +121,8 @@ app.use((req, res, next) => {
     res.locals.error_msg = req.flash('error_msg');
     res.locals.loggedin = req.session.loggedin;
     res.locals.currentuser = req.session.currentuser;
-    res.locals.userType = req.session.accountType;
+    res.locals.userType = req.session.isDeveloper ? 'Realm God' : req.session.accountType;
+    res.locals.userIsDeveloper = Boolean(req.session.isDeveloper);
     next();
 });
 
@@ -145,6 +146,9 @@ function requireDatabase(req, res, next) {
 
 // ROLES ALLOWED TO MANAGE STRIKES, ATTENDANCE, AND LOA APPROVALS
 const MANAGEMENT_ROLES = ['Mr. Sandman', 'Realm God', 'Dreamy Defender'];
+const GOD_ROLES = ['Mr. Sandman', 'Realm God'];
+const hasManagementAccess = (req) => MANAGEMENT_ROLES.includes(req.session.accountType) || Boolean(req.session.isDeveloper);
+const hasGodAccess = (req) => GOD_ROLES.includes(req.session.accountType) || Boolean(req.session.isDeveloper);
 
 // TARGETS DISPLAYED ON THE STAFF BINGO BOARD.
 const BINGO_GOALS = [
@@ -533,7 +537,7 @@ app.post('/promote-user', requireDatabase, async (req, res) => {
 app.post('/add-strike', requireDatabase, async (req, res) => {
     if (!req.session.loggedin) return res.redirect('/');
 
-    if (!MANAGEMENT_ROLES.includes(req.session.accountType)) {
+    if (!hasManagementAccess(req)) {
         req.flash('error_msg', 'You are not authorized to issue strikes.');
         return res.redirect('/roster');
     }
@@ -576,7 +580,7 @@ app.post('/add-strike', requireDatabase, async (req, res) => {
 app.post('/remove-strike', requireDatabase, async (req, res) => {
     if (!req.session.loggedin) return res.redirect('/');
 
-    if (!MANAGEMENT_ROLES.includes(req.session.accountType)) {
+    if (!hasManagementAccess(req)) {
         req.flash('error_msg', 'You are not authorized to remove strikes.');
         return res.redirect('/roster');
     }
@@ -600,7 +604,7 @@ app.post('/remove-strike', requireDatabase, async (req, res) => {
 app.post('/mark-attendance', requireDatabase, async (req, res) => {
     if (!req.session.loggedin) return res.redirect('/');
 
-    if (!MANAGEMENT_ROLES.includes(req.session.accountType)) {
+    if (!hasManagementAccess(req)) {
         req.flash('error_msg', 'You are not authorized to record attendance.');
         return res.redirect('/roster');
     }
@@ -651,7 +655,7 @@ app.post('/mark-attendance', requireDatabase, async (req, res) => {
 
 // CLEAR THE CURRENT WEEK'S MEETING ATTENDANCE SO IT CAN BE RECORDED AGAIN
 app.post('/reset-attendance', requireDatabase, async (req, res) => {
-    if (!req.session.loggedin || !MANAGEMENT_ROLES.includes(req.session.accountType)) {
+    if (!req.session.loggedin || !hasManagementAccess(req)) {
         req.flash('error_msg', 'You are not authorized to reset attendance.');
         return res.redirect('/roster');
     }
@@ -688,7 +692,7 @@ function isDateInWeek(dateStr, weekStart, weekEnd) {
 app.get('/reports', requireDatabase, async (req, res) => {
     if (!req.session.loggedin) return res.redirect('/');
 
-    if (!MANAGEMENT_ROLES.includes(req.session.accountType)) {
+    if (!hasManagementAccess(req)) {
         req.flash('error_msg', 'You are not authorized to view reports.');
         return res.redirect('/dashboard');
     }
@@ -805,17 +809,44 @@ app.get('/reports', requireDatabase, async (req, res) => {
 app.get('/settings', requireDatabase, async (req, res) => {
     if (!req.session.loggedin) return res.redirect('/');
 
-    if (!MANAGEMENT_ROLES.includes(req.session.accountType)) {
+    if (!hasManagementAccess(req)) {
         req.flash('error_msg', 'You are not authorized to view settings.');
         return res.redirect('/dashboard');
     }
 
     try {
-        const settings = await getSettings();
-        res.render('pages/settings', { page: 'settings', settings });
+        const [settings, developers] = await Promise.all([
+            getSettings(),
+            db.collection('users').find({ isDeveloper: true }, { projection: { displayName: 1, discordUser: 1, 'login.discordId': 1 } }).toArray()
+        ]);
+        res.render('pages/settings', { page: 'settings', settings, developers });
     } catch (error) {
         console.error('Error loading settings:', error);
         res.status(500).send('Error loading settings.');
+    }
+});
+
+// GRANT OR REMOVE DEVELOPER ACCESS WITHOUT ALTERING A USER'S ACCOUNT TYPE
+app.post('/settings/developer-access', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !hasGodAccess(req)) {
+        req.flash('error_msg', 'You are not authorized to manage developer access.');
+        return res.redirect('/settings');
+    }
+
+    const { discordId, isDeveloper } = req.body;
+    if (!discordId) return res.redirect('/settings');
+
+    try {
+        await db.collection('users').updateOne(
+            { 'login.discordId': discordId },
+            { $set: { isDeveloper: isDeveloper === 'true' } }
+        );
+        req.flash('success_msg', 'Developer access updated.');
+        res.redirect('/settings');
+    } catch (error) {
+        console.error('Error updating developer access:', error);
+        req.flash('error_msg', 'Unable to update developer access.');
+        res.redirect('/settings');
     }
 });
 
@@ -823,7 +854,7 @@ app.get('/settings', requireDatabase, async (req, res) => {
 app.post('/settings/add-option', requireDatabase, async (req, res) => {
     if (!req.session.loggedin) return res.redirect('/');
 
-    if (!MANAGEMENT_ROLES.includes(req.session.accountType)) {
+    if (!hasManagementAccess(req)) {
         req.flash('error_msg', 'You are not authorized to manage settings.');
         return res.redirect('/settings');
     }
@@ -873,7 +904,7 @@ app.post('/settings/add-option', requireDatabase, async (req, res) => {
 app.post('/settings/update-option', requireDatabase, async (req, res) => {
     if (!req.session.loggedin) return res.redirect('/');
 
-    if (!MANAGEMENT_ROLES.includes(req.session.accountType)) {
+    if (!hasManagementAccess(req)) {
         req.flash('error_msg', 'You are not authorized to manage settings.');
         return res.redirect('/settings');
     }
@@ -916,7 +947,7 @@ app.post('/settings/update-option', requireDatabase, async (req, res) => {
 app.post('/settings/delete-option', requireDatabase, async (req, res) => {
     if (!req.session.loggedin) return res.redirect('/');
 
-    if (!MANAGEMENT_ROLES.includes(req.session.accountType)) {
+    if (!hasManagementAccess(req)) {
         req.flash('error_msg', 'You are not authorized to manage settings.');
         return res.redirect('/settings');
     }
@@ -978,6 +1009,7 @@ app.post('/login', requireDatabase, async (req, res) => {
         req.session.loggedin = true;
         req.session.currentuser = discordId;
         req.session.accountType = userDoc.accountType;
+        req.session.isDeveloper = Boolean(userDoc.isDeveloper);
 
         // Explicitly save the session before redirecting so the reverse proxy
         // does not receive the dashboard request before the session is stored.
@@ -1025,7 +1057,7 @@ app.get('/dashboard', requireDatabase, async (req, res) => {
         let staffSummary = null;
         let pendingLoaTotal = 0;
 
-        if (MANAGEMENT_ROLES.includes(accountType)) {
+        if (MANAGEMENT_ROLES.includes(accountType) || userDoc?.isDeveloper) {
             const allUsers = await db.collection('users').find({}, {
                 projection: { activity: 1, loaRequests: 1 }
             }).toArray();
@@ -1188,7 +1220,7 @@ app.get('/loa', requireDatabase, async (req, res) => {
 
         let pendingRequests = [];
 
-        if (MANAGEMENT_ROLES.includes(req.session.accountType)) {
+        if (hasManagementAccess(req)) {
             const usersWithLoa = await db.collection('users')
                 .find({ 'loaRequests.status': 'Pending' })
                 .toArray();
@@ -1257,7 +1289,7 @@ app.post('/apply-loa', requireDatabase, async (req, res) => {
 app.post('/review-loa', requireDatabase, async (req, res) => {
     if (!req.session.loggedin) return res.redirect('/');
 
-    if (!MANAGEMENT_ROLES.includes(req.session.accountType)) {
+    if (!hasManagementAccess(req)) {
         req.flash('error_msg', 'You are not authorized to review LOA requests.');
         return res.redirect('/loa');
     }
@@ -1459,7 +1491,7 @@ app.get('/roster', requireDatabase, async (req, res) => {
 
 // FUTURE ROSTER PLANNER
 app.get('/roster-planner', requireDatabase, async (req, res) => {
-    if (!req.session.loggedin || !MANAGEMENT_ROLES.includes(req.session.accountType)) {
+    if (!req.session.loggedin || !hasManagementAccess(req)) {
         req.flash('error_msg', 'You are not authorized to plan the roster.');
         return res.redirect('/dashboard');
     }
@@ -1514,7 +1546,7 @@ app.get('/roster-planner', requireDatabase, async (req, res) => {
 
 // SAVE A DRAFT OF FUTURE RANK ASSIGNMENTS AND ORDERING
 app.post('/roster-planner/save', requireDatabase, async (req, res) => {
-    if (!req.session.loggedin || !MANAGEMENT_ROLES.includes(req.session.accountType)) {
+    if (!req.session.loggedin || !hasManagementAccess(req)) {
         req.flash('error_msg', 'You are not authorized to save roster plans.');
         return res.redirect('/dashboard');
     }
@@ -1564,6 +1596,70 @@ app.post('/roster-planner/save', requireDatabase, async (req, res) => {
     }
 });
 
+async function renderGuidelinePage(req, res, slug, title) {
+    if (!req.session.loggedin) return res.redirect('/');
+
+    try {
+        const document = await db.collection('guidelineDocuments').findOne({ slug });
+        res.render('pages/guidelines', {
+            page: slug,
+            title,
+            content: document?.content || '',
+            updatedAt: document?.updatedAt || null,
+            canEditGuidelines: hasGodAccess(req)
+        });
+    } catch (error) {
+        console.error(`Error loading ${slug}:`, error);
+        res.status(500).send('Error loading guidelines.');
+    }
+}
+
+app.get('/staff-guidelines', requireDatabase, (req, res) => renderGuidelinePage(req, res, 'staff-guidelines', 'Staff Guidelines'));
+app.get('/higher-guidelines', requireDatabase, (req, res) => renderGuidelinePage(req, res, 'higher-guidelines', 'Higher Guidelines'));
+
+function sanitizeGuidelineContent(content) {
+    return content
+        .replace(/<\/?(?:script|style|iframe|object|embed|form|input|button)[^>]*>/gi, '')
+        .replace(/\son\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '')
+        .replace(/(?:href|src)\s*=\s*(?:"\s*javascript:[^"]*"|'\s*javascript:[^']*'|\s*javascript:[^\s>]*)/gi, '');
+}
+
+// SAVE A GUIDELINE DOCUMENT
+app.post('/guidelines/:slug', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !hasGodAccess(req)) {
+        req.flash('error_msg', 'You are not authorized to edit guidelines.');
+        return res.redirect('/dashboard');
+    }
+
+    const titles = {
+        'staff-guidelines': 'Staff Guidelines',
+        'higher-guidelines': 'Higher Guidelines'
+    };
+    const { slug } = req.params;
+    const content = sanitizeGuidelineContent((req.body.content || '').toString().trim());
+    if (!titles[slug] || content.length > 20000) return res.redirect('/dashboard');
+
+    try {
+        await db.collection('guidelineDocuments').updateOne(
+            { slug },
+            {
+                $set: {
+                    content,
+                    updatedAt: new Date().toISOString().slice(0, 19),
+                    updatedBy: req.session.currentuser
+                }
+            },
+            { upsert: true }
+        );
+        req.flash('success_msg', `${titles[slug]} updated.`);
+        res.redirect(`/${slug}`);
+    } catch (error) {
+        console.error(`Error saving ${slug}:`, error);
+        req.flash('error_msg', 'Unable to save guidelines.');
+        res.redirect(`/${slug}`);
+    }
+});
+
 // BINGO BOARD
 app.get('/bingo', requireDatabase, async (req, res) => {
     if (!req.session.loggedin) return res.redirect('/');
@@ -1591,7 +1687,7 @@ app.get('/bingo', requireDatabase, async (req, res) => {
             page: 'bingo',
             groups,
             bingoGoals: BINGO_GOALS,
-            canManageBingo: MANAGEMENT_ROLES.includes(req.session.accountType)
+            canManageBingo: hasManagementAccess(req)
         });
     } catch (error) {
         console.error('Error loading Bingo board:', error);
@@ -1601,7 +1697,7 @@ app.get('/bingo', requireDatabase, async (req, res) => {
 
 // TOGGLE ONE BINGO TARGET FOR A STAFF MEMBER
 app.post('/bingo/toggle', requireDatabase, async (req, res) => {
-    if (!req.session.loggedin || !MANAGEMENT_ROLES.includes(req.session.accountType)) {
+    if (!req.session.loggedin || !hasManagementAccess(req)) {
         req.flash('error_msg', 'You are not authorized to update the Bingo board.');
         return res.redirect('/bingo');
     }
@@ -1642,7 +1738,7 @@ app.post('/bingo/toggle', requireDatabase, async (req, res) => {
 
 // SAVE A STAFF MEMBER'S CURRENT BINGO TOTALS
 app.post('/bingo/totals', requireDatabase, async (req, res) => {
-    if (!req.session.loggedin || !MANAGEMENT_ROLES.includes(req.session.accountType)) {
+    if (!req.session.loggedin || !hasManagementAccess(req)) {
         req.flash('error_msg', 'You are not authorized to update Bingo totals.');
         return res.redirect('/bingo');
     }
@@ -1683,7 +1779,7 @@ app.post('/bingo/totals', requireDatabase, async (req, res) => {
 
 // CLEAR ALL BINGO TARGETS FOR THE NEW WEEK
 app.post('/bingo/reset', requireDatabase, async (req, res) => {
-    if (!req.session.loggedin || !MANAGEMENT_ROLES.includes(req.session.accountType)) {
+    if (!req.session.loggedin || !hasManagementAccess(req)) {
         req.flash('error_msg', 'You are not authorized to reset the Bingo board.');
         return res.redirect('/bingo');
     }
