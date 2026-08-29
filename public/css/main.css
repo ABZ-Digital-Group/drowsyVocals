@@ -325,7 +325,7 @@ nav ul li a {
     height: 34px;
 }
 .bingo-divider-left {
-    border-left: 3px solid #242320 !important;
+    border-left: 20px solid #242320 !important;
 }
 .bingo-table .bingo-rank-header th {
     padding: 3px 8px;
