@@ -1419,7 +1419,11 @@ app.get('/bingo', requireDatabase, async (req, res) => {
 
         const normalizeRank = (rank) => (rank || '').toString().toLowerCase().replace(/\./g, '').trim();
         const sortedRanks = settings.ranks.slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-        const groups = sortedRanks.map((rank) => ({
+        const defenderRank = sortedRanks.find((rank) => normalizeRank(rank.name) === normalizeRank('Dreamy Defender'));
+        const defenderOrder = defenderRank?.order;
+        const groups = sortedRanks.filter((rank) => (
+            Number.isFinite(defenderOrder) && (rank.order ?? 0) >= defenderOrder
+        )).map((rank) => ({
             name: rank.name,
             users: users
                 .filter((user) => normalizeRank(user.accountType) === normalizeRank(rank.name))
@@ -1449,11 +1453,21 @@ app.post('/bingo/toggle', requireDatabase, async (req, res) => {
     if (!discordId || !BINGO_GOALS.some((goal) => goal.id === goalId)) return res.redirect('/bingo');
 
     try {
-        const user = await db.collection('users').findOne(
+        const [settings, user] = await Promise.all([
+            getSettings(),
+            db.collection('users').findOne(
             { 'login.discordId': discordId },
-            { projection: { bingoProgress: 1 } }
-        );
+            { projection: { accountType: 1, bingoProgress: 1 } }
+            )
+        ]);
         if (!user) return res.redirect('/bingo');
+
+        const normalizeRank = (rank) => (rank || '').toString().toLowerCase().replace(/\./g, '').trim();
+        const defenderRank = settings.ranks.find((rank) => normalizeRank(rank.name) === normalizeRank('Dreamy Defender'));
+        const userRank = settings.ranks.find((rank) => normalizeRank(rank.name) === normalizeRank(user.accountType));
+        if (!defenderRank || !userRank || (userRank.order ?? 0) < (defenderRank.order ?? 0)) {
+            return res.redirect('/bingo');
+        }
 
         const completed = Boolean(user.bingoProgress && user.bingoProgress[goalId]);
         await db.collection('users').updateOne(
