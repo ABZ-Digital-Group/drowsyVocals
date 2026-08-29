@@ -340,3 +340,59 @@ if (promoteUserPopup && closePromoteUserPopup) {
     promoteUserPopup.close();
   });
 }
+
+const rosterPlanner = document.getElementById("rosterPlanner");
+
+if (rosterPlanner) {
+  const plannerForm = document.getElementById("rosterPlanForm");
+  const assignmentsInput = document.getElementById("rosterPlanAssignments");
+  let draggedUser = null;
+
+  const updateLaneCounts = () => {
+    rosterPlanner.querySelectorAll(".planner-lane").forEach((lane) => {
+      const count = lane.querySelectorAll(".planner-user").length;
+      const countLabel = lane.querySelector(".planner-count");
+      if (countLabel) countLabel.textContent = `${count} assigned`;
+    });
+  };
+
+  rosterPlanner.querySelectorAll(".planner-user").forEach((user) => {
+    user.addEventListener("dragstart", () => {
+      draggedUser = user;
+      user.classList.add("is-dragging");
+    });
+    user.addEventListener("dragend", () => {
+      draggedUser = null;
+      user.classList.remove("is-dragging");
+      rosterPlanner.querySelectorAll(".planner-dropzone").forEach((zone) => zone.classList.remove("is-drag-over"));
+      updateLaneCounts();
+    });
+  });
+
+  rosterPlanner.querySelectorAll(".planner-dropzone").forEach((zone) => {
+    zone.addEventListener("dragover", (event) => {
+      event.preventDefault();
+      zone.classList.add("is-drag-over");
+    });
+    zone.addEventListener("dragleave", () => zone.classList.remove("is-drag-over"));
+    zone.addEventListener("drop", (event) => {
+      event.preventDefault();
+      if (draggedUser) zone.appendChild(draggedUser);
+      zone.classList.remove("is-drag-over");
+      updateLaneCounts();
+    });
+  });
+
+  plannerForm.addEventListener("submit", () => {
+    const assignments = [];
+    rosterPlanner.querySelectorAll(".planner-dropzone").forEach((zone) => {
+      zone.querySelectorAll(".planner-user").forEach((user) => {
+        assignments.push({
+          discordId: user.dataset.discordId,
+          accountType: zone.dataset.rank
+        });
+      });
+    });
+    assignmentsInput.value = JSON.stringify(assignments);
+  });
+}

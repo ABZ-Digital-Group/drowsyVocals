@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+
+<html lang="en">
+    <head>
+        <%- include('../partials/head') %>
+        <title>Drowsy Roster Planner</title>
+    </head>
+    <body>
+        <header>
+            <%- include('../partials/nav') %>
+        </header>
+        <main class="planner-page" id="rosterPlanner">
+            <section class="planner-heading">
+                <div>
+                    <h1>Roster Planner</h1>
+                    <p>Plan staff rank assignments for a future week.</p>
+                </div>
+                <form class="planner-week-form" action="/roster-planner" method="GET">
+                    <label for="planWeek">Week of</label>
+                    <input id="planWeek" type="date" name="week" value="<%= planWeek %>" required>
+                    <button type="submit">Load</button>
+                </form>
+            </section>
+
+            <form id="rosterPlanForm" action="/roster-planner/save" method="POST">
+                <input type="hidden" name="week" value="<%= planWeek %>">
+                <input type="hidden" name="assignments" id="rosterPlanAssignments">
+                <div class="planner-actions">
+                    <p><%= hasSavedPlan ? 'Saved plan loaded.' : 'Current roster loaded as a new plan.' %></p>
+                    <button type="submit">Save Plan</button>
+                </div>
+
+                <section class="planner-lanes" aria-label="Planned roster ranks">
+                    <% lanes.forEach(function(lane) { %>
+                    <article class="planner-lane" data-rank="<%= lane.name %>">
+                        <header class="planner-lane-header">
+                            <div>
+                                <h2><%= lane.name %></h2>
+                                <span class="planner-count"><%= lane.users.length %> assigned</span>
+                            </div>
+                            <span class="planner-capacity"><%= Number.isFinite(lane.capacity) ? `${lane.capacity} slots` : 'Unlimited slots' %></span>
+                        </header>
+                        <div class="planner-dropzone" data-rank="<%= lane.name %>">
+                            <% lane.users.forEach(function(user) { %>
+                            <article class="planner-user" draggable="true" data-discord-id="<%= user.login.discordId %>">
+                                <span class="material-symbols-outlined planner-drag-handle" aria-hidden="true">drag_indicator</span>
+                                <div>
+                                    <strong><%= user.displayName || user.discordUser || user.login.discordId %></strong>
+                                    <span><%= user.discordUser || user.login.discordId %></span>
+                                </div>
+                            </article>
+                            <% }); %>
+                        </div>
+                    </article>
+                    <% }); %>
+                </section>
+            </form>
+        </main>
+        <div class="footer">
+            <p>&copy; 2026 Drowsy Vocals | All rights reserved.</p>
+        </div>
+    </body>
+</html>
