@@ -178,16 +178,19 @@ nav ul > li > a:focus-visible {
     flex: 0 0 40px;
     width: 40px;
     height: 40px;
+    max-width: none;
+    max-height: none;
+    aspect-ratio: 1;
     box-sizing: border-box;
     border: 1px solid #B7B2A7;
     border-radius: 50%;
+    background-color: #B7B2A7;
     object-fit: cover;
     overflow: hidden;
 }
 .nav-account-initial {
     display: grid;
     place-items: center;
-    background-color: #B7B2A7;
     color: #242320;
     font-size: 1.2em;
 }
