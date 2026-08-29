@@ -13,7 +13,9 @@
             </button>
             <div class="nav-guidelines-dropdown" id="guidelinesMenu">
                 <a href="/staff-guidelines">Staff Guidelines</a>
+                <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Dreamy Defender' || userIsDeveloper) { %>
                 <a href="/higher-guidelines">Higher Guidelines</a>
+                <% } %>
             </div>
         </li>
         <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Dreamy Defender' || userIsDeveloper) { %>
