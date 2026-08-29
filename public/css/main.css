@@ -324,6 +324,9 @@ nav ul li a {
 .bingo-table thead th {
     height: 34px;
 }
+.bingo-divider-left {
+    border-left: 3px solid #242320 !important;
+}
 .bingo-table .bingo-rank-header th {
     padding: 3px 8px;
     background-color: #242320;
@@ -358,6 +361,45 @@ nav ul li a {
 .bingo-cell span {
     padding: 4px 8px;
     text-align: left;
+}
+.bingo-total-cell {
+    padding: 0 !important;
+    min-width: 92px;
+}
+.bingo-total-cell form {
+    display: flex;
+    align-items: stretch;
+}
+.bingo-total-cell input,
+.bingo-total-cell span {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 4px 6px;
+    border: 0;
+    background: transparent;
+    color: #242320;
+    font: inherit;
+}
+.bingo-total-cell input:focus {
+    outline: 2px solid #242320;
+    outline-offset: -2px;
+}
+.bingo-total-save {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    border: 0;
+    background-color: #242320;
+    color: #B7B2A7;
+    cursor: pointer;
+}
+.bingo-total-save .material-symbols-outlined {
+    padding: 0;
+    background: transparent;
+    color: inherit;
+    font-size: 18px;
 }
 
 .planner-page {

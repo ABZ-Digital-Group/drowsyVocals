@@ -402,3 +402,13 @@ if (rosterPlanner) {
     assignmentsInput.value = JSON.stringify(assignments);
   });
 }
+
+document.querySelectorAll(".bingo-total-cell form").forEach((form) => {
+  const totalCell = form.closest("tr").querySelector(".bingo-total-cell:last-child");
+  const ccInput = totalCell?.querySelector(".bingo-cc-input");
+  const ccValue = form.querySelector(".bingo-cc-value");
+
+  form.addEventListener("submit", () => {
+    if (ccInput && ccValue) ccValue.value = ccInput.value;
+  });
+});
