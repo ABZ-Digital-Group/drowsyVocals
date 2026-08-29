@@ -13,7 +13,7 @@ const express = require('express');
 const session = require('express-session');
 const flash = require('connect-flash');
 const multer = require('multer');
-const { MongoClient } = require('mongodb');
+const { MongoClient, ObjectId } = require('mongodb');
 const { Server } = require('socket.io');
 
 const app = express();
@@ -1278,6 +1278,25 @@ app.post('/feedback', requireDatabase, async (req, res) => {
         req.flash('error_msg', 'Unable to submit feedback.');
         res.redirect('/feedback');
     }
+});
+
+// DELETE FEEDBACK (MANAGEMENT ONLY)
+app.post('/feedback/:feedbackId/delete', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin) return res.redirect('/');
+    if (!hasManagementAccess(req)) return res.status(403).send('You do not have permission to delete feedback.');
+
+    const { feedbackId } = req.params;
+    if (!ObjectId.isValid(feedbackId)) return res.redirect('/feedback');
+
+    try {
+        await db.collection('feedback').deleteOne({ _id: new ObjectId(feedbackId) });
+        req.flash('success_msg', 'Feedback deleted.');
+    } catch (error) {
+        console.error('Error deleting feedback:', error);
+        req.flash('error_msg', 'Unable to delete feedback.');
+    }
+
+    res.redirect('/feedback');
 });
 
 // LOA
