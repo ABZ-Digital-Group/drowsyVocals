@@ -176,7 +176,7 @@ nav ul > li > a:focus-visible {
     width: 32px;
     height: 32px;
     border: 1px solid #B7B2A7;
-    border-radius: 100%;
+    border-radius: 10%;
     object-fit: cover;
 }
 .nav-account-initial {
