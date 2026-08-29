@@ -1361,14 +1361,19 @@ app.get('/roster', requireDatabase, async (req, res) => {
         const sortedRanks = settings.ranks.slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
         const knownRankKeys = new Set(sortedRanks.map((rank) => normalizeRank(rank.name)));
         const rosterRows = [];
+        const rankVacancyCounts = {};
 
         sortedRanks.forEach((rank) => {
             const rankKey = normalizeRank(rank.name);
             const membersOfRank = usersWithService.filter((user) => normalizeRank(user.accountType) === rankKey);
             rosterRows.push(...membersOfRank);
 
-            if (Number.isFinite(rank.capacity) && rank.capacity > membersOfRank.length) {
-                const vacancies = rank.capacity - membersOfRank.length;
+            const vacancies = Number.isFinite(rank.capacity)
+                ? Math.max(0, rank.capacity - membersOfRank.length)
+                : 0;
+            rankVacancyCounts[rank.name] = vacancies;
+
+            if (vacancies > 0) {
                 for (let i = 0; i < vacancies; i += 1) {
                     rosterRows.push({ isVacant: true, accountType: rank.name });
                 }
@@ -1399,7 +1404,8 @@ app.get('/roster', requireDatabase, async (req, res) => {
             houseColorMap,
             shiftColorMap,
             activityColorMap,
-            onlineUsers
+            onlineUsers,
+            rankVacancyCounts
         });
     } catch (error) {
         console.error('Error fetching users:', error);

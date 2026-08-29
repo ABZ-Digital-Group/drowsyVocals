@@ -491,11 +491,17 @@ th, td {
     padding: 10px;
     text-align: center;
 }
-.rank-divider td {
-    height: 12px !important;
-    padding: 0 !important;
-    background-color: #242320 !important;
+.rank-group-header th {
+    padding: 6px 10px !important;
+    background-color: #4a5a69 !important;
+    color: #fff !important;
     border: 0 !important;
+    text-align: left;
+}
+.rank-group-header th span:last-child {
+    float: right;
+    font-size: 0.85em;
+    font-weight: normal;
 }
 .house-cell {
     font-weight: bold;

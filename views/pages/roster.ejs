@@ -93,9 +93,12 @@
                     <tbody>
                         
                          <% users.forEach(function(user, index) { %>
-                        <% if (index > 0 && users[index - 1].accountType !== user.accountType) { %>
-                        <tr class="rank-divider" aria-hidden="true">
-                            <td colspan="<%= (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Dreamy Defender') ? 16 : 13 %>"></td>
+                        <% if (index === 0 || users[index - 1].accountType !== user.accountType) { %>
+                        <tr class="rank-group-header">
+                            <th colspan="<%= (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Dreamy Defender') ? 16 : 13 %>">
+                                <span><%= user.accountType %></span>
+                                <span>Vacant slots: <%= rankVacancyCounts[user.accountType] || 0 %></span>
+                            </th>
                         </tr>
                         <% } %>
                         <% if (user.isVacant) { %>
