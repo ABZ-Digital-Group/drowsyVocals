@@ -366,10 +366,6 @@ nav ul li a {
     padding: 0 !important;
     min-width: 92px;
 }
-.bingo-total-cell form {
-    display: flex;
-    align-items: stretch;
-}
 .bingo-total-cell input,
 .bingo-total-cell span {
     width: 100%;
@@ -385,23 +381,6 @@ nav ul li a {
     outline: 2px solid #242320;
     outline-offset: -2px;
 }
-.bingo-total-save {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 28px;
-    border: 0;
-    background-color: #242320;
-    color: #B7B2A7;
-    cursor: pointer;
-}
-.bingo-total-save .material-symbols-outlined {
-    padding: 0;
-    background: transparent;
-    color: inherit;
-    font-size: 18px;
-}
-
 .planner-page {
     max-width: 1440px;
     width: calc(100% - 40px);

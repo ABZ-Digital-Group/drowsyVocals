@@ -403,12 +403,26 @@ if (rosterPlanner) {
   });
 }
 
-document.querySelectorAll(".bingo-total-cell form").forEach((form) => {
-  const totalCell = form.closest("tr").querySelector(".bingo-total-cell:last-child");
-  const ccInput = totalCell?.querySelector(".bingo-cc-input");
-  const ccValue = form.querySelector(".bingo-cc-value");
+document.querySelectorAll(".bingo-total-input").forEach((input) => {
+  let saveTimer;
 
-  form.addEventListener("submit", () => {
-    if (ccInput && ccValue) ccValue.value = ccInput.value;
+  input.addEventListener("input", () => {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+      const row = input.closest("tr");
+      const hpInput = row?.querySelector(".bingo-hp-input");
+      const ccInput = row?.querySelector(".bingo-cc-input");
+      if (!hpInput || !ccInput || hpInput.value === "" || ccInput.value === "") return;
+
+      fetch("/bingo/totals", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          discordId: input.dataset.discordId,
+          hp: hpInput.value,
+          cc: ccInput.value
+        })
+      }).catch(() => {});
+    }, 700);
   });
 });
