@@ -174,11 +174,15 @@ nav ul > li > a:focus-visible {
     cursor: pointer;
 }
 .nav-account-avatar {
+    display: block;
+    flex: 0 0 40px;
     width: 40px;
     height: 40px;
+    box-sizing: border-box;
     border: 1px solid #B7B2A7;
-    border-radius: 100%;
+    border-radius: 50%;
     object-fit: cover;
+    overflow: hidden;
 }
 .nav-account-initial {
     display: grid;
@@ -188,6 +192,7 @@ nav ul > li > a:focus-visible {
     font-size: 1.2em;
 }
 .nav-account-name {
+    font-size: 1.2em;
     max-width: 140px;
     overflow: hidden;
     text-overflow: ellipsis;
