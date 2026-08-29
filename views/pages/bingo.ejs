@@ -34,14 +34,16 @@
                             <th>Display Name</th>
                             <th>Discord User</th>
                             <% bingoGoals.forEach(function(goal) { %>
-                            <th><%= goal.label %></th>
+                            <th class="<%= goal.id === '1' || goal.id === '6' ? 'bingo-divider-left' : '' %>"><%= goal.label %></th>
                             <% }); %>
+                            <th class="bingo-divider-left">Total HP</th>
+                            <th>Total CC</th>
                         </tr>
                     </thead>
                     <tbody>
                         <% groups.forEach(function(group) { %>
                         <tr class="bingo-rank-header">
-                            <th colspan="13"><%= group.name %></th>
+                            <th colspan="15"><%= group.name %></th>
                         </tr>
                         <% group.users.forEach(function(user) { %>
                         <tr>
@@ -51,7 +53,7 @@
                             <% bingoGoals.forEach(function(goal) {
                                 const completed = Boolean(user.bingoProgress && user.bingoProgress[goal.id]);
                             %>
-                            <td class="bingo-cell <%= completed ? 'is-complete' : 'is-pending' %>">
+                            <td class="bingo-cell <%= goal.id === '1' || goal.id === '6' ? 'bingo-divider-left' : '' %> <%= completed ? 'is-complete' : 'is-pending' %>">
                                 <% if (canManageBingo) { %>
                                 <form action="/bingo/toggle" method="POST">
                                     <input type="hidden" name="discordId" value="<%= user.login.discordId %>">
@@ -63,6 +65,25 @@
                                 <% } %>
                             </td>
                             <% }); %>
+                            <td class="bingo-total-cell bingo-divider-left">
+                                <% if (canManageBingo) { %>
+                                <form action="/bingo/totals" method="POST">
+                                    <input type="hidden" name="discordId" value="<%= user.login.discordId %>">
+                                    <input type="number" name="hp" min="0" step="1" value="<%= user.bingoTotals?.hp ?? 0 %>" aria-label="Total HP for <%= user.displayName || user.discordUser || user.login.discordId %>">
+                                    <input type="hidden" name="cc" value="<%= user.bingoTotals?.cc ?? 0 %>" class="bingo-cc-value">
+                                    <button type="submit" class="bingo-total-save" aria-label="Save totals for <%= user.displayName || user.discordUser || user.login.discordId %>"><span class="material-symbols-outlined">save</span></button>
+                                </form>
+                                <% } else { %>
+                                <span><%= user.bingoTotals?.hp ?? 0 %></span>
+                                <% } %>
+                            </td>
+                            <td class="bingo-total-cell">
+                                <% if (canManageBingo) { %>
+                                <input type="number" min="0" step="1" value="<%= user.bingoTotals?.cc ?? 0 %>" aria-label="Total CC for <%= user.displayName || user.discordUser || user.login.discordId %>" class="bingo-cc-input">
+                                <% } else { %>
+                                <span><%= user.bingoTotals?.cc ?? 0 %></span>
+                                <% } %>
+                            </td>
                         </tr>
                         <% }); %>
                         <% }); %>

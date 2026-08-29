@@ -1640,6 +1640,47 @@ app.post('/bingo/toggle', requireDatabase, async (req, res) => {
     }
 });
 
+// SAVE A STAFF MEMBER'S CURRENT BINGO TOTALS
+app.post('/bingo/totals', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !MANAGEMENT_ROLES.includes(req.session.accountType)) {
+        req.flash('error_msg', 'You are not authorized to update Bingo totals.');
+        return res.redirect('/bingo');
+    }
+
+    const { discordId, hp, cc } = req.body;
+    const hpTotal = Number(hp);
+    const ccTotal = Number(cc);
+    if (!discordId || !Number.isFinite(hpTotal) || hpTotal < 0 || !Number.isFinite(ccTotal) || ccTotal < 0) {
+        return res.redirect('/bingo');
+    }
+
+    try {
+        const [settings, user] = await Promise.all([
+            getSettings(),
+            db.collection('users').findOne(
+                { 'login.discordId': discordId },
+                { projection: { accountType: 1 } }
+            )
+        ]);
+        const normalizeRank = (rank) => (rank || '').toString().toLowerCase().replace(/\./g, '').trim();
+        const guardRank = settings.ranks.find((rank) => normalizeRank(rank.name) === normalizeRank('Dreamland Guard'));
+        const userRank = settings.ranks.find((rank) => normalizeRank(rank.name) === normalizeRank(user?.accountType));
+        if (!guardRank || !userRank || (userRank.order ?? 0) < (guardRank.order ?? 0)) {
+            return res.redirect('/bingo');
+        }
+
+        await db.collection('users').updateOne(
+            { 'login.discordId': discordId },
+            { $set: { bingoTotals: { hp: hpTotal, cc: ccTotal } } }
+        );
+        res.redirect('/bingo');
+    } catch (error) {
+        console.error('Error updating Bingo totals:', error);
+        req.flash('error_msg', 'Unable to update Bingo totals.');
+        res.redirect('/bingo');
+    }
+});
+
 // CLEAR ALL BINGO TARGETS FOR THE NEW WEEK
 app.post('/bingo/reset', requireDatabase, async (req, res) => {
     if (!req.session.loggedin || !MANAGEMENT_ROLES.includes(req.session.accountType)) {
@@ -1648,7 +1689,7 @@ app.post('/bingo/reset', requireDatabase, async (req, res) => {
     }
 
     try {
-        await db.collection('users').updateMany({}, { $unset: { bingoProgress: '' } });
+        await db.collection('users').updateMany({}, { $unset: { bingoProgress: '', bingoTotals: '' } });
         req.flash('success_msg', 'Bingo board reset for the new week.');
         res.redirect('/bingo');
     } catch (error) {
