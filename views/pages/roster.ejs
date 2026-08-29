@@ -16,11 +16,20 @@
                 <div class="roster-sub">
                     <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Dreamy Defender') { %>
                     <div class="roster-actions">
-                        <button class="createBtn" type="button" id="openAddUserPopup">Add User</button>
-                        <button form="attendanceForm" type="submit">Save Attendance</button>
+                        <button class="action-button action-button-primary" type="button" id="openAddUserPopup">
+                            <span class="material-symbols-outlined" aria-hidden="true">person_add</span>
+                            Add User
+                        </button>
+                        <button class="action-button action-button-primary" form="attendanceForm" type="submit">
+                            <span class="material-symbols-outlined" aria-hidden="true">check_circle</span>
+                            Save Attendance
+                        </button>
                         <form action="/reset-attendance" method="POST" onsubmit="return confirm('Reset attendance for this week?');">
                             <input type="hidden" name="week" value="<%= currentWeek %>">
-                            <button type="submit">Reset Attendance</button>
+                            <button class="action-button action-button-secondary" type="submit">
+                                <span class="material-symbols-outlined" aria-hidden="true">restart_alt</span>
+                                Reset Attendance
+                            </button>
                         </form>
                     </div>
                     <% } %>

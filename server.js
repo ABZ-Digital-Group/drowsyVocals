@@ -292,6 +292,7 @@ app.get('/', (req, res) => {
 
 // LOGIN PAGE DOES NOT REQUIRE DATABASE ACCESS
 app.get('/index', (req, res) => {
+    if (req.query.splash !== '1') return res.redirect('/');
     res.render('pages/index');
 });
 
