@@ -426,3 +426,46 @@ document.querySelectorAll(".bingo-total-input").forEach((input) => {
     }, 700);
   });
 });
+
+const guidelinesEditToggle = document.querySelector("[data-guidelines-edit]");
+const guidelinesEditor = document.querySelector(".guidelines-editor");
+const guidelinesCancel = document.querySelector("[data-guidelines-cancel]");
+
+if (guidelinesEditToggle && guidelinesEditor) {
+  guidelinesEditToggle.addEventListener("click", () => {
+    guidelinesEditor.hidden = false;
+    guidelinesEditToggle.hidden = true;
+    guidelinesEditor.querySelector("[contenteditable]")?.focus();
+  });
+
+  guidelinesCancel?.addEventListener("click", () => {
+    guidelinesEditor.hidden = true;
+    guidelinesEditToggle.hidden = false;
+  });
+
+  guidelinesEditor.querySelectorAll("[data-guidelines-command]").forEach((button) => {
+    button.addEventListener("click", () => {
+      document.execCommand(button.dataset.guidelinesCommand, false);
+      guidelinesEditor.querySelector("[contenteditable]")?.focus();
+    });
+  });
+
+  guidelinesEditor.querySelector("[data-guidelines-format]")?.addEventListener("change", (event) => {
+    document.execCommand("formatBlock", false, event.target.value);
+  });
+
+  guidelinesEditor.querySelector("[data-guidelines-color]")?.addEventListener("input", (event) => {
+    document.execCommand("foreColor", false, event.target.value);
+  });
+
+  guidelinesEditor.querySelector("[data-guidelines-link]")?.addEventListener("click", () => {
+    const url = window.prompt("Link URL");
+    if (url) document.execCommand("createLink", false, url);
+  });
+
+  guidelinesEditor.addEventListener("submit", () => {
+    const editor = guidelinesEditor.querySelector("[contenteditable]");
+    const content = guidelinesEditor.querySelector("[data-guidelines-content]");
+    if (editor && content) content.value = editor.innerHTML;
+  });
+}

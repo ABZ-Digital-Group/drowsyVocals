@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <%- include('../partials/head') %>
+        <title>Drowsy <%= title %></title>
+    </head>
+    <body>
+        <header><%- include('../partials/nav') %></header>
+        <main>
+            <section class="guidelines-page">
+                <header class="guidelines-heading">
+                    <div>
+                        <h1><%= title %></h1>
+                        <% if (updatedAt) { %><p>Last updated <%= updatedAt.slice(0, 10) %></p><% } %>
+                    </div>
+                    <% if (canEditGuidelines) { %><button type="button" class="guidelines-edit-toggle" data-guidelines-edit>Edit</button><% } %>
+                </header>
+                <article class="guidelines-document <%= content ? '' : 'is-empty' %>"><%- content || 'No guidelines have been published yet.' %></article>
+                <% if (canEditGuidelines) { %>
+                <form class="guidelines-editor" action="/guidelines/<%= page %>" method="POST" hidden>
+                    <div class="guidelines-toolbar" role="toolbar" aria-label="Document formatting">
+                        <select data-guidelines-format aria-label="Text style">
+                            <option value="p">Paragraph</option>
+                            <option value="h2">Heading</option>
+                            <option value="h3">Subheading</option>
+                        </select>
+                        <button type="button" data-guidelines-command="bold" aria-label="Bold"><span class="material-symbols-outlined">format_bold</span></button>
+                        <button type="button" data-guidelines-command="italic" aria-label="Italic"><span class="material-symbols-outlined">format_italic</span></button>
+                        <button type="button" data-guidelines-command="underline" aria-label="Underline"><span class="material-symbols-outlined">format_underlined</span></button>
+                        <button type="button" data-guidelines-command="insertUnorderedList" aria-label="Bullet list"><span class="material-symbols-outlined">format_list_bulleted</span></button>
+                        <button type="button" data-guidelines-command="insertOrderedList" aria-label="Numbered list"><span class="material-symbols-outlined">format_list_numbered</span></button>
+                        <button type="button" data-guidelines-command="justifyLeft" aria-label="Align left"><span class="material-symbols-outlined">format_align_left</span></button>
+                        <button type="button" data-guidelines-command="justifyCenter" aria-label="Align center"><span class="material-symbols-outlined">format_align_center</span></button>
+                        <input type="color" data-guidelines-color value="#242320" aria-label="Text color">
+                        <button type="button" data-guidelines-link aria-label="Add link"><span class="material-symbols-outlined">link</span></button>
+                    </div>
+                    <div id="guidelineContent" class="guidelines-rich-editor" contenteditable="true" role="textbox" aria-multiline="true"><%- content %></div>
+                    <input type="hidden" name="content" data-guidelines-content>
+                    <div class="guidelines-editor-actions">
+                        <button type="submit">Publish Changes</button>
+                        <button type="button" data-guidelines-cancel>Cancel</button>
+                    </div>
+                </form>
+                <% } %>
+            </section>
+        </main>
+        <div class="footer"><p>&copy; 2026 Drowsy Vocals | All rights reserved.</p></div>
+    </body>
+</html>

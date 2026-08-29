@@ -17,6 +17,31 @@
                 </div>
                 <div class="profile-details">
                     <div class="profile-detail-full">
+                        <span>Developer Access</span>
+                        <p class="settings-hint">Developer access is separate from account type and includes God-level site permissions.</p>
+                        <form class="login-form-actions settings-add-form" action="/settings/developer-access" method="POST">
+                            <label for="developerDiscordId">Discord ID:</label>
+                            <input type="text" id="developerDiscordId" name="discordId" required>
+                            <input type="hidden" name="isDeveloper" value="true">
+                            <button type="submit">Grant Access</button>
+                        </form>
+                        <% if (developers.length) { %>
+                        <ul class="settings-list">
+                            <% developers.forEach(function(developer) { %>
+                            <li>
+                                <span><%= developer.displayName || developer.discordUser || developer.login.discordId %> (<%= developer.login.discordId %>)</span>
+                                <form action="/settings/developer-access" method="POST">
+                                    <input type="hidden" name="discordId" value="<%= developer.login.discordId %>">
+                                    <input type="hidden" name="isDeveloper" value="false">
+                                    <button type="submit">Remove Access</button>
+                                </form>
+                            </li>
+                            <% }); %>
+                        </ul>
+                        <% } %>
+                    </div>
+
+                    <div class="profile-detail-full">
                         <span>Ranks</span>
                         <p class="settings-hint">Name, sort order, and capacity (blank = unlimited slots).</p>
                         <ul class="settings-list">

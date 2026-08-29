@@ -5,11 +5,13 @@
         <li><a href="/roster">Roster</a></li>
         <li><a href="/bingo">Bingo</a></li>
         <li><a href="/loa">LOA</a></li>
-        <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Dreamy Defender') { %>
+        <li><a href="/staff-guidelines">Staff Guidelines</a></li>
+        <li><a href="/higher-guidelines">Higher Guidelines</a></li>
+        <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Dreamy Defender' || userIsDeveloper) { %>
         <li><a href="/roster-planner">Roster Planner</a></li>
         <li><a href="/reports">Reports</a></li>
         <% } %>
-        <% if (userType === 'Mr. Sandman' || userType === 'Realm God') { %>
+        <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userIsDeveloper) { %>
         <li><a href="/settings">Settings</a></li>
         <% } %>
         <li><a href="/account">Account</a></li>
