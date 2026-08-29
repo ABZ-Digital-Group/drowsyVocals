@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <%- include('../partials/head') %>
+        <title>Drowsy Vocals</title>
+    </head>
+    <body class="splash-page">
+        <main class="splash" aria-labelledby="splashTitle">
+            <img class="splash-logo" src="/assets/DrowsyLogo.png" alt="Drowsy Vocals">
+            <p id="splashTitle">Welcome to Drowsy Vocals</p>
+        </main>
+        <script>
+            (() => {
+                const destination = '/index';
+                const hasSeenSplash = localStorage.getItem('drowsy-vocals-splash-seen');
+
+                if (hasSeenSplash) {
+                    window.location.replace(destination);
+                    return;
+                }
+
+                localStorage.setItem('drowsy-vocals-splash-seen', 'true');
+                window.setTimeout(() => {
+                    document.body.classList.add('splash-leaving');
+                    window.setTimeout(() => window.location.replace(destination), 350);
+                }, 1800);
+            })();
+        </script>
+    </body>
+</html>

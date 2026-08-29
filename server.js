@@ -285,8 +285,13 @@ app.get('/health', (req, res) => {
     });
 });
 
-// ROOT PAGE DOES NOT REQUIRE DATABASE ACCESS
+// SPLASH PAGE DOES NOT REQUIRE DATABASE ACCESS
 app.get('/', (req, res) => {
+    res.render('pages/splash');
+});
+
+// LOGIN PAGE DOES NOT REQUIRE DATABASE ACCESS
+app.get('/index', (req, res) => {
     res.render('pages/index');
 });
 

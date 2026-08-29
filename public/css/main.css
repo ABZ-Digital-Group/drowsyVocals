@@ -26,6 +26,51 @@ main{
     margin: 0;
     width: 100%;
 }
+.splash-page {
+    background-color: #242320;
+    transition: opacity 350ms ease;
+}
+.splash-page.splash-leaving {
+    opacity: 0;
+}
+.splash {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    padding: 32px;
+    color: #B7B2A7;
+    text-align: center;
+    animation: splash-enter 500ms ease-out both;
+}
+.splash-logo {
+    width: min(320px, 70vw);
+    height: auto;
+}
+.splash p {
+    margin: 0;
+    font-size: 1.2em;
+    font-weight: bold;
+}
+@keyframes splash-enter {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    .splash-page,
+    .splash {
+        animation: none;
+        transition: none;
+    }
+}
 .login-container {
     display: flex;
     flex-direction: row;
