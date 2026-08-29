@@ -401,6 +401,18 @@ nav ul li a {
     margin-top: 4px;
     color: #4c483f;
 }
+.guidelines-message {
+    margin: 16px 0 0;
+    padding: 10px 12px;
+    border: 1px solid #242320;
+    font-weight: bold;
+}
+.guidelines-message.is-success {
+    background-color: #b7dca8;
+}
+.guidelines-message.is-error {
+    background-color: #ea999d;
+}
 .guidelines-edit-toggle,
 .guidelines-editor-actions button {
     padding: 8px 12px;

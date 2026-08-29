@@ -15,6 +15,8 @@
                     </div>
                     <% if (canEditGuidelines) { %><button type="button" class="guidelines-edit-toggle" data-guidelines-edit>Edit</button><% } %>
                 </header>
+                <% if (success_msg && success_msg.length) { %><p class="guidelines-message is-success"><%= success_msg[0] %></p><% } %>
+                <% if (error_msg && error_msg.length) { %><p class="guidelines-message is-error"><%= error_msg[0] %></p><% } %>
                 <article class="guidelines-document <%= content ? '' : 'is-empty' %>"><%- content || 'No guidelines have been published yet.' %></article>
                 <% if (canEditGuidelines) { %>
                 <form class="guidelines-editor" action="/guidelines/<%= page %>" method="POST" onsubmit="this.querySelector('[data-guidelines-content]').value = this.querySelector('[contenteditable]').innerHTML;" hidden>
