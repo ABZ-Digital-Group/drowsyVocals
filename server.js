@@ -1701,7 +1701,11 @@ app.post('/guidelines/:slug', requireDatabase, async (req, res) => {
     };
     const { slug } = req.params;
     const content = sanitizeGuidelineContent((req.body.content || '').toString().trim());
-    if (!titles[slug] || content.length > 20000) return res.redirect('/dashboard');
+    if (!titles[slug]) return res.redirect('/dashboard');
+    if (content.length > 500000) {
+        req.flash('error_msg', 'Guidelines must be 500,000 characters or fewer.');
+        return res.redirect(`/${slug}`);
+    }
 
     try {
         await db.collection('guidelineDocuments').updateOne(
