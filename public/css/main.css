@@ -207,7 +207,7 @@ nav ul > li > a:focus-visible {
     top: calc(100% + 8px);
     right: 0;
     display: none;
-    min-width: 150px;
+    min-width: 170px;
     padding: 6px;
     border: 1px solid #242320;
     background-color: #B7B2A7;
