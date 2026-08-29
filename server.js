@@ -115,8 +115,20 @@ function startLiveUpdates() {
     });
 }
 
-// Global middleware to pass session data to templates
-app.use((req, res, next) => {
+// REFRESH THE INDEPENDENT DEVELOPER FLAG SO ACCESS CHANGES APPLY IMMEDIATELY.
+app.use(async (req, res, next) => {
+    if (isDatabaseReady && db && req.session.loggedin && req.session.currentuser) {
+        try {
+            const user = await db.collection('users').findOne(
+                { 'login.discordId': req.session.currentuser },
+                { projection: { isDeveloper: 1 } }
+            );
+            req.session.isDeveloper = Boolean(user?.isDeveloper);
+        } catch (error) {
+            console.error('Developer access refresh failed:', error.message);
+        }
+    }
+
     res.locals.success_msg = req.flash('success_msg');
     res.locals.error_msg = req.flash('error_msg');
     res.locals.loggedin = req.session.loggedin;
