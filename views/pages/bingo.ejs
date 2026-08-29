@@ -67,14 +67,14 @@
                             <% }); %>
                             <td class="bingo-total-cell bingo-divider-left">
                                 <% if (canManageBingo) { %>
-                                <input type="number" min="0" step="1" value="<%= user.bingoTotals?.hp ?? 0 %>" aria-label="Total HP for <%= user.displayName || user.discordUser || user.login.discordId %>" class="bingo-total-input bingo-hp-input" data-discord-id="<%= user.login.discordId %>">
+                                <input type="text" value="<%= user.bingoTotals?.hp ?? 0 %>" aria-label="Total HP for <%= user.displayName || user.discordUser || user.login.discordId %>" class="bingo-total-input bingo-hp-input" data-discord-id="<%= user.login.discordId %>">
                                 <% } else { %>
                                 <span><%= user.bingoTotals?.hp ?? 0 %></span>
                                 <% } %>
                             </td>
                             <td class="bingo-total-cell">
                                 <% if (canManageBingo) { %>
-                                <input type="number" min="0" step="1" value="<%= user.bingoTotals?.cc ?? 0 %>" aria-label="Total CC for <%= user.displayName || user.discordUser || user.login.discordId %>" class="bingo-total-input bingo-cc-input" data-discord-id="<%= user.login.discordId %>">
+                                <input type="text" value="<%= user.bingoTotals?.cc ?? 0 %>" aria-label="Total CC for <%= user.displayName || user.discordUser || user.login.discordId %>" class="bingo-total-input bingo-cc-input" data-discord-id="<%= user.login.discordId %>">
                                 <% } else { %>
                                 <span><%= user.bingoTotals?.cc ?? 0 %></span>
                                 <% } %>
