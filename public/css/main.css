@@ -133,6 +133,12 @@ nav ul li a {
     color: #B7B2A7;
     font-weight: bold;
     font-size: 1.2em;
+    transition: color 160ms ease;
+}
+nav ul > li > a:hover,
+nav ul > li > a:focus-visible {
+    color: #fff;
+    outline: none;
 }
 .nav-account-menu {
     position: relative;
@@ -206,6 +212,7 @@ nav ul li a {
     border: 1px solid #242320;
     background-color: #B7B2A7;
     box-shadow: 4px 4px 0 #242320;
+    animation: nav-dropdown-in 140ms ease-out;
 }
 .nav-guidelines-dropdown {
     position: absolute;
@@ -218,6 +225,16 @@ nav ul li a {
     border: 1px solid #242320;
     background-color: #B7B2A7;
     box-shadow: 4px 4px 0 #242320;
+    animation: nav-dropdown-in 140ms ease-out;
+}
+.nav-account-dropdown::before,
+.nav-guidelines-dropdown::before {
+    position: absolute;
+    top: -8px;
+    left: 0;
+    width: 100%;
+    height: 8px;
+    content: "";
 }
 .nav-account-menu:hover .nav-account-dropdown,
 .nav-account-menu:focus-within .nav-account-dropdown,
@@ -252,6 +269,66 @@ nav ul li a {
     background-color: #242320;
     color: #B7B2A7;
     outline: none;
+}
+
+@keyframes page-enter {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+@keyframes nav-dropdown-in {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+main {
+    animation: page-enter 260ms ease-out both;
+}
+button,
+.planner-user,
+.profile-detail,
+.profile-detail-full,
+.roster-stats div {
+    transition: transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease, color 160ms ease;
+}
+button:not(:disabled):hover {
+    transform: translateY(-1px);
+}
+.planner-user:hover {
+    transform: translateX(3px);
+    box-shadow: 3px 3px 0 #242320;
+}
+.profile-detail:hover,
+.profile-detail-full:hover,
+.roster-stats div:hover {
+    box-shadow: 3px 3px 0 #242320;
+}
+tr {
+    transition: background-color 160ms ease;
+}
+tbody tr:not(.rank-group-header):not(.bingo-rank-header):hover {
+    background-color: #d0cdc5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
 }
 
 .profile-page {
