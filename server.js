@@ -1419,10 +1419,10 @@ app.get('/bingo', requireDatabase, async (req, res) => {
 
         const normalizeRank = (rank) => (rank || '').toString().toLowerCase().replace(/\./g, '').trim();
         const sortedRanks = settings.ranks.slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-        const defenderRank = sortedRanks.find((rank) => normalizeRank(rank.name) === normalizeRank('Dreamy Defender'));
-        const defenderOrder = defenderRank?.order;
+        const guardRank = sortedRanks.find((rank) => normalizeRank(rank.name) === normalizeRank('Dreamland Guard'));
+        const guardOrder = guardRank?.order;
         const groups = sortedRanks.filter((rank) => (
-            Number.isFinite(defenderOrder) && (rank.order ?? 0) >= defenderOrder
+            Number.isFinite(guardOrder) && (rank.order ?? 0) >= guardOrder
         )).map((rank) => ({
             name: rank.name,
             users: users
@@ -1463,9 +1463,9 @@ app.post('/bingo/toggle', requireDatabase, async (req, res) => {
         if (!user) return res.redirect('/bingo');
 
         const normalizeRank = (rank) => (rank || '').toString().toLowerCase().replace(/\./g, '').trim();
-        const defenderRank = settings.ranks.find((rank) => normalizeRank(rank.name) === normalizeRank('Dreamy Defender'));
+        const guardRank = settings.ranks.find((rank) => normalizeRank(rank.name) === normalizeRank('Dreamland Guard'));
         const userRank = settings.ranks.find((rank) => normalizeRank(rank.name) === normalizeRank(user.accountType));
-        if (!defenderRank || !userRank || (userRank.order ?? 0) < (defenderRank.order ?? 0)) {
+        if (!guardRank || !userRank || (userRank.order ?? 0) < (guardRank.order ?? 0)) {
             return res.redirect('/bingo');
         }
 
