@@ -1648,9 +1648,9 @@ app.post('/bingo/totals', requireDatabase, async (req, res) => {
     }
 
     const { discordId, hp, cc } = req.body;
-    const hpTotal = Number(hp);
-    const ccTotal = Number(cc);
-    if (!discordId || !Number.isFinite(hpTotal) || hpTotal < 0 || !Number.isFinite(ccTotal) || ccTotal < 0) {
+    const hpTotal = (hp ?? '').toString().trim();
+    const ccTotal = (cc ?? '').toString().trim();
+    if (!discordId || hpTotal.length > 100 || ccTotal.length > 100) {
         return res.redirect('/bingo');
     }
 

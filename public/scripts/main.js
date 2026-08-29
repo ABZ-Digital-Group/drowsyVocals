@@ -412,7 +412,7 @@ document.querySelectorAll(".bingo-total-input").forEach((input) => {
       const row = input.closest("tr");
       const hpInput = row?.querySelector(".bingo-hp-input");
       const ccInput = row?.querySelector(".bingo-cc-input");
-      if (!hpInput || !ccInput || hpInput.value === "" || ccInput.value === "") return;
+      if (!hpInput || !ccInput) return;
 
       fetch("/bingo/totals", {
         method: "POST",
