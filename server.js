@@ -64,6 +64,21 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(flash());
 
+// FORM WRITES ARE THE PRIMARY LIVE-UPDATE SIGNAL. This works even when the
+// MongoDB deployment does not support change streams.
+app.use((req, res, next) => {
+    res.on('finish', () => {
+        if (
+            ['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)
+            && req.path !== '/login'
+            && res.statusCode < 400
+        ) {
+            broadcastDataUpdate('app');
+        }
+    });
+    next();
+});
+
 // DATABASE STATE
 let db = null;
 let mongoClient = null;
