@@ -5,8 +5,16 @@
         <li><a href="/dashboard">Dashboard</a></li>
         <li><a href="/roster">Roster</a></li>
         <li><a href="/bingo">Bingo</a></li>
-        <li><a href="/loa">LOA</a></li>
-        <li><a href="/feedback">Feedback</a></li>
+        < class="nav-guidelines-menu">
+            <button class="nav-guidelines-trigger" type="button" aria-expanded="false" aria-controls="guidelinesMenu">
+                Forms
+                <span class="material-symbols-outlined nav-guidelines-arrow" aria-hidden="true">expand_more</span>
+            </button>
+            <div class="nav-guidelines-dropdown" id="guidelinesMenu">
+                <a href="/loa">LOA</a>
+                <a href="/feedback">Feedback</a>
+            </div>
+        </li>
         <li class="nav-guidelines-menu">
             <button class="nav-guidelines-trigger" type="button" aria-expanded="false" aria-controls="guidelinesMenu">
                 Guidelines
