@@ -22,6 +22,17 @@ if (navMenuToggle && primaryNavigation) {
   });
 }
 
+const rosterFilters = ['rosterSearch', 'rosterRankFilter', 'rosterHouseFilter', 'rosterActivityFilter'].map((id) => document.getElementById(id));
+if (rosterFilters.every(Boolean)) {
+  const applyRosterFilters = () => {
+    const [search, rank, house, activity] = rosterFilters.map((field) => field.value.toLowerCase().trim());
+    document.querySelectorAll('.roster-user-row').forEach((row) => {
+      row.hidden = Boolean((search && !row.dataset.search.includes(search)) || (rank && row.dataset.rank.toLowerCase() !== rank) || (house && row.dataset.house.toLowerCase() !== house) || (activity && row.dataset.activity.toLowerCase() !== activity));
+    });
+  };
+  rosterFilters.forEach((field) => field.addEventListener('input', applyRosterFilters));
+}
+
 document.querySelectorAll('.nav-notifications-trigger, .nav-account-trigger, .nav-guidelines-trigger').forEach((trigger) => {
   trigger.addEventListener('click', () => {
     const menu = document.getElementById(trigger.getAttribute('aria-controls'));
@@ -195,6 +206,7 @@ if (viewUserPopup && closeViewUserPopup) {
   const viewHireDate = document.getElementById("viewHireDate");
   const viewOnboarding = document.getElementById("viewOnboarding");
   const viewHostTraining = document.getElementById("viewHostTraining");
+  const viewUserTimeline = document.getElementById("viewUserTimeline");
 
   viewButtons.forEach((button) => {
     button.addEventListener("click", () => {
@@ -212,7 +224,13 @@ if (viewUserPopup && closeViewUserPopup) {
         avatarUrl,
         onboardingComplete,
         hostTrainingComplete
+        , lastPromotion
       } = button.dataset;
+
+      if (viewUserTimeline) {
+        const events = [{ date: hireDate, text: 'Joined Drowsy Vocals' }, { date: lastPromotion, text: 'Last promotion' }, { date: '', text: `Current activity: ${activity || 'Not assigned'}` }].filter((event) => event.date || event.text);
+        viewUserTimeline.innerHTML = events.map((event) => `<li><strong>${escapeHtml(event.date || 'Current')}</strong> ${escapeHtml(event.text)}</li>`).join('');
+      }
 
       if (viewAvatar) {
         viewAvatar.innerHTML = renderAvatarHtml({ discordId, displayName, avatarUrl }, 96, false);

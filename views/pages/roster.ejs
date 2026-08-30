@@ -72,11 +72,17 @@
                 </div>
             </section>
             <section class="roster-content">
+                <div class="roster-filters" aria-label="Filter roster">
+                    <input id="rosterSearch" type="search" placeholder="Search staff">
+                    <select id="rosterRankFilter"><option value="">All ranks</option><% settings.ranks.forEach(function(rank) { %><option value="<%= rank.name %>"><%= rank.name %></option><% }); %></select>
+                    <select id="rosterHouseFilter"><option value="">All houses</option><% settings.houses.forEach(function(house) { %><option value="<%= house.name %>"><%= house.name %></option><% }); %></select>
+                    <select id="rosterActivityFilter"><option value="">All activity</option><% settings.activities.forEach(function(activity) { %><option value="<%= activity.name %>"><%= activity.name %></option><% }); %></select>
+                </div>
                 <form id="attendanceForm" action="/mark-attendance" method="POST">
                 <input type="hidden" name="week" value="<%= currentWeek %>">
                 <table>
                     <thead>
-                        <tr>
+                        <tr class="roster-user-row" data-rank="<%= user.accountType %>" data-house="<%= user.house %>" data-activity="<%= user.activity %>" data-search="<%= [user.displayName, user.discordUser, user.login.discordId].join(' ').toLowerCase() %>">
                             <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Dreamy Defender') { %>
                             <th>Meeting <br>Attendance</th>
                             <% } %>
@@ -160,6 +166,7 @@
                                     data-avatar-url="<%= user.avatarUrl || '' %>"
                                     data-onboarding-complete="<%= user.onboardingComplete ? '1' : '' %>"
                                     data-host-training-complete="<%= user.hostTrainingComplete ? '1' : '' %>"
+                                    data-last-promotion="<%= user.lastPromotion || '' %>"
                                 >
                                     <span class="material-symbols-outlined">visibility</span>
                             
@@ -324,6 +331,7 @@
                         <strong id="viewHostTraining"></strong>
                     </div>
                 </div>
+                <div class="staff-timeline"><span>Profile timeline</span><ul id="viewUserTimeline"></ul></div>
                 <button type="button" id="closeViewUserPopup">Close</button>
             </dialog>
 

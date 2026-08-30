@@ -21,6 +21,7 @@
                     <button type="submit" name="week" value="<%= weekStart %>">This Week</button>
                     <button type="submit" name="week" value="<%= nextWeek %>">Next Week</button>
                 </form>
+                <% if (reportHistory.length) { %><div class="report-history"><strong>Saved reports:</strong><% reportHistory.forEach(function(report) { %><a href="/reports?week=<%= report.weekStart %>"><%= report.weekStart %></a><% }); %></div><% } %>
 
                 <div class="profile-details">
                     <div class="profile-detail">
