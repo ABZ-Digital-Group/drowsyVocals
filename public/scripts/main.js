@@ -43,9 +43,46 @@ document.querySelectorAll('.nav-notifications-trigger, .nav-account-trigger, .na
 });
 
 // REFRESH SHARED DATA VIEWS WHEN ANOTHER USER SAVES A CHANGE.
+let lastLocalSaveTime = 0;
+let pendingLiveReload = false;
+
+const isUserInteracting = () => {
+  const active = document.activeElement;
+  const tag = active?.tagName;
+  const isInput = tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || Boolean(active?.isContentEditable);
+  const hasOpenDialog = Boolean(document.querySelector("dialog[open]"));
+  const isDragging = Boolean(document.querySelector(".is-dragging"));
+  return isInput || hasOpenDialog || isDragging;
+};
+
+const triggerOrScheduleReload = () => {
+  if (Date.now() - lastLocalSaveTime < 3000) {
+    return;
+  }
+  if (isUserInteracting()) {
+    pendingLiveReload = true;
+    return;
+  }
+  window.location.reload();
+};
+
 if (window.io && ["/roster", "/bingo", "/roster-planner", "/settings", "/reports", "/loa", "/feedback", "/dashboard", "/staff-guidelines", "/higher-guidelines"].includes(window.location.pathname)) {
   const liveSocket = window.io();
-  liveSocket.on("data-updated", () => window.location.reload());
+  liveSocket.on("data-updated", () => triggerOrScheduleReload());
+
+  const handleInteractionEnd = () => {
+    if (!pendingLiveReload) return;
+    setTimeout(() => {
+      if (pendingLiveReload && !isUserInteracting() && Date.now() - lastLocalSaveTime >= 1500) {
+        pendingLiveReload = false;
+        window.location.reload();
+      }
+    }, 300);
+  };
+
+  document.addEventListener("focusout", handleInteractionEnd);
+  document.addEventListener("pointerup", handleInteractionEnd);
+  document.addEventListener("keyup", handleInteractionEnd);
 }
 
 // SHARED AVATAR RENDERING HELPERS (USED BY THE ONLINE-NOW BAR AND VIEW-USER POPUP)
