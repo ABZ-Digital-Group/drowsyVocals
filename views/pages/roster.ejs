@@ -82,7 +82,7 @@
                 <input type="hidden" name="week" value="<%= currentWeek %>">
                 <table>
                     <thead>
-                        <tr class="roster-user-row" data-rank="<%= user.accountType %>" data-house="<%= user.house %>" data-activity="<%= user.activity %>" data-search="<%= [user.displayName, user.discordUser, user.login.discordId].join(' ').toLowerCase() %>">
+                        <tr>
                             <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Dreamy Defender') { %>
                             <th>Meeting <br>Attendance</th>
                             <% } %>
@@ -129,7 +129,7 @@
                             <% } %>
                         </tr>
                         <% } else { %>
-                        <tr>
+                        <tr class="roster-user-row" data-rank="<%= user.accountType %>" data-house="<%= user.house %>" data-activity="<%= user.activity %>" data-search="<%= [user.displayName, user.discordUser, user.login.discordId].join(' ').toLowerCase() %>">
                             <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Dreamy Defender') { %>
                             <td><input type="checkbox" name="attendees" value="<%= user.login.discordId %>" <%= user.attendedThisWeek ? 'checked' : '' %>></td>
                             <% } %>
