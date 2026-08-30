@@ -15,7 +15,7 @@
             </section>
 
             <section class="profile-page">
-                <% if (announcements.length) { %><div class="dashboard-announcements"><span>Announcements</span><% announcements.forEach(function(item) { %><article><p><%= item.content %></p><small><%= item.createdBy %> · <%= (item.createdAt || '').slice(0, 10) %></small></article><% }); %></div><% } %>
+                <% if (announcements.length) { %><div class="dashboard-announcements"><span>Announcements</span><% announcements.forEach(function(item) { %><article><p><%= item.content %></p><div class="announcement-meta"><small><%= item.createdByName %> · <%= (item.createdAt || '').slice(0, 10) %></small><% if (staffSummary) { %><form action="/announcements/<%= item._id %>/delete" method="POST" onsubmit="return confirm('Remove this announcement?');"><button type="submit">Remove</button></form><% } %></div></article><% }); %></div><% } %>
                 <div class="profile-details">
                     <div class="profile-detail">
                         <span>Rank</span>

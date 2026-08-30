@@ -489,6 +489,10 @@ tbody tr:not(.rank-group-header):not(.bingo-rank-header):hover {
 .dashboard-announcements article { padding: 8px 0; border-top: 1px solid #24232044; }
 .dashboard-announcements article p { margin: 5px 0; white-space: pre-wrap; }
 .dashboard-announcements small { color: #6f6a60; }
+.announcement-meta { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.announcement-meta form { margin: 0; }
+.announcement-meta button { padding: 4px 8px; border: 1px solid #242320; border-radius: 4px; background: transparent; color: #242320; font: inherit; font-size: .82em; font-weight: bold; cursor: pointer; }
+.announcement-meta button:hover { background: #242320; color: #B7B2A7; }
 .dashboard-widgets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 25px 0; }
 .dashboard-widgets a { display: flex; flex-direction: column; gap: 4px; padding: 15px; background: #242320; color: #B7B2A7; text-decoration: none; }
 .dashboard-widgets strong { font-size: 1.25em; }

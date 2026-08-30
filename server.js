@@ -171,10 +171,15 @@ const hasGodAccess = (req) => GOD_ROLES.includes(req.session.accountType) || Boo
 async function writeAudit(req, action, detail) {
     if (!db || !req.session.currentuser) return;
     try {
+        const actorUser = await db.collection('users').findOne(
+            { 'login.discordId': req.session.currentuser },
+            { projection: { displayName: 1, discordUser: 1 } }
+        );
         await db.collection('auditLog').insertOne({
             action,
             detail,
             actor: req.session.currentuser,
+            actorDisplayName: actorUser?.displayName || actorUser?.discordUser || req.session.currentuser,
             createdAt: new Date().toISOString().slice(0, 19)
         });
     } catch (error) {
@@ -1124,10 +1129,13 @@ app.get('/dashboard', requireDatabase, async (req, res) => {
 
     try {
         const currentDiscordId = req.session.currentuser;
-        const [userDoc, announcements] = await Promise.all([
+        const [userDoc, announcements, users] = await Promise.all([
             db.collection('users').findOne({ 'login.discordId': currentDiscordId }),
-            db.collection('announcements').find().sort({ createdAt: -1 }).limit(3).toArray()
+            db.collection('announcements').find().sort({ createdAt: -1 }).limit(3).toArray(),
+            db.collection('users').find({}, { projection: { displayName: 1, discordUser: 1, 'login.discordId': 1 } }).toArray()
         ]);
+        const nameByDiscordId = new Map(users.map((user) => [user.login.discordId, user.displayName || user.discordUser || user.login.discordId]));
+        const announcementsWithNames = announcements.map((announcement) => ({ ...announcement, createdByName: announcement.createdByName || nameByDiscordId.get(announcement.createdBy) || announcement.createdBy }));
         const currentDisplayName = userDoc?.displayName || currentDiscordId;
         const accountType = userDoc ? userDoc.accountType : null;
 
@@ -1170,7 +1178,7 @@ app.get('/dashboard', requireDatabase, async (req, res) => {
             attendedThisWeek,
             staffSummary,
             pendingLoaTotal,
-            announcements
+            announcements: announcementsWithNames
         });
     } catch (error) {
         console.error('Error loading dashboard:', error);
@@ -1344,8 +1352,23 @@ app.post('/announcements', requireDatabase, async (req, res) => {
     if (!req.session.loggedin || !hasManagementAccess(req)) return res.redirect('/dashboard');
     const content = (req.body.content || '').toString().trim();
     if (!content || content.length > 1000) return res.redirect('/dashboard');
-    await db.collection('announcements').insertOne({ content, createdBy: req.session.currentuser, createdAt: new Date().toISOString().slice(0, 19) });
+    const author = await db.collection('users').findOne({ 'login.discordId': req.session.currentuser }, { projection: { displayName: 1, discordUser: 1 } });
+    await db.collection('announcements').insertOne({ content, createdBy: req.session.currentuser, createdByName: author?.displayName || author?.discordUser || req.session.currentuser, createdAt: new Date().toISOString().slice(0, 19) });
     await writeAudit(req, 'Posted announcement', content.slice(0, 80));
+    res.redirect('/dashboard');
+});
+
+app.post('/announcements/:announcementId/delete', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !hasManagementAccess(req)) return res.status(403).send('You do not have permission to remove announcements.');
+    if (!ObjectId.isValid(req.params.announcementId)) return res.redirect('/dashboard');
+    try {
+        await db.collection('announcements').deleteOne({ _id: new ObjectId(req.params.announcementId) });
+        await writeAudit(req, 'Removed announcement', req.params.announcementId);
+        req.flash('success_msg', 'Announcement removed.');
+    } catch (error) {
+        console.error('Error removing announcement:', error);
+        req.flash('error_msg', 'Unable to remove announcement.');
+    }
     res.redirect('/dashboard');
 });
 
@@ -1391,8 +1414,12 @@ app.get('/audit-log', requireDatabase, async (req, res) => {
     if (!req.session.loggedin) return res.redirect('/');
     if (!hasManagementAccess(req)) return res.status(403).send('You do not have permission to view the audit log.');
     try {
-        const entries = await db.collection('auditLog').find().sort({ createdAt: -1 }).limit(100).toArray();
-        res.render('pages/audit-log', { page: 'audit-log', entries });
+        const [entries, users] = await Promise.all([
+            db.collection('auditLog').find().sort({ createdAt: -1 }).limit(100).toArray(),
+            db.collection('users').find({}, { projection: { displayName: 1, discordUser: 1, 'login.discordId': 1 } }).toArray()
+        ]);
+        const nameByDiscordId = new Map(users.map((user) => [user.login.discordId, user.displayName || user.discordUser || user.login.discordId]));
+        res.render('pages/audit-log', { page: 'audit-log', entries: entries.map((entry) => ({ ...entry, actorDisplayName: entry.actorDisplayName || nameByDiscordId.get(entry.actor) || entry.actor })) });
     } catch (error) {
         console.error('Error loading audit log:', error);
         res.status(500).send('Error loading audit log.');
