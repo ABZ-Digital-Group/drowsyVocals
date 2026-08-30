@@ -15,6 +15,7 @@
             </section>
 
             <section class="profile-page">
+                <% if (announcements.length) { %><div class="dashboard-announcements"><span>Announcements</span><% announcements.forEach(function(item) { %><article><p><%= item.content %></p><small><%= item.createdBy %> · <%= (item.createdAt || '').slice(0, 10) %></small></article><% }); %></div><% } %>
                 <div class="profile-details">
                     <div class="profile-detail">
                         <span>Rank</span>
@@ -48,6 +49,8 @@
             </section>
 
             <% if (staffSummary) { %>
+            <section class="dashboard-widgets"><a href="/loa"><strong><%= pendingLoaTotal %></strong><span>Pending LOA requests</span></a><a href="/feedback"><strong><%= notifications.length %></strong><span>Open management notifications</span></a><a href="/audit-log"><span>View</span><strong>Recent audit activity</strong></a></section>
+            <form class="announcement-form" action="/announcements" method="POST"><label for="announcementContent">Post announcement</label><textarea id="announcementContent" name="content" rows="2" maxlength="1000" required></textarea><button type="submit">Publish</button></form>
             <section class="roster-content">
                 <h2>Staff Overview</h2>
                 <div class="roster-stats">

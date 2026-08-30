@@ -484,6 +484,19 @@ tbody tr:not(.rank-group-header):not(.bingo-rank-header):hover {
 .roster-actions form {
     margin: 0;
 }
+.dashboard-announcements { margin: 0 0 24px; padding: 18px; border: 1px solid #242320; background: #d0cdc5; }
+.dashboard-announcements > span { font-weight: bold; text-transform: uppercase; font-size: .85em; }
+.dashboard-announcements article { padding: 8px 0; border-top: 1px solid #24232044; }
+.dashboard-announcements article p { margin: 5px 0; white-space: pre-wrap; }
+.dashboard-announcements small { color: #6f6a60; }
+.dashboard-widgets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 25px 0; }
+.dashboard-widgets a { display: flex; flex-direction: column; gap: 4px; padding: 15px; background: #242320; color: #B7B2A7; text-decoration: none; }
+.dashboard-widgets strong { font-size: 1.25em; }
+.announcement-form { display: grid; gap: 8px; margin: 0 0 25px; }
+.announcement-form textarea { padding: 8px; border: 1px solid #242320; background: #d0cdc5; font: inherit; }
+.announcement-form button { justify-self: start; padding: 8px 12px; border: 0; background: #242320; color: #B7B2A7; font: inherit; font-weight: bold; cursor: pointer; }
+.report-history { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 18px 0; }
+.report-history a { padding: 5px 8px; background: #242320; color: #B7B2A7; text-decoration: none; }
 .nav-notifications-dropdown {
     position: absolute;
     z-index: 10;
@@ -510,6 +523,12 @@ tbody tr:not(.rank-group-header):not(.bingo-rank-header):hover {
 .roster-actions {
     margin-top: 16px;
 }
+.roster-filters { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 16px; }
+.roster-filters input, .roster-filters select { min-height: 38px; padding: 7px 10px; border: 1px solid #242320; border-radius: 4px; background: #d0cdc5; color: #242320; font: inherit; }
+.staff-timeline { margin-top: 18px; padding-top: 14px; border-top: 1px solid #24232044; }
+.staff-timeline > span { color: #6f6a60; font-size: .85em; font-weight: bold; text-transform: uppercase; }
+.staff-timeline ul { margin: 8px 0 0; padding-left: 20px; }
+.staff-timeline li { margin: 5px 0; }
 .action-button {
     display: inline-flex;
     align-items: center;
@@ -1552,6 +1571,7 @@ dialog button {
     .nav-account-dropdown, .nav-guidelines-dropdown, .nav-notifications-dropdown { position: static; margin: 8px auto 0; text-align: left; }
     .feedback-workflow { grid-template-columns: 1fr; }
     .audit-log li { grid-template-columns: 1fr; gap: 5px; }
+    .dashboard-widgets { grid-template-columns: 1fr; }
 
     .login-container {
         flex-direction: column;

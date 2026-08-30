@@ -837,6 +837,9 @@ app.get('/reports', requireDatabase, async (req, res) => {
             loa: users.filter((user) => user.activity === 'LOA').length
         };
 
+        await db.collection('reportHistory').updateOne({ weekStart }, { $set: { weekStart, totalStaff: users.length, attendedCount, attendanceTaken, strikesIssuedCount, activitySummary, generatedAt: new Date().toISOString().slice(0, 19) } }, { upsert: true });
+        const reportHistory = await db.collection('reportHistory').find().sort({ weekStart: -1 }).limit(12).toArray();
+
         res.render('pages/reports', {
             page: 'reports',
             weekStart,
@@ -855,7 +858,8 @@ app.get('/reports', requireDatabase, async (req, res) => {
             newHires,
             promotions,
             houseTotals,
-            activitySummary
+            activitySummary,
+            reportHistory
         });
     } catch (error) {
         console.error('Error generating weekly report:', error);
@@ -1120,7 +1124,10 @@ app.get('/dashboard', requireDatabase, async (req, res) => {
 
     try {
         const currentDiscordId = req.session.currentuser;
-        const userDoc = await db.collection('users').findOne({ 'login.discordId': currentDiscordId });
+        const [userDoc, announcements] = await Promise.all([
+            db.collection('users').findOne({ 'login.discordId': currentDiscordId }),
+            db.collection('announcements').find().sort({ createdAt: -1 }).limit(3).toArray()
+        ]);
         const currentDisplayName = userDoc?.displayName || currentDiscordId;
         const accountType = userDoc ? userDoc.accountType : null;
 
@@ -1162,7 +1169,8 @@ app.get('/dashboard', requireDatabase, async (req, res) => {
             pendingLoaCount,
             attendedThisWeek,
             staffSummary,
-            pendingLoaTotal
+            pendingLoaTotal,
+            announcements
         });
     } catch (error) {
         console.error('Error loading dashboard:', error);
@@ -1330,6 +1338,15 @@ app.post('/feedback', requireDatabase, async (req, res) => {
         req.flash('error_msg', 'Unable to submit feedback.');
         res.redirect('/feedback');
     }
+});
+
+app.post('/announcements', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !hasManagementAccess(req)) return res.redirect('/dashboard');
+    const content = (req.body.content || '').toString().trim();
+    if (!content || content.length > 1000) return res.redirect('/dashboard');
+    await db.collection('announcements').insertOne({ content, createdBy: req.session.currentuser, createdAt: new Date().toISOString().slice(0, 19) });
+    await writeAudit(req, 'Posted announcement', content.slice(0, 80));
+    res.redirect('/dashboard');
 });
 
 app.post('/feedback/:feedbackId/update', requireDatabase, async (req, res) => {
