@@ -70,6 +70,18 @@
                         <strong>No strikes on record</strong>
                         <% } %>
                     </div>
+                    <div class="profile-detail-full attendance-history">
+                        <span>Attendance History <%= attendanceRate === null ? '' : `(${attendanceRate}% attended)` %></span>
+                        <% if (!attendanceHistory.length) { %>
+                        <strong>No meetings have been recorded for you yet.</strong>
+                        <% } else { %>
+                        <ul>
+                            <% attendanceHistory.forEach(function(record) { %>
+                            <li><strong><%= record.week %></strong><span class="attendance-status <%= record.attended ? 'attended' : 'absent' %>"><%= record.attended ? 'Attended' : 'Absent' %></span></li>
+                            <% }); %>
+                        </ul>
+                        <% } %>
+                    </div>
                     <div class="profile-detail-full">
                         <span>Profile Picture</span>
                         <form class="login-form-actions" action="/account/upload-avatar" method="POST" enctype="multipart/form-data">

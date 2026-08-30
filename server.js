@@ -1131,7 +1131,7 @@ app.get('/dashboard', requireDatabase, async (req, res) => {
         const currentDiscordId = req.session.currentuser;
         const [userDoc, announcements, users] = await Promise.all([
             db.collection('users').findOne({ 'login.discordId': currentDiscordId }),
-            db.collection('announcements').find().sort({ createdAt: -1 }).limit(3).toArray(),
+            db.collection('announcements').find({ $or: [{ expiresAt: { $exists: false } }, { expiresAt: null }, { expiresAt: { $gte: new Date().toISOString().slice(0, 10) } }] }).sort({ pinned: -1, createdAt: -1 }).limit(3).toArray(),
             db.collection('users').find({}, { projection: { displayName: 1, discordUser: 1, 'login.discordId': 1 } }).toArray()
         ]);
         const nameByDiscordId = new Map(users.map((user) => [user.login.discordId, user.displayName || user.discordUser || user.login.discordId]));
@@ -1196,9 +1196,16 @@ app.get('/account', requireDatabase, async (req, res) => {
 
         if (!user) return res.redirect('/logout');
 
+        const attendanceHistory = (user.attendance || []).slice().sort((a, b) => (b.week || '').localeCompare(a.week || '')).slice(0, 6);
+        const attendanceTakenCount = (user.attendance || []).length;
+        const attendanceAttendedCount = (user.attendance || []).filter((record) => record.attended).length;
+        const attendanceRate = attendanceTakenCount ? Math.round((attendanceAttendedCount / attendanceTakenCount) * 100) : null;
+
         res.render('pages/account', {
             page: 'account',
-            user
+            user,
+            attendanceHistory,
+            attendanceRate
         });
     } catch (error) {
         console.error('Error loading account page:', error);
@@ -1351,10 +1358,20 @@ app.post('/feedback', requireDatabase, async (req, res) => {
 app.post('/announcements', requireDatabase, async (req, res) => {
     if (!req.session.loggedin || !hasManagementAccess(req)) return res.redirect('/dashboard');
     const content = (req.body.content || '').toString().trim();
+    const expiresAt = /^\d{4}-\d{2}-\d{2}$/.test(req.body.expiresAt || '') ? req.body.expiresAt : null;
     if (!content || content.length > 1000) return res.redirect('/dashboard');
     const author = await db.collection('users').findOne({ 'login.discordId': req.session.currentuser }, { projection: { displayName: 1, discordUser: 1 } });
-    await db.collection('announcements').insertOne({ content, createdBy: req.session.currentuser, createdByName: author?.displayName || author?.discordUser || req.session.currentuser, createdAt: new Date().toISOString().slice(0, 19) });
+    await db.collection('announcements').insertOne({ content, createdBy: req.session.currentuser, createdByName: author?.displayName || author?.discordUser || req.session.currentuser, createdAt: new Date().toISOString().slice(0, 19), expiresAt, pinned: req.body.pinned === 'true' });
     await writeAudit(req, 'Posted announcement', content.slice(0, 80));
+    res.redirect('/dashboard');
+});
+
+app.post('/announcements/:announcementId/pin', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !hasManagementAccess(req)) return res.status(403).send('You do not have permission to update announcements.');
+    if (!ObjectId.isValid(req.params.announcementId)) return res.redirect('/dashboard');
+    const pinned = req.body.pinned === 'true';
+    await db.collection('announcements').updateOne({ _id: new ObjectId(req.params.announcementId) }, { $set: { pinned } });
+    await writeAudit(req, pinned ? 'Pinned announcement' : 'Unpinned announcement', req.params.announcementId);
     res.redirect('/dashboard');
 });
 

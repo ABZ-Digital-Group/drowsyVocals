@@ -493,6 +493,13 @@ tbody tr:not(.rank-group-header):not(.bingo-rank-header):hover {
 .announcement-meta form { margin: 0; }
 .announcement-meta button { padding: 4px 8px; border: 1px solid #242320; border-radius: 4px; background: transparent; color: #242320; font: inherit; font-size: .82em; font-weight: bold; cursor: pointer; }
 .announcement-meta button:hover { background: #242320; color: #B7B2A7; }
+.announcement-actions { display: flex; gap: 6px; }
+.announcement-pin { display: inline-block; margin-right: 6px; padding: 2px 6px; border-radius: 3px; background: #242320; color: #B7B2A7; font-size: .75em; font-weight: bold; }
+.attendance-history ul { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 4px 0 0; padding: 0; list-style: none; }
+.attendance-history li { display: flex; justify-content: space-between; gap: 8px; padding: 8px; background: #d0cdc5; }
+.attendance-status { font-weight: bold; }
+.attendance-status.attended { color: #176b39; }
+.attendance-status.absent { color: #8a3024; }
 .dashboard-widgets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 25px 0; }
 .dashboard-widgets a { display: flex; flex-direction: column; gap: 4px; padding: 15px; background: #242320; color: #B7B2A7; text-decoration: none; }
 .dashboard-widgets strong { font-size: 1.25em; }
@@ -1576,6 +1583,7 @@ dialog button {
     .feedback-workflow { grid-template-columns: 1fr; }
     .audit-log li { grid-template-columns: 1fr; gap: 5px; }
     .dashboard-widgets { grid-template-columns: 1fr; }
+    .attendance-history ul { grid-template-columns: 1fr; }
 
     .login-container {
         flex-direction: column;
