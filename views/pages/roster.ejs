@@ -14,7 +14,7 @@
                 <h1>Roster</h1>
                 <p>List of team members will be displayed here.</p>
                 <div class="roster-sub">
-                    <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Dreamy Defender') { %>
+                    <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender') { %>
                     <div class="roster-actions">
                         <button class="action-button action-button-primary" type="button" id="openAddUserPopup">
                             <span class="material-symbols-outlined" aria-hidden="true">person_add</span>
@@ -83,7 +83,7 @@
                 <table>
                     <thead>
                         <tr>
-                            <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Dreamy Defender') { %>
+                            <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender') { %>
                             <th>Meeting <br>Attendance</th>
                             <% } %>
                             <th>Account <br>Type</th>
@@ -99,7 +99,7 @@
                             <th>House <br>Points</th>
                             <th>Activity</th>
                             <th>Weeks <br>Activity</th>
-                            <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Dreamy Defender') { %>
+                            <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender') { %>
                                 <th>Strikes</th>
                                 <th>Actions</th>
                             <% } %>
@@ -110,7 +110,7 @@
                          <% users.forEach(function(user, index) { %>
                         <% if (index === 0 || users[index - 1].accountType !== user.accountType) { %>
                         <tr class="rank-group-header">
-                            <th colspan="<%= (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Dreamy Defender') ? 16 : 13 %>">
+                            <th colspan="<%= (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender') ? 16 : 13 %>">
                                 <span><%= user.accountType %></span>
                                 <span>Vacant slots: <%= rankVacancyCounts[user.accountType] || 0 %></span>
                             </th>
@@ -118,19 +118,19 @@
                         <% } %>
                         <% if (user.isVacant) { %>
                         <tr class="vacant-row">
-                            <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Dreamy Defender') { %>
+                            <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender') { %>
                             <td></td>
                             <% } %>
                             <td><%= user.accountType %></td>
                             <td colspan="12">Vacant</td>
-                            <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Dreamy Defender') { %>
+                            <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender') { %>
                             <td></td>
                             <td></td>
                             <% } %>
                         </tr>
                         <% } else { %>
                         <tr class="roster-user-row" data-rank="<%= user.accountType %>" data-house="<%= user.house %>" data-activity="<%= user.activity %>" data-search="<%= [user.displayName, user.discordUser, user.login.discordId].join(' ').toLowerCase() %>">
-                            <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Dreamy Defender') { %>
+                            <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender') { %>
                             <td><input type="checkbox" name="attendees" value="<%= user.login.discordId %>" <%= user.attendedThisWeek ? 'checked' : '' %>></td>
                             <% } %>
                             <td><%= user.accountType %></td>
@@ -147,7 +147,7 @@
                             <td><%= user.housePoints %></td>
                             <td class="activity-cell" style="background-color: <%= activityColorMap[user.activity] || '' %>"><%= user.activity %></td>
                             <td><%= user.weeksActivity %></td>
-                            <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Dreamy Defender') { %>
+                            <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender') { %>
                             <td><%= (user.strikes || []).reduce((sum, strike) => sum + (Number(strike.count) || 0), 0) %></td>
                                 <td>
                                 <button

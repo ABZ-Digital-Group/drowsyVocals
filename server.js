@@ -266,7 +266,7 @@ const DEFAULT_SETTINGS = {
     ranks: [
         { name: 'Mr. Sandman', order: 0, capacity: null },
         { name: 'Realm God', order: 1, capacity: null },
-        { name: 'Dreamy Defender', order: 2, capacity: null },
+        { name: 'Drowsy Defender', order: 2, capacity: null },
         { name: 'Dreamland Guard', order: 3, capacity: null },
         { name: 'Nighty Knights', order: 4, capacity: null },
         { name: 'Tired Esquire', order: 5, capacity: null }
