@@ -20,9 +20,17 @@
             </div>
         </li>
         <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Dreamy Defender' || userIsDeveloper) { %>
-        <li><a href="/roster-planner">Roster Planner</a></li>
-        <li><a href="/reports">Reports</a></li>
-        <li><a href="/audit-log">Audit Log</a></li>
+        <li class="nav-guidelines-menu">
+            <button class="nav-guidelines-trigger" type="button" aria-expanded="false" aria-controls="managementMenu">
+                Management
+                <span class="material-symbols-outlined nav-guidelines-arrow" aria-hidden="true">expand_more</span>
+            </button>
+            <div class="nav-guidelines-dropdown" id="managementMenu">
+                <a href="/roster-planner">Roster Planner</a>
+                <a href="/reports">Reports</a>
+                <a href="/audit-log">Audit Log</a>
+            </div>
+        </li>
         <% } %>
         <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userIsDeveloper) { %>
         <% } %>
