@@ -1816,6 +1816,556 @@ tbody tr:not(.rank-group-header):not(.bingo-rank-header):hover {
     }
 }
 
+/* ==========================================================================
+   MODERN ACCOUNT PAGE STYLING
+   ========================================================================== */
+.account-page {
+    max-width: 1200px;
+    margin: 40px auto 80px;
+    padding: 0 20px;
+}
+
+/* Hero Profile Card */
+.account-hero-card {
+    background: #242320;
+    color: #B7B2A7;
+    border-radius: 10px;
+    border: 1px solid #383734;
+    padding: 28px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.18);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 24px;
+    margin-bottom: 24px;
+}
+
+.account-hero-identity {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+    flex-wrap: wrap;
+}
+
+.account-hero-avatar-wrap {
+    position: relative;
+}
+
+.account-hero-avatar-wrap .avatar-wrapper {
+    box-shadow: 0 0 0 4px #1a1917, 0 4px 12px rgba(0,0,0,0.35);
+    border-radius: 50%;
+}
+
+.account-hero-details {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.account-hero-name {
+    margin: 0;
+    font-size: 2.2em;
+    color: #f3efe6;
+    line-height: 1.15;
+    font-weight: bold;
+}
+
+.account-hero-tags {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.account-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.82em;
+    font-weight: bold;
+    letter-spacing: 0.03em;
+    background: #1a1917;
+    color: #d0cdc5;
+    border: 1px solid #383734;
+}
+
+.account-badge .material-symbols-outlined {
+    font-size: 1.1em;
+    background: transparent;
+    padding: 0;
+}
+
+.account-badge-rank {
+    background: #f59e0b22;
+    color: #fbbf24;
+    border-color: #f59e0b44;
+}
+
+.account-badge-dev {
+    background: #8b5cf622;
+    color: #a78bfa;
+    border-color: #8b5cf644;
+}
+
+.account-badge-active {
+    background: #10b98122;
+    color: #34d399;
+    border-color: #10b98144;
+}
+
+.account-badge-loa {
+    background: #3b82f622;
+    color: #60a5fa;
+    border-color: #3b82f644;
+}
+
+.account-badge-warning {
+    background: #ef444422;
+    color: #f87171;
+    border-color: #ef444444;
+}
+
+.account-color-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+/* Quick Stats Ribbon */
+.account-stats-ribbon {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+    margin-bottom: 28px;
+}
+
+.account-stat-card {
+    background: #242320;
+    color: #B7B2A7;
+    border-radius: 8px;
+    border: 1px solid #383734;
+    padding: 16px 18px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+.account-stat-icon {
+    font-size: 2em !important;
+    background: #1a1917;
+    color: #B7B2A7;
+    padding: 8px;
+    border-radius: 6px;
+    flex-shrink: 0;
+}
+
+.account-stat-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.account-stat-label {
+    font-size: 0.75em;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #8e897e;
+    font-weight: bold;
+}
+
+.account-stat-val {
+    font-size: 1.25em;
+    font-weight: bold;
+    color: #f3efe6;
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Main Layout Grid */
+.account-grid {
+    display: grid;
+    grid-template-columns: 1.2fr 0.8fr;
+    gap: 24px;
+}
+
+.account-column {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+/* Account Cards */
+.account-card {
+    background: #242320;
+    color: #B7B2A7;
+    border-radius: 8px;
+    border: 1px solid #383734;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+}
+
+.account-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #383734;
+    padding-bottom: 14px;
+}
+
+.account-card-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.2em;
+    font-weight: bold;
+    color: #f3efe6;
+    margin: 0;
+}
+
+.account-card-title .material-symbols-outlined {
+    font-size: 1.2em;
+    background: #1a1917;
+    color: #d0cdc5;
+    padding: 5px;
+    border-radius: 5px;
+}
+
+/* Details Grid */
+.account-info-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.account-info-item {
+    background: #1a1917;
+    border: 1px solid #383734;
+    border-radius: 6px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.account-info-item.full-width {
+    grid-column: 1 / -1;
+}
+
+.account-info-label {
+    font-size: 0.78em;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #8e897e;
+    font-weight: bold;
+}
+
+.account-info-val {
+    font-size: 1.05em;
+    font-weight: bold;
+    color: #f3efe6;
+    overflow-wrap: anywhere;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Copy ID pill */
+.account-copy-id-btn {
+    background: #242320;
+    border: 1px solid #444;
+    color: #B7B2A7;
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 0.75em;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 160ms ease;
+    margin: 0 !important;
+}
+
+.account-copy-id-btn:hover {
+    background: #383734;
+    color: #f3efe6;
+}
+
+/* Training Checklist */
+.account-checklist {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 10px;
+    margin-top: 4px;
+}
+
+.account-check-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    background: #1a1917;
+    border: 1px solid #383734;
+    border-radius: 6px;
+    font-size: 0.9em;
+    font-weight: 500;
+}
+
+.account-check-item.is-done {
+    color: #34d399;
+    border-color: #10b98144;
+}
+
+.account-check-item.is-pending {
+    color: #a8a29e;
+    border-color: #444;
+}
+
+/* Attendance Timeline */
+.account-attendance-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 8px;
+}
+
+.account-attendance-item {
+    background: #1a1917;
+    border: 1px solid #383734;
+    border-radius: 6px;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 4px;
+}
+
+.account-attendance-week {
+    font-size: 0.8em;
+    color: #8e897e;
+    font-family: monospace;
+}
+
+.account-attendance-pill {
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75em;
+    font-weight: bold;
+}
+
+.account-attendance-pill.attended {
+    background: #10b98122;
+    color: #34d399;
+    border: 1px solid #10b98144;
+}
+
+.account-attendance-pill.absent {
+    background: #ef444422;
+    color: #f87171;
+    border: 1px solid #ef444444;
+}
+
+/* Strikes List */
+.account-strikes-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.account-strike-card {
+    background: #1a1917;
+    border-left: 4px solid #ef4444;
+    border-top: 1px solid #383734;
+    border-right: 1px solid #383734;
+    border-bottom: 1px solid #383734;
+    border-radius: 4px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.account-strike-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.account-strike-count {
+    color: #f87171;
+    font-weight: bold;
+    font-size: 0.9em;
+}
+
+.account-strike-date {
+    color: #8e897e;
+    font-size: 0.8em;
+}
+
+.account-strike-reason {
+    color: #e5e0d8;
+    font-size: 0.9em;
+    line-height: 1.4;
+    margin: 2px 0 0;
+}
+
+/* Clean Record Banner */
+.account-clean-banner {
+    background: #10b98111;
+    border: 1px solid #10b98133;
+    border-radius: 6px;
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.account-clean-banner .material-symbols-outlined {
+    font-size: 2em;
+    color: #34d399;
+    background: transparent;
+    padding: 0;
+}
+
+.account-clean-title {
+    font-weight: bold;
+    color: #f3efe6;
+    font-size: 0.95em;
+}
+
+.account-clean-sub {
+    font-size: 0.82em;
+    color: #8e897e;
+}
+
+/* Forms inside Account Cards */
+.account-form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.account-file-box {
+    border: 2px dashed #444;
+    border-radius: 6px;
+    padding: 18px;
+    text-align: center;
+    background: #1a1917;
+    cursor: pointer;
+    transition: border-color 160ms ease, background-color 160ms ease;
+}
+
+.account-file-box:hover {
+    border-color: #B7B2A7;
+    background: #201f1c;
+}
+
+.account-file-box input[type="file"] {
+    display: none;
+}
+
+.account-file-box-label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.account-file-box-label .material-symbols-outlined {
+    font-size: 2.2em;
+    color: #B7B2A7;
+    background: transparent;
+    padding: 0;
+}
+
+.account-file-box-text {
+    font-size: 0.9em;
+    font-weight: bold;
+    color: #f3efe6;
+}
+
+.account-file-box-hint {
+    font-size: 0.75em;
+    color: #8e897e;
+}
+
+.account-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 18px;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 0.95em;
+    font-weight: bold;
+    cursor: pointer;
+    border: none;
+    transition: transform 160ms ease, background-color 160ms ease;
+    margin: 0 !important;
+}
+
+.account-btn .material-symbols-outlined {
+    font-size: 1.15em;
+    background: transparent;
+    padding: 0;
+}
+
+.account-btn-primary {
+    background: #B7B2A7;
+    color: #242320;
+}
+
+.account-btn-primary:hover {
+    background: #f3efe6;
+    color: #242320;
+}
+
+/* Responsive Breakpoints */
+@media (max-width: 960px) {
+    .account-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 600px) {
+    .account-page {
+        margin: 20px auto 60px;
+        padding: 0 12px;
+    }
+    .account-hero-card {
+        padding: 18px;
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .account-hero-name {
+        font-size: 1.7em;
+    }
+    .account-info-grid {
+        grid-template-columns: 1fr;
+    }
+    .account-stats-ribbon {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 420px) {
+    .account-stats-ribbon {
+        grid-template-columns: 1fr;
+    }
+}
+
 .report-week-nav {
     display: flex;
     gap: 10px;
