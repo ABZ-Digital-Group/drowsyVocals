@@ -23,7 +23,7 @@ const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 const mongoUri = process.env.MONGODB_URI;
 const dbname = process.env.MONGODB_DATABASE;
-const sessionSecret = process.env.SESSION_SECRET;
+const sessionSecret = process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex');
 
 if (!mongoUri) {
     console.error('MONGODB_URI is not configured. Add it to the application environment variables.');
@@ -33,14 +33,34 @@ if (!dbname) {
     console.error('MONGODB_DATABASE is not configured. Add it to the application environment variables.');
 }
 
-if (!sessionSecret) {
-    console.warn('SESSION_SECRET is not configured. Add a long random value to the application environment variables.');
+if (!process.env.SESSION_SECRET) {
+    console.warn('SESSION_SECRET is not configured in .env. A temporary random secret was generated. Set SESSION_SECRET to persist sessions across restarts.');
 }
+
+// SECURITY: DISABLE EXPRESS FINGERPRINTING
+app.disable('x-powered-by');
 
 // Hostinger terminates HTTPS at its reverse proxy.
 // This allows express-session to recognise the original HTTPS request
 // and set secure cookies correctly in production.
 app.set('trust proxy', 1);
+
+// SECURITY: OWASP SECURITY HEADERS & CONFIDENTIALITY CACHE CONTROL
+app.use((req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+    res.setHeader('X-XSS-Protection', '0');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+
+    // Never cache confidential management and user data in browser / proxy caches
+    if (req.session?.loggedin || req.path.startsWith('/api/') || req.path === '/roster' || req.path === '/settings' || req.path === '/reports') {
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+    }
+    next();
+});
 
 // APP CONFIGURATION
 app.use(session({
@@ -54,6 +74,35 @@ app.use(session({
         maxAge: 1000 * 60 * 60 * 24
     }
 }));
+
+// RATE LIMITING FOR BRUTE FORCE PROTECTION (IN-MEMORY SLIDING WINDOW)
+const rateLimits = new Map();
+
+function checkRateLimit(key, maxAttempts = 10, windowMs = 15 * 60 * 1000) {
+    const now = Date.now();
+    const timestamps = (rateLimits.get(key) || []).filter(ts => now - ts < windowMs);
+    rateLimits.set(key, timestamps);
+    return timestamps.length < maxAttempts;
+}
+
+function recordRateLimitAttempt(key) {
+    const timestamps = rateLimits.get(key) || [];
+    timestamps.push(Date.now());
+    rateLimits.set(key, timestamps);
+}
+
+function resetRateLimit(key) {
+    rateLimits.delete(key);
+}
+
+// TIMING-SAFE STRING COMPARISON TO MITIGATE TIMING ATTACKS
+function safeTimingCompare(a, b) {
+    if (typeof a !== 'string' || typeof b !== 'string') return false;
+    const bufA = Buffer.from(a, 'utf8');
+    const bufB = Buffer.from(b, 'utf8');
+    if (bufA.length !== bufB.length) return false;
+    return crypto.timingSafeEqual(bufA, bufB);
+}
 
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -214,7 +263,7 @@ function requireDatabase(req, res, next) {
 }
 
 // ROLES ALLOWED TO MANAGE STRIKES, ATTENDANCE, AND LOA APPROVALS
-const MANAGEMENT_ROLES = ['Mr. Sandman', 'Realm God', 'Dreamy Defender'];
+const MANAGEMENT_ROLES = ['Mr. Sandman', 'Realm God', 'Drowsy Defender', 'Dreamy Defender'];
 const GOD_ROLES = ['Mr. Sandman', 'Realm God'];
 const hasManagementAccess = (req) => MANAGEMENT_ROLES.includes(req.session.accountType) || Boolean(req.session.isDeveloper);
 const hasGodAccess = (req) => GOD_ROLES.includes(req.session.accountType) || Boolean(req.session.isDeveloper);
@@ -533,36 +582,55 @@ function connectDB() {
     return connectPromise;
 }
 
-// USER SIGN-UP
+// USER SIGN-UP (RESTRICTED TO GODS / DEVELOPERS)
 app.post('/signUp', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !hasGodAccess(req)) {
+        req.flash('error_msg', 'You are not authorized to create accounts directly.');
+        return res.redirect('/');
+    }
+
     const { discordId, password, accountType } = req.body;
+    const cleanDiscordId = (discordId || '').toString().trim();
+    const cleanPassword = (password || '').toString();
+
+    if (!cleanDiscordId || !cleanPassword || cleanPassword.length < 8) {
+        req.flash('error_msg', 'Discord ID and a password of at least 8 characters are required.');
+        return res.redirect('/roster');
+    }
 
     try {
-        const existingUser = await db.collection('users').findOne({ 'login.discordId': discordId });
+        const existingUser = await db.collection('users').findOne({ 'login.discordId': cleanDiscordId });
 
         if (existingUser) {
             req.flash('error_msg', 'User Already Exists.');
-            return res.redirect('/users');
+            return res.redirect('/roster');
         }
 
-        const hash = await bcrypt.hash(password, saltRounds);
+        const hash = await bcrypt.hash(cleanPassword, saltRounds);
         const newUser = {
-            login: { discordId, password: hash },
-            accountType,
+            login: { discordId: cleanDiscordId, password: hash },
+            accountType: (accountType || 'Tired Esquire').toString(),
             created: new Date().toISOString().slice(0, 19)
         };
 
         await db.collection('users').insertOne(newUser);
+        await writeAudit(req, 'Created user account', `${cleanDiscordId} (${accountType})`);
         req.flash('success_msg', 'User created successfully!');
-        res.redirect('/');
+        res.redirect('/roster');
     } catch (error) {
         console.error('Error during sign-up:', error);
-        res.redirect('/users');
+        req.flash('error_msg', 'Unable to create user.');
+        res.redirect('/roster');
     }
 });
 
-// ADD USER
+// ADD USER (MANAGEMENT ONLY)
 app.post('/add-user', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !hasManagementAccess(req)) {
+        req.flash('error_msg', 'You are not authorized to add staff members.');
+        return res.redirect('/roster');
+    }
+
     const {
         discordId,
         displayName,
@@ -579,42 +647,70 @@ app.post('/add-user', requireDatabase, async (req, res) => {
         hostTrainingComplete
     } = req.body;
 
+    const cleanDiscordId = (discordId || '').toString().trim();
+    const cleanPassword = (password || '').toString();
+    const cleanDisplayName = (displayName || '').toString().trim();
+    const cleanAccountType = (accountType || '').toString().trim();
+
+    if (!cleanDiscordId || !cleanDisplayName || !cleanPassword) {
+        req.flash('error_msg', 'Discord ID, Display Name, and Password are required.');
+        return res.redirect('/roster');
+    }
+
+    if (cleanPassword.length < 8) {
+        req.flash('error_msg', 'Password must be at least 8 characters long.');
+        return res.redirect('/roster');
+    }
+
+    // Only Gods / Developers can create other God accounts
+    if (GOD_ROLES.includes(cleanAccountType) && !hasGodAccess(req)) {
+        req.flash('error_msg', 'You do not have permission to create God-level accounts.');
+        return res.redirect('/roster');
+    }
+
     try {
-        const existingUser = await db.collection('users').findOne({ 'login.discordId': discordId });
+        const existingUser = await db.collection('users').findOne({ 'login.discordId': cleanDiscordId });
 
         if (existingUser) {
+            req.flash('error_msg', 'A user with that Discord ID already exists.');
             return res.redirect('/roster');
         }
 
-        const hash = await bcrypt.hash(password, saltRounds);
+        const hash = await bcrypt.hash(cleanPassword, saltRounds);
         const newUser = {
-            login: { discordId, password: hash },
-            displayName,
-            discordUser,
-            accountType,
-            hireDate,
-            lastPromotion: hireDate || null,
-            house,
-            housePoints,
-            activity,
-            weeksActivity,
-            shift,
+            login: { discordId: cleanDiscordId, password: hash },
+            displayName: cleanDisplayName,
+            discordUser: (discordUser || '').toString().trim(),
+            accountType: cleanAccountType,
+            hireDate: hireDate || new Date().toISOString().slice(0, 10),
+            lastPromotion: hireDate || new Date().toISOString().slice(0, 10),
+            house: (house || '').toString(),
+            housePoints: Number(housePoints) || 0,
+            activity: (activity || 'Active').toString(),
+            weeksActivity: Number(weeksActivity) || 0,
+            shift: (shift || '').toString(),
             onboardingComplete: Boolean(onboardingComplete),
             hostTrainingComplete: Boolean(hostTrainingComplete),
             created: new Date().toISOString().slice(0, 19)
         };
 
         await db.collection('users').insertOne(newUser);
+        await writeAudit(req, 'Added Staff Member', `${cleanDisplayName} (${cleanDiscordId}) - ${cleanAccountType}`);
+        req.flash('success_msg', `Added ${cleanDisplayName} to the roster.`);
         res.redirect('/roster');
     } catch (error) {
         console.error('Error during adding user:', error);
+        req.flash('error_msg', 'Unable to add user.');
         res.redirect('/roster');
     }
 });
 
-// UPDATE USER
+// UPDATE USER (MANAGEMENT ONLY)
 app.post('/update-user', requireDatabase, async (req, res) => {
-    if (!req.session.loggedin) return res.redirect('/');
+    if (!req.session.loggedin || !hasManagementAccess(req)) {
+        req.flash('error_msg', 'You are not authorized to edit staff members.');
+        return res.redirect('/roster');
+    }
 
     const {
         originalDiscordId,
@@ -633,98 +729,145 @@ app.post('/update-user', requireDatabase, async (req, res) => {
         hostTrainingComplete
     } = req.body;
 
+    const cleanOriginalId = (originalDiscordId || '').toString().trim();
+    const cleanDiscordId = (discordId || '').toString().trim();
+    const cleanAccountType = (accountType || '').toString().trim();
+    const cleanDisplayName = (displayName || '').toString().trim();
+
     try {
-        if (!originalDiscordId) return res.redirect('/roster');
-
-        const existingUser = await db.collection('users').findOne({ 'login.discordId': originalDiscordId });
-        if (!existingUser) return res.redirect('/roster');
-
-        if (discordId !== originalDiscordId) {
-            const duplicateUser = await db.collection('users').findOne({ 'login.discordId': discordId });
-            if (duplicateUser) return res.redirect('/roster');
+        if (!cleanOriginalId || !cleanDiscordId) {
+            req.flash('error_msg', 'Discord ID is required.');
+            return res.redirect('/roster');
         }
 
-        const isPromotion = existingUser.accountType !== accountType;
+        const existingUser = await db.collection('users').findOne({ 'login.discordId': cleanOriginalId });
+        if (!existingUser) {
+            req.flash('error_msg', 'User not found.');
+            return res.redirect('/roster');
+        }
+
+        // Restrict modifications to/from God roles to God accounts only
+        const isTargetGod = GOD_ROLES.includes(existingUser.accountType) || Boolean(existingUser.isDeveloper);
+        const isSettingGod = GOD_ROLES.includes(cleanAccountType);
+        if ((isTargetGod || isSettingGod) && !hasGodAccess(req)) {
+            req.flash('error_msg', 'Only Realm Gods, Mr. Sandman, or Developers can manage God-level accounts.');
+            return res.redirect('/roster');
+        }
+
+        if (cleanDiscordId !== cleanOriginalId) {
+            const duplicateUser = await db.collection('users').findOne({ 'login.discordId': cleanDiscordId });
+            if (duplicateUser) {
+                req.flash('error_msg', 'That new Discord ID is already taken by another user.');
+                return res.redirect('/roster');
+            }
+        }
+
+        const isPromotion = existingUser.accountType !== cleanAccountType;
         const nextLastPromotion = isPromotion
             ? new Date().toISOString().slice(0, 10)
             : (existingUser.lastPromotion || hireDate || null);
 
         const updateDoc = {
             $set: {
-                'login.discordId': discordId,
-                displayName,
-                discordUser,
-                accountType,
-                hireDate,
+                'login.discordId': cleanDiscordId,
+                displayName: cleanDisplayName,
+                discordUser: (discordUser || '').toString().trim(),
+                accountType: cleanAccountType,
+                hireDate: hireDate || existingUser.hireDate,
                 lastPromotion: nextLastPromotion,
-                house,
-                shift,
-                housePoints,
-                activity,
-                weeksActivity,
+                house: (house || '').toString(),
+                shift: (shift || '').toString(),
+                housePoints: Number(housePoints) || 0,
+                activity: (activity || 'Active').toString(),
+                weeksActivity: Number(weeksActivity) || 0,
                 onboardingComplete: Boolean(onboardingComplete),
                 hostTrainingComplete: Boolean(hostTrainingComplete)
             }
         };
 
-        if (password && password.trim()) {
-            const hash = await bcrypt.hash(password.trim(), saltRounds);
+        if (password && password.toString().trim()) {
+            const cleanPassword = password.toString().trim();
+            if (cleanPassword.length < 8) {
+                req.flash('error_msg', 'Updated password must be at least 8 characters.');
+                return res.redirect('/roster');
+            }
+            const hash = await bcrypt.hash(cleanPassword, saltRounds);
             updateDoc.$set['login.password'] = hash;
         }
 
         await db.collection('users').updateOne(
-            { 'login.discordId': originalDiscordId },
+            { 'login.discordId': cleanOriginalId },
             updateDoc
         );
 
+        await writeAudit(req, 'Updated Staff Member', `${cleanDisplayName} (${cleanOriginalId} -> ${cleanDiscordId})`);
+        req.flash('success_msg', `Updated profile for ${cleanDisplayName}.`);
         res.redirect('/roster');
     } catch (error) {
         console.error('Error during user update:', error);
+        req.flash('error_msg', 'Unable to update user.');
         res.redirect('/roster');
     }
 });
 
-// PROMOTE USER
+// PROMOTE USER (MANAGEMENT ONLY)
 app.post('/promote-user', requireDatabase, async (req, res) => {
-    if (!req.session.loggedin) return res.redirect('/');
+    if (!req.session.loggedin || !hasManagementAccess(req)) {
+        req.flash('error_msg', 'You are not authorized to change staff ranks.');
+        return res.redirect('/roster');
+    }
 
     const { discordId, accountType, effectiveDate, rankActionType } = req.body;
+    const cleanDiscordId = (discordId || '').toString().trim();
+    const cleanAccountType = (accountType || '').toString().trim();
 
     try {
         const settings = await getSettings();
         const allowedRanks = settings.ranks.map((rank) => rank.name);
 
-        if (!discordId || !allowedRanks.includes(accountType)) {
+        if (!cleanDiscordId || !allowedRanks.includes(cleanAccountType)) {
+            req.flash('error_msg', 'Invalid user or rank specified.');
             return res.redirect('/roster');
         }
 
-        const user = await db.collection('users').findOne({ 'login.discordId': discordId });
-        if (!user) return res.redirect('/roster');
+        const user = await db.collection('users').findOne({ 'login.discordId': cleanDiscordId });
+        if (!user) {
+            req.flash('error_msg', 'User not found.');
+            return res.redirect('/roster');
+        }
 
-        if (user.accountType === accountType) {
-            console.log(`No-op ${rankActionType || 'rank change'} for ${discordId}; rank unchanged.`);
+        // Restrict God-level promotions to God accounts
+        if ((GOD_ROLES.includes(cleanAccountType) || GOD_ROLES.includes(user.accountType)) && !hasGodAccess(req)) {
+            req.flash('error_msg', 'Only Realm Gods, Mr. Sandman, or Developers can grant or change God-level ranks.');
+            return res.redirect('/roster');
+        }
+
+        if (user.accountType === cleanAccountType) {
             return res.redirect('/roster');
         }
 
         const promotionDate = effectiveDate || new Date().toISOString().slice(0, 10);
 
         await db.collection('users').updateOne(
-            { 'login.discordId': discordId },
+            { 'login.discordId': cleanDiscordId },
             {
                 $set: {
-                    accountType,
+                    accountType: cleanAccountType,
                     lastPromotion: promotionDate
                 }
             }
         );
 
-        if (req.session.currentuser === discordId) {
-            req.session.accountType = accountType;
+        if (req.session.currentuser === cleanDiscordId) {
+            req.session.accountType = cleanAccountType;
         }
 
+        await writeAudit(req, rankActionType === 'Demote' ? 'Demoted User' : 'Promoted User', `${user.displayName || cleanDiscordId}: ${user.accountType} -> ${cleanAccountType}`);
+        req.flash('success_msg', `${user.displayName || cleanDiscordId} is now ${cleanAccountType}.`);
         res.redirect('/roster');
     } catch (error) {
         console.error('Error during user promotion:', error);
+        req.flash('error_msg', 'Unable to update rank.');
         res.redirect('/roster');
     }
 });
@@ -913,7 +1056,7 @@ app.get('/reports', requireDatabase, async (req, res) => {
         const weekStart = requestedWeek;
         const weekEnd = addDays(weekStart, 6);
 
-        const users = await db.collection('users').find().toArray();
+        const users = await db.collection('users').find({}, { projection: { 'login.password': 0 } }).toArray();
 
         const displayNameOf = (user) => user.displayName || user.discordUser || user.login.discordId;
 
@@ -1350,29 +1493,75 @@ app.post('/settings/delete-option', requireDatabase, async (req, res) => {
     }
 });
 
-// DELETE USER
+// DELETE USER (MANAGEMENT / GOD ACCESS ONLY)
 app.post('/deleteUser', requireDatabase, async (req, res) => {
-    if (!req.session.loggedin) return res.redirect('/');
+    if (!req.session.loggedin || !hasManagementAccess(req)) {
+        req.flash('error_msg', 'You are not authorized to delete users.');
+        return res.redirect('/roster');
+    }
 
     const { discordId } = req.body;
+    const cleanDiscordId = (discordId || '').toString().trim();
+
+    if (!cleanDiscordId) {
+        req.flash('error_msg', 'Invalid Discord ID.');
+        return res.redirect('/roster');
+    }
+
+    if (cleanDiscordId === req.session.currentuser) {
+        req.flash('error_msg', 'You cannot delete your own account while logged in.');
+        return res.redirect('/roster');
+    }
 
     try {
-        await db.collection('users').deleteOne({ 'login.discordId': discordId });
+        const targetUser = await db.collection('users').findOne({ 'login.discordId': cleanDiscordId });
+        if (!targetUser) {
+            req.flash('error_msg', 'User not found.');
+            return res.redirect('/roster');
+        }
+
+        // Only Gods / Developers can delete other God accounts
+        if ((GOD_ROLES.includes(targetUser.accountType) || targetUser.isDeveloper) && !hasGodAccess(req)) {
+            req.flash('error_msg', 'Only Realm Gods, Mr. Sandman, or Developers can delete God-level accounts.');
+            return res.redirect('/roster');
+        }
+
+        await db.collection('users').deleteOne({ 'login.discordId': cleanDiscordId });
+        await writeAudit(req, 'Deleted User', `${targetUser.displayName || targetUser.discordUser || cleanDiscordId} (${cleanDiscordId})`);
+
+        req.flash('success_msg', `Deleted user ${targetUser.displayName || cleanDiscordId}.`);
         res.redirect('/roster');
     } catch (error) {
         console.error('Error during user deletion:', error);
+        req.flash('error_msg', 'Unable to delete user.');
         res.redirect('/roster');
     }
 });
 
-// USER LOGIN
+// USER LOGIN (WITH BRUTE-FORCE RATE LIMITING & SESSION REGENERATION)
 app.post('/login', requireDatabase, async (req, res) => {
-    const { discordId, password } = req.body;
+    const clientIp = req.ip || req.connection?.remoteAddress || 'unknown';
+    const rateLimitKey = `login_${clientIp}`;
+
+    if (!checkRateLimit(rateLimitKey, 10, 15 * 60 * 1000)) {
+        req.flash('error_msg', 'Too many failed login attempts. Please wait 15 minutes and try again.');
+        return res.redirect('/');
+    }
+
+    const discordId = (req.body.discordId || '').toString().trim();
+    const password = (req.body.password || '').toString();
+
+    if (!discordId || !password) {
+        recordRateLimitAttempt(rateLimitKey);
+        req.flash('error_msg', 'Discord ID and password are required.');
+        return res.redirect('/');
+    }
 
     try {
         const userDoc = await db.collection('users').findOne({ 'login.discordId': discordId });
 
-        if (!userDoc) {
+        if (!userDoc || !userDoc.login?.password) {
+            recordRateLimitAttempt(rateLimitKey);
             req.flash('error_msg', 'Invalid Discord ID or password.');
             return res.redirect('/');
         }
@@ -1380,30 +1569,42 @@ app.post('/login', requireDatabase, async (req, res) => {
         const isMatch = await bcrypt.compare(password, userDoc.login.password);
 
         if (!isMatch) {
+            recordRateLimitAttempt(rateLimitKey);
             req.flash('error_msg', 'Invalid Discord ID or password.');
             return res.redirect('/');
         }
 
-        req.session.loggedin = true;
-        req.session.currentuser = discordId;
-        req.session.accountType = userDoc.accountType;
-        req.session.isDeveloper = Boolean(userDoc.isDeveloper);
+        // Successful authentication: clear brute force counter
+        resetRateLimit(rateLimitKey);
 
-        // Update lastSeen immediately on login
-        db.collection('users').updateOne(
-            { 'login.discordId': discordId },
-            { $set: { lastSeen: new Date() } }
-        ).catch((err) => console.error('Login presence update failed:', err.message));
+        // Regenerate session ID to prevent Session Fixation attacks
+        const currentAccountType = userDoc.accountType;
+        const currentIsDeveloper = Boolean(userDoc.isDeveloper);
 
-        // Explicitly save the session before redirecting so the reverse proxy
-        // does not receive the dashboard request before the session is stored.
-        return req.session.save((error) => {
-            if (error) {
-                console.error('Session save error:', error);
-                return res.status(500).send('Unable to create login session.');
+        req.session.regenerate((regenError) => {
+            if (regenError) {
+                console.error('Session regeneration failed:', regenError);
+                return res.status(500).send('Unable to initialize secure session.');
             }
 
-            res.redirect('/dashboard');
+            req.session.loggedin = true;
+            req.session.currentuser = discordId;
+            req.session.accountType = currentAccountType;
+            req.session.isDeveloper = currentIsDeveloper;
+
+            // Update lastSeen immediately on login
+            db.collection('users').updateOne(
+                { 'login.discordId': discordId },
+                { $set: { lastSeen: new Date() } }
+            ).catch((err) => console.error('Login presence update failed:', err.message));
+
+            req.session.save((saveError) => {
+                if (saveError) {
+                    console.error('Session save error:', saveError);
+                    return res.status(500).send('Unable to create login session.');
+                }
+                res.redirect('/dashboard');
+            });
         });
     } catch (error) {
         console.error('Error during login:', error);
@@ -1985,15 +2186,17 @@ app.post('/applications/:applicationId/review', requireDatabase, async (req, res
     }
 });
 
-// INCOMING GOOGLE FORM WEBHOOK ENDPOINT
+// INCOMING GOOGLE FORM WEBHOOK ENDPOINT (SECURED WITH TIMING-SAFE VERIFICATION)
 app.post('/api/applications/webhook', requireDatabase, async (req, res) => {
     try {
         const settings = await getSettings();
         const configuredSecret = (settings.webhooks?.applicationsSecret || 'drowsy-apps-secret').trim();
         const incomingSecret = (req.headers['x-webhook-secret'] || req.query.secret || req.body?.secret || '').toString().trim();
 
-        if (configuredSecret && incomingSecret !== configuredSecret && incomingSecret !== 'drowsy-apps-secret') {
-            console.warn(`Webhook auth mismatch: expected "${configuredSecret}", received "${incomingSecret}"`);
+        const isSecretValid = safeTimingCompare(incomingSecret, configuredSecret) || safeTimingCompare(incomingSecret, 'drowsy-apps-secret');
+
+        if (!isSecretValid) {
+            console.warn(`Webhook unauthorized attempt from IP ${req.ip}`);
             return res.status(401).json({ error: 'Unauthorized: Invalid webhook secret.' });
         }
 
@@ -2080,7 +2283,7 @@ app.get('/roster', requireDatabase, async (req, res) => {
 
     const totalUsers = await db.collection('users').countDocuments();
     try {
-        const users = await db.collection('users').find().toArray();
+        const users = await db.collection('users').find({}, { projection: { 'login.password': 0 } }).toArray();
         const activeUsers = users.filter(user => user.activity === 'Active').length;
         const inactiveUsers = users.filter(user => user.activity === 'Inactive').length;
         const semiActiveUsers = users.filter(user => user.activity === 'Semi-Active').length;
@@ -2278,7 +2481,7 @@ app.get('/roster-planner', requireDatabase, async (req, res) => {
             : addDays(currentWeek, 7);
         const [settings, users, savedPlan] = await Promise.all([
             getSettings(),
-            db.collection('users').find().toArray(),
+            db.collection('users').find({}, { projection: { 'login.password': 0 } }).toArray(),
             db.collection('rosterPlans').findOne({ week: requestedWeek })
         ]);
 
@@ -2374,6 +2577,11 @@ app.post('/roster-planner/save', requireDatabase, async (req, res) => {
 async function renderGuidelinePage(req, res, slug, title) {
     if (!req.session.loggedin) return res.redirect('/');
 
+    if (slug === 'higher-guidelines' && !hasManagementAccess(req)) {
+        req.flash('error_msg', 'You are not authorized to view Higher Guidelines.');
+        return res.redirect('/dashboard');
+    }
+
     try {
         const document = await db.collection('guidelineDocuments').findOne({ slug });
         res.render('pages/guidelines', {
@@ -2446,7 +2654,7 @@ app.get('/bingo', requireDatabase, async (req, res) => {
     try {
         const [settings, users] = await Promise.all([
             getSettings(),
-            db.collection('users').find().toArray()
+            db.collection('users').find({}, { projection: { 'login.password': 0 } }).toArray()
         ]);
 
         const normalizeRank = (rank) => (rank || '').toString().toLowerCase().replace(/\./g, '').trim();
