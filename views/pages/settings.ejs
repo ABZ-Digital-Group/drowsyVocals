@@ -65,13 +65,39 @@
                         <details style="margin-top:15px;background:#1a1917;padding:12px;border-radius:6px;border:1px solid #333;">
                             <summary style="cursor:pointer;font-weight:bold;color:#B7B2A7;">Google Form Setup Instructions (Click to expand)</summary>
                             <div style="margin-top:10px;font-size:0.9em;line-height:1.6;color:#ccc;">
-                                <p>1. Open your Google Form &gt; Click the <strong>three dots (⋮)</strong> &gt; <strong>Script editor</strong>.</p>
-                                <p>2. Paste the following script:</p>
+                                <p>1. Open your Google Form &gt; Click the <strong>three dots (⋮)</strong> &gt; <strong>Script editor</strong> (or Extensions &gt; Apps Script in the linked Sheet).</p>
+                                <p>2. Paste the following script (works for both Form triggers and linked Google Sheet triggers, and includes a <code>testSendLatest()</code> button):</p>
                                 <pre style="background:#000;padding:10px;border-radius:4px;overflow-x:auto;color:#3ddc71;font-size:0.85em;">function onFormSubmit(e) {
-  var itemResponses = e.response.getItemResponses();
   var answers = {};
-  for (var i = 0; i &lt; itemResponses.length; i++) {
-    answers[itemResponses[i].getItem().getTitle()] = itemResponses[i].getResponse();
+
+  if (e &amp;&amp; e.response) {
+    // Form trigger event
+    var itemResponses = e.response.getItemResponses();
+    for (var i = 0; i &lt; itemResponses.length; i++) {
+      answers[itemResponses[i].getItem().getTitle()] = itemResponses[i].getResponse();
+    }
+  } else if (e &amp;&amp; e.namedValues) {
+    // Sheet trigger event
+    for (var key in e.namedValues) {
+      if (key !== 'Timestamp') {
+        answers[key] = Array.isArray(e.namedValues[key]) ? e.namedValues[key].join(', ') : e.namedValues[key];
+      }
+    }
+  } else {
+    // Manual run / test fallback: reads latest response from Form
+    try {
+      var form = FormApp.getActiveForm();
+      var responses = form.getResponses();
+      if (responses.length &gt; 0) {
+        var latest = responses[responses.length - 1];
+        var itemResponses = latest.getItemResponses();
+        for (var j = 0; j &lt; itemResponses.length; j++) {
+          answers[itemResponses[j].getItem().getTitle()] = itemResponses[j].getResponse();
+        }
+      }
+    } catch (err) {
+      Logger.log("No active form found or failed: " + err);
+    }
   }
 
   var payload = {
@@ -79,15 +105,23 @@
     answers: answers
   };
 
-  UrlFetchApp.fetch("https://manage.drowsyvocals.com/api/applications/webhook", {
+  var response = UrlFetchApp.fetch("https://manage.drowsyvocals.com/api/applications/webhook", {
     method: "post",
     contentType: "application/json",
     payload: JSON.stringify(payload),
     muteHttpExceptions: true
   });
+
+  Logger.log("Webhook response code: " + response.getResponseCode() + " | " + response.getContentText());
+}
+
+// Helper to manually test in Apps Script editor by clicking Run
+function testSendLatest() {
+  onFormSubmit(null);
 }</pre>
                                 <p>3. In the Apps Script sidebar, click the <strong>Triggers (alarm clock icon)</strong> &gt; <strong>Add Trigger</strong>.</p>
                                 <p>4. Set <em>Choose which function to run</em> to <code>onFormSubmit</code> and <em>Select event type</em> to <strong>On form submit</strong> &gt; Click <strong>Save</strong>.</p>
+                                <p>5. (Optional) You can test by selecting <code>testSendLatest</code> from the function dropdown in Apps Script and clicking <strong>Run</strong>.</p>
                             </div>
                         </details>
                     </div>
