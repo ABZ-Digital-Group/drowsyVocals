@@ -1,261 +1,559 @@
 <!DOCTYPE html>
-
 <html lang="en">
     <head>
         <%- include('../partials/head') %>
-        <title>Drowsy Roster</title>
+        <title>Drowsy Roster - Staff Directory</title>
     </head>
     <body>
         <header>
             <%- include('../partials/nav') %>
         </header>
-        <main>
-            <section class="roster-content">
-                <h1>Roster</h1>
-                <p>List of team members will be displayed here.</p>
-                <div class="roster-sub">
-                    <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender') { %>
-                    <div class="roster-actions">
-                        <button class="action-button action-button-primary" type="button" id="openAddUserPopup">
-                            <span class="material-symbols-outlined" aria-hidden="true">person_add</span>
-                            Add User
-                        </button>
-                        <button class="action-button action-button-primary" form="attendanceForm" type="submit">
-                            <span class="material-symbols-outlined" aria-hidden="true">check_circle</span>
-                            Save Attendance
-                        </button>
-                        <form action="/reset-attendance" method="POST" onsubmit="return confirm('Reset attendance for this week?');">
-                            <input type="hidden" name="week" value="<%= currentWeek %>">
-                            <button class="action-button action-button-secondary" type="submit">
-                                <span class="material-symbols-outlined" aria-hidden="true">restart_alt</span>
-                                Reset Attendance
-                            </button>
-                        </form>
+        <main class="roster-page-wrap">
+            <!-- Header & Toolbar -->
+            <div class="settings-header">
+                <div class="settings-header-top">
+                    <div>
+                        <p class="profile-eyebrow">Personnel & Roster Directory</p>
+                        <h1 style="margin: 0; font-size: 2.4em; color: #242320;">Staff Roster</h1>
+                        <p class="profile-subtitle">Live directory of community hosts, staff ranks, shift allocations, and attendance records.</p>
                     </div>
-                    <% } %>
-                    <div class="online-now-bar" id="onlineNowBar">
-                        <span class="online-now-label">Online now:</span>
-                        <div class="online-now-avatars">
-                            <% onlineUsers.forEach(function(onlineUser) { %>
-                            <%- include('../partials/avatar', {
-                                avatarUrl: onlineUser.avatarUrl,
-                                displayName: onlineUser.displayName,
-                                discordId: onlineUser.discordId,
-                                size: 32,
-                                online: true
-                            }) %>
-                            <% }); %>
-                            <% if (onlineUsers.length === 0) { %>
-                            <span class="online-now-empty">No one else online right now.</span>
-                            <% } %>
+
+                    <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                        <!-- Layout View Switcher -->
+                        <div class="roster-view-switch" role="group" aria-label="Roster Layout Mode">
+                            <button type="button" class="roster-view-btn is-active" id="viewModeModern" onclick="setRosterView('modern')" title="Modern Enhanced View">
+                                <span class="material-symbols-outlined">dashboard</span>
+                                <span>Modern View</span>
+                            </button>
+                            <button type="button" class="roster-view-btn" id="viewModeClassic" onclick="setRosterView('classic')" title="Original Classic Table View">
+                                <span class="material-symbols-outlined">table_rows</span>
+                                <span>Classic View</span>
+                            </button>
+                        </div>
+
+                        <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender' || userType === 'Dreamy Defender' || userIsDeveloper) { %>
+                        <div class="roster-actions" style="margin: 0; display: flex; gap: 8px; flex-wrap: wrap;">
+                            <button class="action-button action-button-primary" type="button" id="openAddUserPopup">
+                                <span class="material-symbols-outlined" aria-hidden="true">person_add</span>
+                                Add User
+                            </button>
+                            <button class="action-button action-button-primary" form="attendanceForm" type="submit">
+                                <span class="material-symbols-outlined" aria-hidden="true">check_circle</span>
+                                Save Attendance
+                            </button>
+                            <form action="/reset-attendance" method="POST" onsubmit="return confirm('Reset attendance for this week?');" style="margin: 0;">
+                                <input type="hidden" name="week" value="<%= currentWeek %>">
+                                <button class="action-button action-button-secondary" type="submit">
+                                    <span class="material-symbols-outlined" aria-hidden="true">restart_alt</span>
+                                    Reset
+                                </button>
+                            </form>
+                        </div>
+                        <% } %>
+                    </div>
+                </div>
+
+                <!-- Online Now Bar -->
+                <div class="online-now-bar" id="onlineNowBar" style="margin-top: 18px;">
+                    <span class="online-now-label">Online now:</span>
+                    <div class="online-now-avatars">
+                        <% onlineUsers.forEach(function(onlineUser) { %>
+                        <%- include('../partials/avatar', {
+                            avatarUrl: onlineUser.avatarUrl,
+                            displayName: onlineUser.displayName,
+                            discordId: onlineUser.discordId,
+                            size: 32,
+                            online: true
+                        }) %>
+                        <% }); %>
+                        <% if (onlineUsers.length === 0) { %>
+                        <span class="online-now-empty">No one else online right now.</span>
+                        <% } %>
+                    </div>
+                </div>
+
+                <!-- Stats Summary Ribbon -->
+                <div class="settings-stats-bar" style="margin-top: 18px;">
+                    <div class="settings-stat-item">
+                        <span class="material-symbols-outlined settings-stat-icon" style="color: #60a5fa;">group</span>
+                        <div class="settings-stat-info">
+                            <span class="settings-stat-label">Total Staff</span>
+                            <span class="settings-stat-val"><%= totalUsers %></span>
+                        </div>
+                    </div>
+
+                    <div class="settings-stat-item">
+                        <span class="material-symbols-outlined settings-stat-icon" style="color: #34d399;">person_check</span>
+                        <div class="settings-stat-info">
+                            <span class="settings-stat-label">Active Staff</span>
+                            <span class="settings-stat-val" style="color: #34d399;"><%= activeUsers %></span>
+                        </div>
+                    </div>
+
+                    <div class="settings-stat-item">
+                        <span class="material-symbols-outlined settings-stat-icon" style="color: #fbbf24;">timelapse</span>
+                        <div class="settings-stat-info">
+                            <span class="settings-stat-label">Semi-Active</span>
+                            <span class="settings-stat-val" style="color: #fbbf24;"><%= semiActiveUsers %></span>
+                        </div>
+                    </div>
+
+                    <div class="settings-stat-item">
+                        <span class="material-symbols-outlined settings-stat-icon" style="color: #60a5fa;">flight</span>
+                        <div class="settings-stat-info">
+                            <span class="settings-stat-label">On LOA</span>
+                            <span class="settings-stat-val" style="color: #60a5fa;"><%= loaUsers %></span>
+                        </div>
+                    </div>
+
+                    <div class="settings-stat-item">
+                        <span class="material-symbols-outlined settings-stat-icon" style="color: #f87171;">person_off</span>
+                        <div class="settings-stat-info">
+                            <span class="settings-stat-label">Inactive Staff</span>
+                            <span class="settings-stat-val" style="color: #f87171;"><%= inactiveUsers %></span>
+                        </div>
+                    </div>
+
+                    <div class="settings-stat-item" style="border: 1px solid #05966955; background: #064e3b22;">
+                        <span class="material-symbols-outlined settings-stat-icon" style="color: #34d399;">rocket_launch</span>
+                        <div class="settings-stat-info">
+                            <span class="settings-stat-label">Promo Ready</span>
+                            <span class="settings-stat-val" style="color: #34d399;"><%= promotionReadyUsers %> 🚀</span>
+                        </div>
+                    </div>
+
+                    <div class="settings-stat-item" style="border: 1px solid #d9770655; background: #78350f22;">
+                        <span class="material-symbols-outlined settings-stat-icon" style="color: #fbbf24;">warning</span>
+                        <div class="settings-stat-info">
+                            <span class="settings-stat-label">Inactive Alerts</span>
+                            <span class="settings-stat-val" style="color: #fbbf24;"><%= inactivityRiskUsers %> ⚠️</span>
                         </div>
                     </div>
                 </div>
-                
-                
-                <div class="roster-stats">
-                    <div>
-                        <p>Total Staff: <%= totalUsers %></p>
-                    </div>
-                    <div>
-                        <p>Active Staff: <%= activeUsers %></p>
-                    </div>
-                    <div>
-                        <p>Semi-Active Staff: <%= semiActiveUsers %></p>
-                    </div>
-                    <div>
-                        <p>LOA: <%= loaUsers %></p>
-                    </div>
-                    <div>
-                        <p>Inactive Staff: <%= inactiveUsers %></p>
-                    </div>
-                    <div class="roster-stat-promo">
-                        <p>Promo Ready: <strong><%= promotionReadyUsers %></strong> 🚀</p>
-                    </div>
-                    <div class="roster-stat-warning">
-                        <p>Inactive Alerts: <strong><%= inactivityRiskUsers %></strong> ⚠️</p>
-                    </div>
-                </div>
-            </section>
-            <section class="roster-content">
-                <div class="roster-filters" aria-label="Filter roster">
-                    <input id="rosterSearch" type="search" placeholder="Search staff">
-                    <select id="rosterRankFilter"><option value="">All ranks</option><% settings.ranks.forEach(function(rank) { %><option value="<%= rank.name %>"><%= rank.name %></option><% }); %></select>
-                    <select id="rosterHouseFilter"><option value="">All houses</option><% settings.houses.forEach(function(house) { %><option value="<%= house.name %>"><%= house.name %></option><% }); %></select>
-                    <select id="rosterActivityFilter"><option value="">All activity</option><% settings.activities.forEach(function(activity) { %><option value="<%= activity.name %>"><%= activity.name %></option><% }); %></select>
+
+                <!-- Search & Filters Toolbar -->
+                <div class="roster-filters" style="margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap;" aria-label="Filter roster">
+                    <input id="rosterSearch" type="search" placeholder="🔍 Search staff by name, user, ID..." style="flex: 2; min-width: 220px;">
+                    <select id="rosterRankFilter"><option value="">All Ranks</option><% settings.ranks.forEach(function(rank) { %><option value="<%= rank.name.toLowerCase() %>"><%= rank.name %></option><% }); %></select>
+                    <select id="rosterHouseFilter"><option value="">All Houses</option><% settings.houses.forEach(function(house) { %><option value="<%= house.name.toLowerCase() %>"><%= house.name %></option><% }); %></select>
+                    <select id="rosterActivityFilter"><option value="">All Activity</option><% settings.activities.forEach(function(activity) { %><option value="<%= activity.name.toLowerCase() %>"><%= activity.name %></option><% }); %></select>
                     <select id="rosterAlertFilter">
-                        <option value="">All alerts</option>
+                        <option value="">All Alerts & Badges</option>
                         <option value="promo">Promotion Ready 🚀 (<%= promotionReadyUsers %>)</option>
                         <option value="inactive">Inactivity Warnings ⚠️ (<%= inactivityRiskUsers %>)</option>
                     </select>
                 </div>
-                <form id="attendanceForm" action="/mark-attendance" method="POST">
+            </div>
+
+            <!-- Flash Notification Messages -->
+            <% if (typeof success_msg !== 'undefined' && success_msg && success_msg.length) { %>
+            <div class="settings-alert is-success" style="margin-bottom: 24px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span class="material-symbols-outlined" style="background: transparent; color: #10b981;">check_circle</span>
+                    <span><%= success_msg %></span>
+                </div>
+                <button type="button" onclick="this.parentElement.remove()" style="background:none;border:none;color:inherit;cursor:pointer;font-weight:bold;">&times;</button>
+            </div>
+            <% } %>
+            <% if (typeof error_msg !== 'undefined' && error_msg && error_msg.length) { %>
+            <div class="settings-alert is-error" style="margin-bottom: 24px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span class="material-symbols-outlined" style="background: transparent; color: #ef4444;">error</span>
+                    <span><%= error_msg %></span>
+                </div>
+                <button type="button" onclick="this.parentElement.remove()" style="background:none;border:none;color:inherit;cursor:pointer;font-weight:bold;">&times;</button>
+            </div>
+            <% } %>
+
+            <!-- Attendance Form Wrap -->
+            <form id="attendanceForm" action="/mark-attendance" method="POST">
                 <input type="hidden" name="week" value="<%= currentWeek %>">
-                <table>
-                    <thead>
-                        <tr>
-                            <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender') { %>
-                            <th>Meeting <br>Attendance</th>
-                            <% } %>
-                            <th>Account <br>Type</th>
-                            <th>Display Name</th>
-                            <th>Discord User</th>
-                            <th>Discord ID</th>
-                            <th>Hire Date</th>
-                            <th>Time In <br>Service</th>
-                            <th>Last <br>Promotion</th>
-                            <th>Time In <br>Grade</th>
-                            <th>Shift</th>
-                            <th>House</th>
-                            <th>House <br>Points</th>
-                            <th>Activity</th>
-                            <th>Weeks <br>Activity</th>
-                            <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender') { %>
-                                <th>Strikes</th>
-                                <th>Actions</th>
-                            <% } %>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        
-                         <% users.forEach(function(user, index) { %>
-                        <% if (index === 0 || users[index - 1].accountType !== user.accountType) { %>
-                        <tr class="rank-group-header">
-                            <th colspan="<%= (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender') ? 16 : 13 %>">
-                                <span><%= user.accountType %></span>
-                                <span>Vacant slots: <%= rankVacancyCounts[user.accountType] || 0 %></span>
-                            </th>
-                        </tr>
-                        <% } %>
-                        <% if (user.isVacant) { %>
-                        <tr class="vacant-row">
-                            <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender') { %>
-                            <td></td>
-                            <% } %>
-                            <td><%= user.accountType %></td>
-                            <td colspan="12">Vacant</td>
-                            <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender') { %>
-                            <td></td>
-                            <td></td>
-                            <% } %>
-                        </tr>
-                        <% } else { %>
-                        <tr class="roster-user-row" data-rank="<%= user.accountType %>" data-house="<%= user.house %>" data-activity="<%= user.activity %>" data-promotion-ready="<%= user.isPromotionReady ? '1' : '' %>" data-inactive-risk="<%= user.isInactiveRisk ? '1' : '' %>" data-search="<%= [user.displayName, user.discordUser, user.login.discordId].join(' ').toLowerCase() %>">
-                            <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender') { %>
-                            <td><input type="checkbox" name="attendees" value="<%= user.login.discordId %>" <%= user.attendedThisWeek ? 'checked' : '' %>></td>
-                            <% } %>
-                            <td><%= user.accountType %></td>
-                            <td>
-                                <span><%= user.displayName %></span>
-                                <% if (user.isInactiveRisk) { %>
-                                <span class="badge badge-inactive-risk" title="<%= user.inactivityReason || 'Inactivity Warning' %>">⚠️ Inactive</span>
+
+                <!-- 1. MODERN VIEW CONTAINER -->
+                <div id="rosterModernView" class="roster-modern-table-wrap">
+                    <table class="roster-modern-table">
+                        <thead>
+                            <tr>
+                                <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender' || userType === 'Dreamy Defender' || userIsDeveloper) { %>
+                                <th style="width: 50px; text-align: center;">Att.</th>
                                 <% } %>
-                            </td>
-                            <td><%= user.discordUser %></td>
-                            <td><%= user.login.discordId %></td>
-                            <td><%= user.hireDate %></td>
-                            <td><%= user.timeInService %></td>
-                            <td><%= user.lastPromotion %></td>
-                            <td>
-                                <span><%= user.timeInGrade %></span>
-                                <% if (user.isPromotionReady) { %>
-                                <span class="badge badge-promo" title="Promotion Ready: Reached <%= user.minDaysRequired %> days in grade (Current: <%= user.timeInGrade %> days)">🚀 Ready</span>
+                                <th style="min-width: 240px;">Staff Member</th>
+                                <th>Rank</th>
+                                <th>House</th>
+                                <th>Shift</th>
+                                <th>Activity</th>
+                                <th>Days In Grade</th>
+                                <th>Total Service</th>
+                                <th>House Pts</th>
+                                <th>Weeks Act.</th>
+                                <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender' || userType === 'Dreamy Defender' || userIsDeveloper) { %>
+                                <th style="width: 70px; text-align: center;">Strikes</th>
+                                <th style="min-width: 210px; text-align: right; padding-right: 18px;">Actions</th>
                                 <% } %>
-                            </td>
-                            
-                            <td class="shift-cell" style="background-color: <%= shiftColorMap[user.shift] || '' %>"><%= user.shift %></td>
-                            <td class="house-cell" style="background-color: <%= houseColorMap[user.house] || '' %>"><%= user.house %></td>
-                            <td><%= user.housePoints %></td>
-                            <td class="activity-cell" style="background-color: <%= activityColorMap[user.activity] || '' %>"><%= user.activity %></td>
-                            <td><%= user.weeksActivity %></td>
-                            <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender') { %>
-                            <td><%= (user.strikes || []).reduce((sum, strike) => sum + (Number(strike.count) || 0), 0) %></td>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% users.forEach(function(user, index) { %>
+                            <% if (index === 0 || users[index - 1].accountType !== user.accountType) { %>
+                            <tr class="rank-group-header roster-modern-rank-header" data-rank-group="<%= (user.accountType || '').toLowerCase() %>">
+                                <th colspan="<%= (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender' || userType === 'Dreamy Defender' || userIsDeveloper) ? 12 : 9 %>">
+                                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                                        <div style="display: flex; align-items: center; gap: 8px;">
+                                            <span class="material-symbols-outlined" style="font-size: 1.15em; color: #fbbf24; background: transparent; padding: 0;">military_tech</span>
+                                            <span><%= user.accountType %></span>
+                                        </div>
+                                        <span style="font-size: 0.8em; color: #8e897e; font-weight: normal;">
+                                            Unfilled Vacancies: <strong><%= rankVacancyCounts[user.accountType] || 0 %></strong>
+                                        </span>
+                                    </div>
+                                </th>
+                            </tr>
+                            <% } %>
+
+                            <% if (user.isVacant) { %>
+                            <tr class="vacant-row" style="background: #1a1917; color: #8e897e;" data-rank="<%= (user.accountType || '').toLowerCase() %>">
+                                <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender' || userType === 'Dreamy Defender' || userIsDeveloper) { %>
+                                <td></td>
+                                <% } %>
+                                <td colspan="<%= (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender' || userType === 'Dreamy Defender' || userIsDeveloper) ? 11 : 8 %>" style="padding: 12px 18px; font-style: italic; color: #716c61;">
+                                    <span class="material-symbols-outlined" style="font-size: 1.1em; vertical-align: middle; background: transparent; padding: 0;">person_off</span>
+                                    <span>[Vacant Slot available in <%= user.accountType %>]</span>
+                                </td>
+                            </tr>
+                            <% } else { %>
+                            <tr class="roster-user-row" data-rank="<%= (user.accountType || '').toLowerCase() %>" data-house="<%= (user.house || '').toLowerCase() %>" data-activity="<%= (user.activity || '').toLowerCase() %>" data-promotion-ready="<%= user.isPromotionReady ? '1' : '' %>" data-inactive-risk="<%= user.isInactiveRisk ? '1' : '' %>" data-search="<%= [user.displayName, user.discordUser, user.login.discordId].join(' ').toLowerCase() %>">
+                                <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender' || userType === 'Dreamy Defender' || userIsDeveloper) { %>
+                                <td style="text-align: center;">
+                                    <input type="checkbox" name="attendees" value="<%= user.login.discordId %>" <%= user.attendedThisWeek ? 'checked' : '' %> title="Mark meeting attendance for <%= user.displayName %>">
+                                </td>
+                                <% } %>
+
+                                <!-- Staff Member Info Cell -->
                                 <td>
-                                <button
-                                    class="viewBtn"
-                                    type="button"
-                                    data-discord-id="<%= user.login.discordId %>"
-                                    data-display-name="<%= user.displayName || '' %>"
-                                    data-discord-user="<%= user.discordUser || '' %>"
-                                    data-account-type="<%= user.accountType || '' %>"
-                                    data-hire-date="<%= user.hireDate || '' %>"
-                                    data-house="<%= user.house || '' %>"
-                                    data-house-points="<%= user.housePoints || '' %>"
-                                    data-shift="<%= user.shift || '' %>"
-                                    data-activity="<%= user.activity || '' %>"
-                                    data-weeks-activity="<%= user.weeksActivity || '' %>"
-                                    data-avatar-url="<%= user.avatarUrl || '' %>"
-                                    data-onboarding-complete="<%= user.onboardingComplete ? '1' : '' %>"
-                                    data-host-training-complete="<%= user.hostTrainingComplete ? '1' : '' %>"
-                                    data-last-promotion="<%= user.lastPromotion || '' %>"
-                                    data-time-in-grade="<%= user.timeInGrade %>"
-                                    data-min-days-required="<%= user.minDaysRequired || '' %>"
-                                    data-promotion-ready="<%= user.isPromotionReady ? '1' : '' %>"
-                                    data-inactive-risk="<%= user.isInactiveRisk ? '1' : '' %>"
-                                    data-inactivity-reason="<%= user.inactivityReason || '' %>"
-                                    data-days-since-seen="<%= user.daysSinceSeen !== null ? user.daysSinceSeen : '' %>"
-                                    data-consecutive-missed="<%= user.consecutiveMissedMeetings || '0' %>"
-                                >
-                                    <span class="material-symbols-outlined">visibility</span>
-                            
-                                </button>
-                                <button
-                                    class="strikeBtn"
-                                    type="button"
-                                    data-discord-id="<%= user.login.discordId %>"
-                                    data-display-name="<%= user.displayName || user.discordUser || user.login.discordId %>"
-                                    data-strikes="<%= JSON.stringify(user.strikes || []) %>"
-                                >
-                                    <span class="material-symbols-outlined">warning</span>
-                                </button>
-                                <button
-                                    class="editBtn"
-                                    type="button"
-                                    data-discord-id="<%= user.login.discordId %>"
-                                    data-display-name="<%= user.displayName || '' %>"
-                                    data-discord-user="<%= user.discordUser || '' %>"
-                                    data-account-type="<%= user.accountType || '' %>"
-                                    data-hire-date="<%= user.hireDate || '' %>"
-                                    data-house="<%= user.house || '' %>"
-                                    data-house-points="<%= user.housePoints || '' %>"
-                                    data-shift="<%= user.shift || '' %>"
-                                    data-activity="<%= user.activity || '' %>"
-                                    data-weeks-activity="<%= user.weeksActivity || '' %>"
-                                    data-onboarding-complete="<%= user.onboardingComplete ? '1' : '' %>"
-                                    data-host-training-complete="<%= user.hostTrainingComplete ? '1' : '' %>"
-                                >
-                                    <span class="material-symbols-outlined">edit</span>
-                                </button>
-                                <button
-                                    class="promoteBtn"
-                                    type="button"
-                                    data-discord-id="<%= user.login.discordId %>"
-                                    data-display-name="<%= user.displayName || user.discordUser || user.login.discordId %>"
-                                    data-account-type="<%= user.accountType || '' %>"
-                                >
-                                    <span class="material-symbols-outlined">arrow_upward</span>
-                                </button>
-                                <button
-                                    class="demoteBtn"
-                                    type="button"
-                                    data-discord-id="<%= user.login.discordId %>"
-                                    data-display-name="<%= user.displayName || user.discordUser || user.login.discordId %>"
-                                    data-account-type="<%= user.accountType || '' %>"
-                                >
-                                    <span class="material-symbols-outlined">arrow_downward</span>
-                                </button>
-                                <button class="delBtn" type="button" onclick="deleteUser('<%= user.login.discordId %>')">
-                                    <span class="material-symbols-outlined">delete</span>
-                                </button> 
-                            </td>
+                                    <div style="display: flex; align-items: center; gap: 10px;">
+                                        <%- include('../partials/avatar', {
+                                            avatarUrl: user.avatarUrl,
+                                            displayName: user.displayName || user.discordUser || user.login.discordId,
+                                            discordId: user.login.discordId,
+                                            size: 38,
+                                            online: user.isOnline
+                                        }) %>
+                                        <div style="display: flex; flex-direction: column; min-width: 0;">
+                                            <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                                                <strong style="color: #f3efe6; font-size: 0.98em;"><%= user.displayName %></strong>
+                                                <% if (user.isPromotionReady) { %>
+                                                <span class="badge badge-promo" title="Promotion Ready: Reached <%= user.minDaysRequired %> days in grade (Current: <%= user.timeInGrade %> days)">🚀 Ready</span>
+                                                <% } %>
+                                                <% if (user.isInactiveRisk) { %>
+                                                <span class="badge badge-inactive-risk" title="<%= user.inactivityReason || 'Inactivity Warning' %>">⚠️ Inactive</span>
+                                                <% } %>
+                                            </div>
+                                            <div style="display: flex; align-items: center; gap: 6px; font-size: 0.78em; color: #8e897e; margin-top: 2px;">
+                                                <span>@<%= user.discordUser || user.login.discordId %></span>
+                                                <span>·</span>
+                                                <span style="font-family: monospace;" title="Discord ID"><%= user.login.discordId %></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+
+                                <!-- Rank Badge -->
+                                <td>
+                                    <span class="account-badge account-badge-rank" style="font-size: 0.75em;">
+                                        <%= user.accountType %>
+                                    </span>
+                                </td>
+
+                                <!-- House Pill -->
+                                <td>
+                                    <% if (user.house) { %>
+                                    <span class="account-badge" style="font-size: 0.75em;">
+                                        <span class="account-color-dot" style="background-color: <%= houseColorMap[user.house] || '#888' %>;"></span>
+                                        <span><%= user.house %></span>
+                                    </span>
+                                    <% } else { %>
+                                    <span style="color: #666; font-size: 0.85em;">-</span>
+                                    <% } %>
+                                </td>
+
+                                <!-- Shift Slot -->
+                                <td>
+                                    <% if (user.shift) { %>
+                                    <span class="account-badge" style="font-size: 0.75em;">
+                                        <span class="account-color-dot" style="background-color: <%= shiftColorMap[user.shift] || '#888' %>;"></span>
+                                        <span><%= user.shift %></span>
+                                    </span>
+                                    <% } else { %>
+                                    <span style="color: #666; font-size: 0.85em;">-</span>
+                                    <% } %>
+                                </td>
+
+                                <!-- Activity Status -->
+                                <td>
+                                    <span class="account-badge <%= user.activity === 'Active' ? 'account-badge-active' : user.activity === 'LOA' ? 'account-badge-loa' : user.activity === 'Inactive' ? 'account-badge-warning' : '' %>" style="font-size: 0.75em;">
+                                        <%= user.activity %>
+                                    </span>
+                                </td>
+
+                                <!-- Time in Grade -->
+                                <td>
+                                    <span style="font-weight: bold; color: <%= user.isPromotionReady ? '#34d399' : '#f3efe6' %>;"><%= user.timeInGrade %>d</span>
+                                </td>
+
+                                <!-- Time in Service -->
+                                <td>
+                                    <span style="color: #d0cdc5;"><%= user.timeInService %>d</span>
+                                </td>
+
+                                <!-- House Points -->
+                                <td>
+                                    <span style="font-weight: bold; color: #fbbf24;"><%= user.housePoints || 0 %></span>
+                                </td>
+
+                                <!-- Weeks Activity -->
+                                <td>
+                                    <span style="color: #8e897e;"><%= user.weeksActivity || 0 %></span>
+                                </td>
+
+                                <!-- Strikes & Actions (Managers / Gods) -->
+                                <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender' || userType === 'Dreamy Defender' || userIsDeveloper) { %>
+                                <td style="text-align: center;">
+                                    <% const strikeTotal = (user.strikes || []).reduce((sum, strike) => sum + (Number(strike.count) || 0), 0); %>
+                                    <% if (strikeTotal > 0) { %>
+                                    <span class="settings-badge badge-danger" style="font-size: 0.75em;"><%= strikeTotal %> ⚠️</span>
+                                    <% } else { %>
+                                    <span style="color: #10b981; font-weight: bold; font-size: 0.85em;">0</span>
+                                    <% } %>
+                                </td>
+
+                                <td style="text-align: right; padding-right: 18px;">
+                                    <div class="roster-action-group">
+                                        <button class="viewBtn" type="button" title="View Profile"
+                                            data-discord-id="<%= user.login.discordId %>"
+                                            data-display-name="<%= user.displayName || '' %>"
+                                            data-discord-user="<%= user.discordUser || '' %>"
+                                            data-account-type="<%= user.accountType || '' %>"
+                                            data-hire-date="<%= user.hireDate || '' %>"
+                                            data-house="<%= user.house || '' %>"
+                                            data-house-points="<%= user.housePoints || '' %>"
+                                            data-shift="<%= user.shift || '' %>"
+                                            data-activity="<%= user.activity || '' %>"
+                                            data-weeks-activity="<%= user.weeksActivity || '' %>"
+                                            data-avatar-url="<%= user.avatarUrl || '' %>"
+                                            data-onboarding-complete="<%= user.onboardingComplete ? '1' : '' %>"
+                                            data-host-training-complete="<%= user.hostTrainingComplete ? '1' : '' %>"
+                                            data-last-promotion="<%= user.lastPromotion || '' %>"
+                                            data-time-in-grade="<%= user.timeInGrade %>"
+                                            data-min-days-required="<%= user.minDaysRequired || '' %>"
+                                            data-promotion-ready="<%= user.isPromotionReady ? '1' : '' %>"
+                                            data-inactive-risk="<%= user.isInactiveRisk ? '1' : '' %>"
+                                            data-inactivity-reason="<%= user.inactivityReason || '' %>"
+                                            data-days-since-seen="<%= user.daysSinceSeen !== null ? user.daysSinceSeen : '' %>"
+                                            data-consecutive-missed="<%= user.consecutiveMissedMeetings || '0' %>">
+                                            <span class="material-symbols-outlined">visibility</span>
+                                        </button>
+
+                                        <button class="strikeBtn" type="button" title="Issue / Manage Strikes"
+                                            data-discord-id="<%= user.login.discordId %>"
+                                            data-display-name="<%= user.displayName || user.discordUser || user.login.discordId %>"
+                                            data-strikes="<%= JSON.stringify(user.strikes || []) %>">
+                                            <span class="material-symbols-outlined">warning</span>
+                                        </button>
+
+                                        <button class="editBtn" type="button" title="Edit Member Profile"
+                                            data-discord-id="<%= user.login.discordId %>"
+                                            data-display-name="<%= user.displayName || '' %>"
+                                            data-discord-user="<%= user.discordUser || '' %>"
+                                            data-account-type="<%= user.accountType || '' %>"
+                                            data-hire-date="<%= user.hireDate || '' %>"
+                                            data-house="<%= user.house || '' %>"
+                                            data-house-points="<%= user.housePoints || '' %>"
+                                            data-shift="<%= user.shift || '' %>"
+                                            data-activity="<%= user.activity || '' %>"
+                                            data-weeks-activity="<%= user.weeksActivity || '' %>"
+                                            data-onboarding-complete="<%= user.onboardingComplete ? '1' : '' %>"
+                                            data-host-training-complete="<%= user.hostTrainingComplete ? '1' : '' %>">
+                                            <span class="material-symbols-outlined">edit</span>
+                                        </button>
+
+                                        <button class="promoteBtn" type="button" title="Promote Rank"
+                                            data-discord-id="<%= user.login.discordId %>"
+                                            data-display-name="<%= user.displayName || user.discordUser || user.login.discordId %>"
+                                            data-account-type="<%= user.accountType || '' %>">
+                                            <span class="material-symbols-outlined">arrow_upward</span>
+                                        </button>
+
+                                        <button class="demoteBtn" type="button" title="Demote Rank"
+                                            data-discord-id="<%= user.login.discordId %>"
+                                            data-display-name="<%= user.displayName || user.discordUser || user.login.discordId %>"
+                                            data-account-type="<%= user.accountType || '' %>">
+                                            <span class="material-symbols-outlined">arrow_downward</span>
+                                        </button>
+
+                                        <button class="delBtn" type="button" title="Delete User Account" onclick="deleteUser('<%= user.login.discordId %>')">
+                                            <span class="material-symbols-outlined">delete</span>
+                                        </button>
+                                    </div>
+                                </td>
+                                <% } %>
+                            </tr>
                             <% } %>
-                        </tr>
-                        <% } %>
-                        <% }); %>
-                    </tbody>
-                </table>
-                </form>
-            </section>
+                            <% }); %>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- 2. CLASSIC VIEW CONTAINER (IDENTICAL TO ORIGINAL LAYOUT) -->
+                <div id="rosterClassicView" class="roster-content" style="display: none; margin-top: 16px;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender' || userType === 'Dreamy Defender' || userIsDeveloper) { %>
+                                <th>Meeting <br>Attendance</th>
+                                <% } %>
+                                <th>Account <br>Type</th>
+                                <th>Display Name</th>
+                                <th>Discord User</th>
+                                <th>Discord ID</th>
+                                <th>Hire Date</th>
+                                <th>Time In <br>Service</th>
+                                <th>Last <br>Promotion</th>
+                                <th>Time In <br>Grade</th>
+                                <th>Shift</th>
+                                <th>House</th>
+                                <th>House <br>Points</th>
+                                <th>Activity</th>
+                                <th>Weeks <br>Activity</th>
+                                <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender' || userType === 'Dreamy Defender' || userIsDeveloper) { %>
+                                    <th>Strikes</th>
+                                    <th>Actions</th>
+                                <% } %>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% users.forEach(function(user, index) { %>
+                            <% if (index === 0 || users[index - 1].accountType !== user.accountType) { %>
+                            <tr class="rank-group-header">
+                                <th colspan="<%= (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender' || userType === 'Dreamy Defender' || userIsDeveloper) ? 16 : 13 %>">
+                                    <span><%= user.accountType %></span>
+                                    <span>Vacant slots: <%= rankVacancyCounts[user.accountType] || 0 %></span>
+                                </th>
+                            </tr>
+                            <% } %>
+                            <% if (user.isVacant) { %>
+                            <tr class="vacant-row">
+                                <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender' || userType === 'Dreamy Defender' || userIsDeveloper) { %>
+                                <td></td>
+                                <% } %>
+                                <td><%= user.accountType %></td>
+                                <td colspan="12">Vacant</td>
+                                <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender' || userType === 'Dreamy Defender' || userIsDeveloper) { %>
+                                <td></td>
+                                <td></td>
+                                <% } %>
+                            </tr>
+                            <% } else { %>
+                            <tr class="roster-user-row" data-rank="<%= (user.accountType || '').toLowerCase() %>" data-house="<%= (user.house || '').toLowerCase() %>" data-activity="<%= (user.activity || '').toLowerCase() %>" data-promotion-ready="<%= user.isPromotionReady ? '1' : '' %>" data-inactive-risk="<%= user.isInactiveRisk ? '1' : '' %>" data-search="<%= [user.displayName, user.discordUser, user.login.discordId].join(' ').toLowerCase() %>">
+                                <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender' || userType === 'Dreamy Defender' || userIsDeveloper) { %>
+                                <td><input type="checkbox" name="attendees" value="<%= user.login.discordId %>" <%= user.attendedThisWeek ? 'checked' : '' %>></td>
+                                <% } %>
+                                <td><%= user.accountType %></td>
+                                <td>
+                                    <span><%= user.displayName %></span>
+                                    <% if (user.isInactiveRisk) { %>
+                                    <span class="badge badge-inactive-risk" title="<%= user.inactivityReason || 'Inactivity Warning' %>">⚠️ Inactive</span>
+                                    <% } %>
+                                </td>
+                                <td><%= user.discordUser %></td>
+                                <td><%= user.login.discordId %></td>
+                                <td><%= user.hireDate %></td>
+                                <td><%= user.timeInService %></td>
+                                <td><%= user.lastPromotion %></td>
+                                <td>
+                                    <span><%= user.timeInGrade %></span>
+                                    <% if (user.isPromotionReady) { %>
+                                    <span class="badge badge-promo" title="Promotion Ready: Reached <%= user.minDaysRequired %> days in grade (Current: <%= user.timeInGrade %> days)">🚀 Ready</span>
+                                    <% } %>
+                                </td>
+                                
+                                <td class="shift-cell" style="background-color: <%= shiftColorMap[user.shift] || '' %>"><%= user.shift %></td>
+                                <td class="house-cell" style="background-color: <%= houseColorMap[user.house] || '' %>"><%= user.house %></td>
+                                <td><%= user.housePoints %></td>
+                                <td class="activity-cell" style="background-color: <%= activityColorMap[user.activity] || '' %>"><%= user.activity %></td>
+                                <td><%= user.weeksActivity %></td>
+                                <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender' || userType === 'Dreamy Defender' || userIsDeveloper) { %>
+                                <td><%= (user.strikes || []).reduce((sum, strike) => sum + (Number(strike.count) || 0), 0) %></td>
+                                <td>
+                                    <button class="viewBtn" type="button"
+                                        data-discord-id="<%= user.login.discordId %>"
+                                        data-display-name="<%= user.displayName || '' %>"
+                                        data-discord-user="<%= user.discordUser || '' %>"
+                                        data-account-type="<%= user.accountType || '' %>"
+                                        data-hire-date="<%= user.hireDate || '' %>"
+                                        data-house="<%= user.house || '' %>"
+                                        data-house-points="<%= user.housePoints || '' %>"
+                                        data-shift="<%= user.shift || '' %>"
+                                        data-activity="<%= user.activity || '' %>"
+                                        data-weeks-activity="<%= user.weeksActivity || '' %>"
+                                        data-avatar-url="<%= user.avatarUrl || '' %>"
+                                        data-onboarding-complete="<%= user.onboardingComplete ? '1' : '' %>"
+                                        data-host-training-complete="<%= user.hostTrainingComplete ? '1' : '' %>"
+                                        data-last-promotion="<%= user.lastPromotion || '' %>"
+                                        data-time-in-grade="<%= user.timeInGrade %>"
+                                        data-min-days-required="<%= user.minDaysRequired || '' %>"
+                                        data-promotion-ready="<%= user.isPromotionReady ? '1' : '' %>"
+                                        data-inactive-risk="<%= user.isInactiveRisk ? '1' : '' %>"
+                                        data-inactivity-reason="<%= user.inactivityReason || '' %>"
+                                        data-days-since-seen="<%= user.daysSinceSeen !== null ? user.daysSinceSeen : '' %>"
+                                        data-consecutive-missed="<%= user.consecutiveMissedMeetings || '0' %>">
+                                        <span class="material-symbols-outlined">visibility</span>
+                                    </button>
+                                    <button class="strikeBtn" type="button"
+                                        data-discord-id="<%= user.login.discordId %>"
+                                        data-display-name="<%= user.displayName || user.discordUser || user.login.discordId %>"
+                                        data-strikes="<%= JSON.stringify(user.strikes || []) %>">
+                                        <span class="material-symbols-outlined">warning</span>
+                                    </button>
+                                    <button class="editBtn" type="button"
+                                        data-discord-id="<%= user.login.discordId %>"
+                                        data-display-name="<%= user.displayName || '' %>"
+                                        data-discord-user="<%= user.discordUser || '' %>"
+                                        data-account-type="<%= user.accountType || '' %>"
+                                        data-hire-date="<%= user.hireDate || '' %>"
+                                        data-house="<%= user.house || '' %>"
+                                        data-house-points="<%= user.housePoints || '' %>"
+                                        data-shift="<%= user.shift || '' %>"
+                                        data-activity="<%= user.activity || '' %>"
+                                        data-weeks-activity="<%= user.weeksActivity || '' %>"
+                                        data-onboarding-complete="<%= user.onboardingComplete ? '1' : '' %>"
+                                        data-host-training-complete="<%= user.hostTrainingComplete ? '1' : '' %>">
+                                        <span class="material-symbols-outlined">edit</span>
+                                    </button>
+                                    <button class="promoteBtn" type="button"
+                                        data-discord-id="<%= user.login.discordId %>"
+                                        data-display-name="<%= user.displayName || user.discordUser || user.login.discordId %>"
+                                        data-account-type="<%= user.accountType || '' %>">
+                                        <span class="material-symbols-outlined">arrow_upward</span>
+                                    </button>
+                                    <button class="demoteBtn" type="button"
+                                        data-discord-id="<%= user.login.discordId %>"
+                                        data-display-name="<%= user.displayName || user.discordUser || user.login.discordId %>"
+                                        data-account-type="<%= user.accountType || '' %>">
+                                        <span class="material-symbols-outlined">arrow_downward</span>
+                                    </button>
+                                    <button class="delBtn" type="button" onclick="deleteUser('<%= user.login.discordId %>')">
+                                        <span class="material-symbols-outlined">delete</span>
+                                    </button> 
+                                </td>
+                                <% } %>
+                            </tr>
+                            <% } %>
+                            <% }); %>
+                        </tbody>
+                    </table>
+                </div>
+            </form>
+
             <dialog id="addUserPopup">
                 <form action="/add-user" method="POST">
                     <label for="discordId">Discord ID:</label>
@@ -522,6 +820,34 @@
         </form>
         <script>
             window.APP_RANKS = <%- JSON.stringify(settings.ranks.map(function(rank) { return rank.name; })) %>;
+
+            // View Mode Switcher (Modern vs Classic View)
+            function setRosterView(mode) {
+                const modernEl = document.getElementById('rosterModernView');
+                const classicEl = document.getElementById('rosterClassicView');
+                const modernBtn = document.getElementById('viewModeModern');
+                const classicBtn = document.getElementById('viewModeClassic');
+
+                if (mode === 'classic') {
+                    if (modernEl) modernEl.style.display = 'none';
+                    if (classicEl) classicEl.style.display = 'block';
+                    if (modernBtn) modernBtn.classList.remove('is-active');
+                    if (classicBtn) classicBtn.classList.add('is-active');
+                    localStorage.setItem('drowsy_roster_view', 'classic');
+                } else {
+                    if (modernEl) modernEl.style.display = 'block';
+                    if (classicEl) classicEl.style.display = 'none';
+                    if (modernBtn) modernBtn.classList.add('is-active');
+                    if (classicBtn) classicBtn.classList.remove('is-active');
+                    localStorage.setItem('drowsy_roster_view', 'modern');
+                }
+            }
+
+            // Restore saved view preference
+            const savedRosterView = localStorage.getItem('drowsy_roster_view');
+            if (savedRosterView === 'classic') {
+                setRosterView('classic');
+            }
 
             function deleteUser(discordId) {
                 if(confirm('Are you sure you want to delete this user?')) {

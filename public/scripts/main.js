@@ -33,9 +33,9 @@ if (rosterFilters.slice(0, 4).every(Boolean)) {
 
     document.querySelectorAll('.roster-user-row').forEach((row) => {
       const matchesSearch = !search || row.dataset.search.includes(search);
-      const matchesRank = !rank || row.dataset.rank.toLowerCase() === rank;
-      const matchesHouse = !house || row.dataset.house.toLowerCase() === house;
-      const matchesActivity = !activity || row.dataset.activity.toLowerCase() === activity;
+      const matchesRank = !rank || (row.dataset.rank || '').toLowerCase() === rank;
+      const matchesHouse = !house || (row.dataset.house || '').toLowerCase() === house;
+      const matchesActivity = !activity || (row.dataset.activity || '').toLowerCase() === activity;
 
       let matchesAlert = true;
       if (alertFilter === 'promo') {
@@ -46,8 +46,19 @@ if (rosterFilters.slice(0, 4).every(Boolean)) {
 
       row.hidden = !(matchesSearch && matchesRank && matchesHouse && matchesActivity && matchesAlert);
     });
+
+    // Also hide rank headers if all rows under that rank are hidden
+    document.querySelectorAll('.rank-group-header').forEach((header) => {
+      const rankGroup = (header.dataset.rankGroup || '').toLowerCase();
+      if (!rankGroup) return;
+      const hasVisible = Array.from(document.querySelectorAll(`.roster-user-row[data-rank="${rankGroup}"]`)).some((r) => !r.hidden);
+      header.hidden = !hasVisible;
+    });
   };
-  rosterFilters.filter(Boolean).forEach((field) => field.addEventListener('input', applyRosterFilters));
+  rosterFilters.filter(Boolean).forEach((field) => {
+    field.addEventListener('input', applyRosterFilters);
+    field.addEventListener('change', applyBingoFilters ? applyRosterFilters : applyRosterFilters);
+  });
 }
 
 document.querySelectorAll('.nav-notifications-trigger, .nav-account-trigger, .nav-guidelines-trigger').forEach((trigger) => {

@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+
+<html lang="en">
+    <head>
+        <%- include('../partials/head') %>
+        <title>Drowsy Roster</title>
+    </head>
+    <body>
+        <header>
+            <%- include('../partials/nav') %>
+        </header>
+        <main>
+            <section class="roster-content">
+                <h1>Roster</h1>
+                <p>List of team members will be displayed here.</p>
+                <div class="roster-sub">
+                    <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender') { %>
+                    <div class="roster-actions">
+                        <button class="action-button action-button-primary" type="button" id="openAddUserPopup">
+                            <span class="material-symbols-outlined" aria-hidden="true">person_add</span>
+                            Add User
+                        </button>
+                        <button class="action-button action-button-primary" form="attendanceForm" type="submit">
+                            <span class="material-symbols-outlined" aria-hidden="true">check_circle</span>
+                            Save Attendance
+                        </button>
+                        <form action="/reset-attendance" method="POST" onsubmit="return confirm('Reset attendance for this week?');">
+                            <input type="hidden" name="week" value="<%= currentWeek %>">
+                            <button class="action-button action-button-secondary" type="submit">
+                                <span class="material-symbols-outlined" aria-hidden="true">restart_alt</span>
+                                Reset Attendance
+                            </button>
+                        </form>
+                    </div>
+                    <% } %>
+                    <div class="online-now-bar" id="onlineNowBar">
+                        <span class="online-now-label">Online now:</span>
+                        <div class="online-now-avatars">
+                            <% onlineUsers.forEach(function(onlineUser) { %>
+                            <%- include('../partials/avatar', {
+                                avatarUrl: onlineUser.avatarUrl,
+                                displayName: onlineUser.displayName,
+                                discordId: onlineUser.discordId,
+                                size: 32,
+                                online: true
+                            }) %>
+                            <% }); %>
+                            <% if (onlineUsers.length === 0) { %>
+                            <span class="online-now-empty">No one else online right now.</span>
+                            <% } %>
+                        </div>
+                    </div>
+                </div>
+                
+                
+                <div class="roster-stats">
+                    <div>
+                        <p>Total Staff: <%= totalUsers %></p>
+                    </div>
+                    <div>
+                        <p>Active Staff: <%= activeUsers %></p>
+                    </div>
+                    <div>
+                        <p>Semi-Active Staff: <%= semiActiveUsers %></p>
+                    </div>
+                    <div>
+                        <p>LOA: <%= loaUsers %></p>
+                    </div>
+                    <div>
+                        <p>Inactive Staff: <%= inactiveUsers %></p>
+                    </div>
+                    <div class="roster-stat-promo">
+                        <p>Promo Ready: <strong><%= promotionReadyUsers %></strong> 🚀</p>
+                    </div>
+                    <div class="roster-stat-warning">
+                        <p>Inactive Alerts: <strong><%= inactivityRiskUsers %></strong> ⚠️</p>
+                    </div>
+                </div>
+            </section>
+            <section class="roster-content">
+                <div class="roster-filters" aria-label="Filter roster">
+                    <input id="rosterSearch" type="search" placeholder="Search staff">
+                    <select id="rosterRankFilter"><option value="">All ranks</option><% settings.ranks.forEach(function(rank) { %><option value="<%= rank.name %>"><%= rank.name %></option><% }); %></select>
+                    <select id="rosterHouseFilter"><option value="">All houses</option><% settings.houses.forEach(function(house) { %><option value="<%= house.name %>"><%= house.name %></option><% }); %></select>
+                    <select id="rosterActivityFilter"><option value="">All activity</option><% settings.activities.forEach(function(activity) { %><option value="<%= activity.name %>"><%= activity.name %></option><% }); %></select>
+                    <select id="rosterAlertFilter">
+                        <option value="">All alerts</option>
+                        <option value="promo">Promotion Ready 🚀 (<%= promotionReadyUsers %>)</option>
+                        <option value="inactive">Inactivity Warnings ⚠️ (<%= inactivityRiskUsers %>)</option>
+                    </select>
+                </div>
+                <form id="attendanceForm" action="/mark-attendance" method="POST">
+                <input type="hidden" name="week" value="<%= currentWeek %>">
+                <table>
+                    <thead>
+                        <tr>
+                            <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender') { %>
+                            <th>Meeting <br>Attendance</th>
+                            <% } %>
+                            <th>Account <br>Type</th>
+                            <th>Display Name</th>
+                            <th>Discord User</th>
+                            <th>Discord ID</th>
+                            <th>Hire Date</th>
+                            <th>Time In <br>Service</th>
+                            <th>Last <br>Promotion</th>
+                            <th>Time In <br>Grade</th>
+                            <th>Shift</th>
+                            <th>House</th>
+                            <th>House <br>Points</th>
+                            <th>Activity</th>
+                            <th>Weeks <br>Activity</th>
+                            <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender') { %>
+                                <th>Strikes</th>
+                                <th>Actions</th>
+                            <% } %>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        
+                         <% users.forEach(function(user, index) { %>
+                        <% if (index === 0 || users[index - 1].accountType !== user.accountType) { %>
+                        <tr class="rank-group-header">
+                            <th colspan="<%= (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender') ? 16 : 13 %>">
+                                <span><%= user.accountType %></span>
+                                <span>Vacant slots: <%= rankVacancyCounts[user.accountType] || 0 %></span>
+                            </th>
+                        </tr>
+                        <% } %>
+                        <% if (user.isVacant) { %>
+                        <tr class="vacant-row">
+                            <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender') { %>
+                            <td></td>
+                            <% } %>
+                            <td><%= user.accountType %></td>
+                            <td colspan="12">Vacant</td>
+                            <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender') { %>
+                            <td></td>
+                            <td></td>
+                            <% } %>
+                        </tr>
+                        <% } else { %>
+                        <tr class="roster-user-row" data-rank="<%= user.accountType %>" data-house="<%= user.house %>" data-activity="<%= user.activity %>" data-promotion-ready="<%= user.isPromotionReady ? '1' : '' %>" data-inactive-risk="<%= user.isInactiveRisk ? '1' : '' %>" data-search="<%= [user.displayName, user.discordUser, user.login.discordId].join(' ').toLowerCase() %>">
+                            <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender') { %>
+                            <td><input type="checkbox" name="attendees" value="<%= user.login.discordId %>" <%= user.attendedThisWeek ? 'checked' : '' %>></td>
+                            <% } %>
+                            <td><%= user.accountType %></td>
+                            <td>
+                                <span><%= user.displayName %></span>
+                                <% if (user.isInactiveRisk) { %>
+                                <span class="badge badge-inactive-risk" title="<%= user.inactivityReason || 'Inactivity Warning' %>">⚠️ Inactive</span>
+                                <% } %>
+                            </td>
+                            <td><%= user.discordUser %></td>
+                            <td><%= user.login.discordId %></td>
+                            <td><%= user.hireDate %></td>
+                            <td><%= user.timeInService %></td>
+                            <td><%= user.lastPromotion %></td>
+                            <td>
+                                <span><%= user.timeInGrade %></span>
+                                <% if (user.isPromotionReady) { %>
+                                <span class="badge badge-promo" title="Promotion Ready: Reached <%= user.minDaysRequired %> days in grade (Current: <%= user.timeInGrade %> days)">🚀 Ready</span>
+                                <% } %>
+                            </td>
+                            
+                            <td class="shift-cell" style="background-color: <%= shiftColorMap[user.shift] || '' %>"><%= user.shift %></td>
+                            <td class="house-cell" style="background-color: <%= houseColorMap[user.house] || '' %>"><%= user.house %></td>
+                            <td><%= user.housePoints %></td>
+                            <td class="activity-cell" style="background-color: <%= activityColorMap[user.activity] || '' %>"><%= user.activity %></td>
+                            <td><%= user.weeksActivity %></td>
+                            <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender') { %>
+                            <td><%= (user.strikes || []).reduce((sum, strike) => sum + (Number(strike.count) || 0), 0) %></td>
+                                <td>
+                                <button
+                                    class="viewBtn"
+                                    type="button"
+                                    data-discord-id="<%= user.login.discordId %>"
+                                    data-display-name="<%= user.displayName || '' %>"
+                                    data-discord-user="<%= user.discordUser || '' %>"
+                                    data-account-type="<%= user.accountType || '' %>"
+                                    data-hire-date="<%= user.hireDate || '' %>"
+                                    data-house="<%= user.house || '' %>"
+                                    data-house-points="<%= user.housePoints || '' %>"
+                                    data-shift="<%= user.shift || '' %>"
+                                    data-activity="<%= user.activity || '' %>"
+                                    data-weeks-activity="<%= user.weeksActivity || '' %>"
+                                    data-avatar-url="<%= user.avatarUrl || '' %>"
+                                    data-onboarding-complete="<%= user.onboardingComplete ? '1' : '' %>"
+                                    data-host-training-complete="<%= user.hostTrainingComplete ? '1' : '' %>"
+                                    data-last-promotion="<%= user.lastPromotion || '' %>"
+                                    data-time-in-grade="<%= user.timeInGrade %>"
+                                    data-min-days-required="<%= user.minDaysRequired || '' %>"
+                                    data-promotion-ready="<%= user.isPromotionReady ? '1' : '' %>"
+                                    data-inactive-risk="<%= user.isInactiveRisk ? '1' : '' %>"
+                                    data-inactivity-reason="<%= user.inactivityReason || '' %>"
+                                    data-days-since-seen="<%= user.daysSinceSeen !== null ? user.daysSinceSeen : '' %>"
+                                    data-consecutive-missed="<%= user.consecutiveMissedMeetings || '0' %>"
+                                >
+                                    <span class="material-symbols-outlined">visibility</span>
+                            
+                                </button>
+                                <button
+                                    class="strikeBtn"
+                                    type="button"
+                                    data-discord-id="<%= user.login.discordId %>"
+                                    data-display-name="<%= user.displayName || user.discordUser || user.login.discordId %>"
+                                    data-strikes="<%= JSON.stringify(user.strikes || []) %>"
+                                >
+                                    <span class="material-symbols-outlined">warning</span>
+                                </button>
+                                <button
+                                    class="editBtn"
+                                    type="button"
+                                    data-discord-id="<%= user.login.discordId %>"
+                                    data-display-name="<%= user.displayName || '' %>"
+                                    data-discord-user="<%= user.discordUser || '' %>"
+                                    data-account-type="<%= user.accountType || '' %>"
+                                    data-hire-date="<%= user.hireDate || '' %>"
+                                    data-house="<%= user.house || '' %>"
+                                    data-house-points="<%= user.housePoints || '' %>"
+                                    data-shift="<%= user.shift || '' %>"
+                                    data-activity="<%= user.activity || '' %>"
+                                    data-weeks-activity="<%= user.weeksActivity || '' %>"
+                                    data-onboarding-complete="<%= user.onboardingComplete ? '1' : '' %>"
+                                    data-host-training-complete="<%= user.hostTrainingComplete ? '1' : '' %>"
+                                >
+                                    <span class="material-symbols-outlined">edit</span>
+                                </button>
+                                <button
+                                    class="promoteBtn"
+                                    type="button"
+                                    data-discord-id="<%= user.login.discordId %>"
+                                    data-display-name="<%= user.displayName || user.discordUser || user.login.discordId %>"
+                                    data-account-type="<%= user.accountType || '' %>"
+                                >
+                                    <span class="material-symbols-outlined">arrow_upward</span>
+                                </button>
+                                <button
+                                    class="demoteBtn"
+                                    type="button"
+                                    data-discord-id="<%= user.login.discordId %>"
+                                    data-display-name="<%= user.displayName || user.discordUser || user.login.discordId %>"
+                                    data-account-type="<%= user.accountType || '' %>"
+                                >
+                                    <span class="material-symbols-outlined">arrow_downward</span>
+                                </button>
+                                <button class="delBtn" type="button" onclick="deleteUser('<%= user.login.discordId %>')">
+                                    <span class="material-symbols-outlined">delete</span>
+                                </button> 
+                            </td>
+                            <% } %>
+                        </tr>
+                        <% } %>
+                        <% }); %>
+                    </tbody>
+                </table>
+                </form>
+            </section>
+            <dialog id="addUserPopup">
+                <form action="/add-user" method="POST">
+                    <label for="discordId">Discord ID:</label>
+                    <input type="text" id="discordId" name="discordId" required>
+                    <br>
+                    <label for="displayName">Display Name:</label>
+                    <input type="text" id="displayName" name="displayName" required>
+                    <br>
+                    <label for="discordUser">Discord User:</label>
+                    <input type="text" id="discordUser" name="discordUser" required>
+                    <br>
+                    <label for="accountType"><b>Account Type</b></label>
+                    <select name="accountType" id="accountType">
+                        <% settings.ranks.forEach(function(rank) { %>
+                        <option value="<%= rank.name %>"><%= rank.name %></option>
+                        <% }); %>
+                    </select>
+                    <br>
+                    <label for="hireDate">Hire Date:</label>
+                    <input type="date" id="hireDate" name="hireDate" required>
+                    <br>
+                    <label for="password">Password:</label>
+                    <input type="password" id="password" name="password" required>
+                    <hr>
+                    <label for="house"><b>House</b></label>
+                    <select name="house" id="house">
+                        <% settings.houses.forEach(function(house) { %>
+                        <option value="<%= house.name %>"><%= house.name %></option>
+                        <% }); %>
+                    </select>
+                    <br>
+                    <label for="shift"><b>Shift</b></label>
+                    <select name="shift" id="shift">
+                        <% settings.shifts.forEach(function(shift) { %>
+                        <option value="<%= shift.name %>"><%= shift.name %></option>
+                        <% }); %>
+                    </select>
+                    <hr>
+                    <label class="checkbox-label" for="onboardingComplete">
+                        <input type="checkbox" id="onboardingComplete" name="onboardingComplete">
+                        Onboarding Complete
+                    </label>
+                    <label class="checkbox-label" for="hostTrainingComplete">
+                        <input type="checkbox" id="hostTrainingComplete" name="hostTrainingComplete">
+                        Host Training Complete
+                    </label>
+                    <div class="dialog-buttons">
+                        <button type="submit">Add User</button>
+                        <button type="button" id="closeAddUserPopup">Cancel</button>
+                    </div>
+                </form>
+            </dialog>
+
+            <dialog id="viewUserPopup">
+                <div class="view-user-header">
+                    <div id="viewAvatar" class="view-user-avatar"></div>
+                    <div>
+                        <h2 id="viewDisplayName"></h2>
+                        <p class="view-user-subtitle" id="viewDiscordUser"></p>
+                    </div>
+                </div>
+                <div class="view-user-details">
+                    <div class="view-user-detail">
+                        <span>Rank</span>
+                        <strong id="viewAccountType"></strong>
+                    </div>
+                    <div class="view-user-detail">
+                        <span>Discord ID</span>
+                        <strong id="viewDiscordId"></strong>
+                    </div>
+                    <div class="view-user-detail">
+                        <span>House</span>
+                        <strong id="viewHouse"></strong>
+                    </div>
+                    <div class="view-user-detail">
+                        <span>House Points</span>
+                        <strong id="viewHousePoints"></strong>
+                    </div>
+                    <div class="view-user-detail">
+                        <span>Shift</span>
+                        <strong id="viewShift"></strong>
+                    </div>
+                    <div class="view-user-detail">
+                        <span>Activity</span>
+                        <strong id="viewActivity"></strong>
+                    </div>
+                    <div class="view-user-detail">
+                        <span>Weeks Activity</span>
+                        <strong id="viewWeeksActivity"></strong>
+                    </div>
+                    <div class="view-user-detail">
+                        <span>Hire Date</span>
+                        <strong id="viewHireDate"></strong>
+                    </div>
+                    <div class="view-user-detail">
+                        <span>Onboarding</span>
+                        <strong id="viewOnboarding"></strong>
+                    </div>
+                    <div class="view-user-detail">
+                        <span>Host Training</span>
+                        <strong id="viewHostTraining"></strong>
+                    </div>
+                    <div class="view-user-detail">
+                        <span>Promotion Readiness</span>
+                        <strong id="viewPromotionStatus"></strong>
+                    </div>
+                    <div class="view-user-detail">
+                        <span>Activity Health</span>
+                        <strong id="viewInactivityStatus"></strong>
+                    </div>
+                </div>
+                <div class="staff-timeline"><span>Profile timeline</span><ul id="viewUserTimeline"></ul></div>
+                <button type="button" id="closeViewUserPopup">Close</button>
+            </dialog>
+
+            <dialog id="addStrikePopup">
+                <form action="/add-strike" method="POST">
+                    <input type="hidden" id="strikeDiscordId" name="discordId" required>
+
+                    <label for="strikeDisplayName">User:</label>
+                    <input type="text" id="strikeDisplayName" readonly>
+                    <br>
+
+                    <label for="strikeCount"><b>Strike Count</b></label>
+                    <select name="count" id="strikeCount" required>
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                    </select>
+                    <br>
+
+                    <label for="strikeReason">Reason:</label>
+                    <textarea id="strikeReason" name="reason" rows="3" required></textarea>
+
+                    <div class="dialog-buttons">
+                        <button type="submit">Issue Strike</button>
+                        <button type="button" id="closeAddStrikePopup">Cancel</button>
+                    </div>
+                </form>
+                <hr>
+                <p><b>Existing Strikes</b></p>
+                <ul id="manageStrikesList"></ul>
+            </dialog>
+
+            <dialog id="editUserPopup">
+                <form action="/update-user" method="POST">
+                    <input type="hidden" id="editOriginalDiscordId" name="originalDiscordId" required>
+
+                    <label for="editDiscordId">Discord ID:</label>
+                    <input type="text" id="editDiscordId" name="discordId" required>
+                    <br>
+
+                    <label for="editDisplayName">Display Name:</label>
+                    <input type="text" id="editDisplayName" name="displayName" required>
+                    <br>
+
+                    <label for="editDiscordUser">Discord User:</label>
+                    <input type="text" id="editDiscordUser" name="discordUser" required>
+                    <br>
+
+                    <label for="editAccountType"><b>Account Type</b></label>
+                    <select name="accountType" id="editAccountType">
+                        <% settings.ranks.forEach(function(rank) { %>
+                        <option value="<%= rank.name %>"><%= rank.name %></option>
+                        <% }); %>
+                    </select>
+                    <br>
+
+                    <label for="editHireDate">Hire Date:</label>
+                    <input type="date" id="editHireDate" name="hireDate" required>
+                    <br>
+
+                    <label for="editPassword">Password (optional):</label>
+                    <input type="password" id="editPassword" name="password" placeholder="Leave blank to keep current password">
+                    <hr>
+
+                    <label for="editHouse"><b>House</b></label>
+                    <select name="house" id="editHouse">
+                        <% settings.houses.forEach(function(house) { %>
+                        <option value="<%= house.name %>"><%= house.name %></option>
+                        <% }); %>
+                    </select>
+                    <br>
+
+                    <label for="editHousePoints">House Points:</label>
+                    <input type="number" id="editHousePoints" name="housePoints" required>
+                    <br>
+
+                    <label for="editActivity">Activity:</label>
+                    <select name="activity" id="editActivity">
+                        <% settings.activities.forEach(function(act) { %>
+                        <option value="<%= act.name %>"><%= act.name %></option>
+                        <% }); %>
+                    </select>
+                    <br>
+
+                    <label for="editWeeksActivity">Weeks Activity:</label>
+                    <input type="number" step="0.01" id="editWeeksActivity" name="weeksActivity" required>
+                    <br>
+                    <label for="editShift"><b>Shift</b></label>
+                    <select name="shift" id="editShift">
+                        <% settings.shifts.forEach(function(shift) { %>
+                        <option value="<%= shift.name %>"><%= shift.name %></option>
+                        <% }); %>
+                    </select>
+                    <hr>
+                    <label class="checkbox-label" for="editOnboardingComplete">
+                        <input type="checkbox" id="editOnboardingComplete" name="onboardingComplete">
+                        Onboarding Complete
+                    </label>
+                    <label class="checkbox-label" for="editHostTrainingComplete">
+                        <input type="checkbox" id="editHostTrainingComplete" name="hostTrainingComplete">
+                        Host Training Complete
+                    </label>
+
+                    <div class="dialog-buttons">
+                        <button type="submit">Save Changes</button>
+                        <button type="button" id="closeEditUserPopup">Cancel</button>
+                    </div>
+                </form>
+            </dialog>
+
+            <dialog id="promoteUserPopup">
+                <form action="/promote-user" method="POST">
+                    <input type="hidden" id="rankActionType" name="rankActionType" value="promote">
+                    <input type="hidden" id="promoteDiscordId" name="discordId" required>
+
+                    <label for="promoteDisplayName">User:</label>
+                    <input type="text" id="promoteDisplayName" readonly>
+                    <br>
+
+                    <label for="currentRank">Current Rank:</label>
+                    <input type="text" id="currentRank" readonly>
+                    <br>
+
+                    <label for="promoteAccountType"><b>New Rank</b></label>
+                    <select name="promoteAccountType" id="promoteAccountType" required>
+                        <% settings.ranks.forEach(function(rank) { %>
+                        <option value="<%= rank.name %>"><%= rank.name %></option>
+                        <% }); %>
+                    </select>
+                    <br>
+
+                    <label for="effectiveDate">(Promotion/Demotion) Date:</label>
+                    <input type="date" id="effectiveDate" name="effectiveDate">
+
+                    <div class="dialog-buttons">
+                        <button type="submit">Promote/Demote User</button>
+                        <button type="button" id="closePromoteUserPopup">Cancel</button>
+                    </div>
+                </form>
+            </dialog>
+            
+        </main>
+        <div class="footer">
+            <p>&copy; 2026 Drowsy Vocals | All rights reserved.</p>
+        </div>
+        <form id="deleteUserForm" action="/deleteUser" method="POST" style="display:none;">
+            <input type="hidden" name="discordId" id="deleteDiscordId">
+        </form>
+        <form id="removeStrikeForm" action="/remove-strike" method="POST" style="display:none;">
+            <input type="hidden" name="discordId" id="removeStrikeDiscordId">
+            <input type="hidden" name="strikeId" id="removeStrikeId">
+        </form>
+        <script>
+            window.APP_RANKS = <%- JSON.stringify(settings.ranks.map(function(rank) { return rank.name; })) %>;
+
+            function deleteUser(discordId) {
+                if(confirm('Are you sure you want to delete this user?')) {
+                    document.getElementById('deleteDiscordId').value = discordId;
+                    document.getElementById('deleteUserForm').submit();
+                }
+            }
+
+            function removeStrike(discordId, strikeId) {
+                if(confirm('Remove this strike?')) {
+                    document.getElementById('removeStrikeDiscordId').value = discordId;
+                    document.getElementById('removeStrikeId').value = strikeId;
+                    document.getElementById('removeStrikeForm').submit();
+                }
+            }
+        </script>
+    </body>
+</html>
