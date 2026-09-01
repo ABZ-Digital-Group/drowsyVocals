@@ -2,11 +2,24 @@
     font-family: DrowsyFont;
     src: url(Satoshi-Variable.ttf);
 }
-.material-symbols-outlined{
-    background-color: #242320;
-    color: #B7B2A7;
-    padding: 2px;
-    border-radius: 5px;
+.material-symbols-outlined {
+    font-family: 'Material Symbols Outlined' !important;
+    font-weight: normal;
+    font-style: normal;
+    font-size: 24px;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    vertical-align: middle;
+    font-feature-settings: 'liga';
+    -webkit-font-feature-settings: 'liga';
+    -webkit-font-smoothing: antialiased;
 }
 body{
     margin: 0;
