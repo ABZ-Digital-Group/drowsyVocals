@@ -1259,7 +1259,7 @@ app.get('/reports', requireDatabase, async (req, res) => {
 
         const houseTotals = {};
         users.forEach((user) => {
-            if (!user.house) return;
+            if (!user.house || user.house.trim().toLowerCase() === 'exempt') return;
             houseTotals[user.house] = (houseTotals[user.house] || 0) + (Number(user.housePoints) || 0);
         });
 
@@ -2234,14 +2234,17 @@ app.get('/house-points', requireDatabase, async (req, res) => {
 
         const houseColorMap = Object.fromEntries((settings?.houses || []).map(h => [h.name, h.color]));
 
-        // Calculate House Standings
+        // Calculate House Standings (Excluding 'Exempt' from house competition)
+        const isExempt = (name) => (name || '').toString().trim().toLowerCase() === 'exempt';
         const houseStats = {};
         (settings?.houses || []).forEach(h => {
-            houseStats[h.name] = { name: h.name, color: h.color, totalPoints: 0, memberCount: 0 };
+            if (!isExempt(h.name)) {
+                houseStats[h.name] = { name: h.name, color: h.color, totalPoints: 0, memberCount: 0 };
+            }
         });
 
         users.forEach(u => {
-            if (u.house) {
+            if (u.house && !isExempt(u.house)) {
                 if (!houseStats[u.house]) {
                     houseStats[u.house] = { name: u.house, color: houseColorMap[u.house] || '#888', totalPoints: 0, memberCount: 0 };
                 }
