@@ -1638,14 +1638,16 @@ app.get('/dashboard', requireDatabase, async (req, res) => {
 
     try {
         const currentDiscordId = req.session.currentuser;
-        const [userDoc, announcements, users] = await Promise.all([
+        const [userDoc, announcements, users, settings] = await Promise.all([
             db.collection('users').findOne({ 'login.discordId': currentDiscordId }),
-            db.collection('announcements').find({ $or: [{ expiresAt: { $exists: false } }, { expiresAt: null }, { expiresAt: { $gte: new Date().toISOString().slice(0, 10) } }] }).sort({ pinned: -1, createdAt: -1 }).limit(3).toArray(),
-            db.collection('users').find({}, { projection: { displayName: 1, discordUser: 1, 'login.discordId': 1 } }).toArray()
+            db.collection('announcements').find({ $or: [{ expiresAt: { $exists: false } }, { expiresAt: null }, { expiresAt: { $gte: new Date().toISOString().slice(0, 10) } }] }).sort({ pinned: -1, createdAt: -1 }).limit(6).toArray(),
+            db.collection('users').find({}, { projection: { displayName: 1, discordUser: 1, 'login.discordId': 1 } }).toArray(),
+            getSettings()
         ]);
+
         const nameByDiscordId = new Map(users.map((user) => [user.login.discordId, user.displayName || user.discordUser || user.login.discordId]));
         const announcementsWithNames = announcements.map((announcement) => ({ ...announcement, createdByName: announcement.createdByName || nameByDiscordId.get(announcement.createdBy) || announcement.createdBy }));
-        const currentDisplayName = userDoc?.displayName || currentDiscordId;
+        const currentDisplayName = userDoc?.displayName || userDoc?.discordUser || currentDiscordId;
         const accountType = userDoc ? userDoc.accountType : null;
 
         const totalStrikes = (userDoc?.strikes || []).reduce((sum, strike) => sum + (Number(strike.count) || 0), 0);
@@ -1655,11 +1657,17 @@ app.get('/dashboard', requireDatabase, async (req, res) => {
 
         let staffSummary = null;
         let pendingLoaTotal = 0;
+        let pendingAppsTotal = 0;
+        let newFeedbackTotal = 0;
 
-        if (MANAGEMENT_ROLES.includes(accountType) || userDoc?.isDeveloper) {
-            const allUsers = await db.collection('users').find({}, {
-                projection: { activity: 1, loaRequests: 1 }
-            }).toArray();
+        const isManager = hasManagementAccess(req);
+
+        if (isManager) {
+            const [allUsers, pendingApps, newFeedback] = await Promise.all([
+                db.collection('users').find({}, { projection: { activity: 1, loaRequests: 1 } }).toArray(),
+                db.collection('applications').countDocuments({ status: 'Pending' }),
+                db.collection('feedback').countDocuments({ status: 'New' })
+            ]);
 
             staffSummary = {
                 total: allUsers.length,
@@ -1672,22 +1680,38 @@ app.get('/dashboard', requireDatabase, async (req, res) => {
             pendingLoaTotal = allUsers.reduce((sum, u) => (
                 sum + (u.loaRequests || []).filter((request) => request.status === 'Pending').length
             ), 0);
+
+            pendingAppsTotal = pendingApps;
+            newFeedbackTotal = newFeedback;
         }
+
+        const houseColorMap = Object.fromEntries((settings?.houses || []).map(h => [h.name, h.color]));
+        const shiftColorMap = Object.fromEntries((settings?.shifts || []).map(s => [s.name, s.color]));
+        const activityColorMap = Object.fromEntries((settings?.activities || []).map(a => [a.name, a.color]));
 
         res.render('pages/dashboard', {
             page: 'dashboard',
+            user: userDoc,
             currentDisplayName,
             currentDiscordId,
             accountType,
             house: userDoc?.house || null,
-            housePoints: userDoc?.housePoints ?? null,
-            activity: userDoc?.activity || null,
+            shift: userDoc?.shift || null,
+            housePoints: userDoc?.housePoints ?? 0,
+            activity: userDoc?.activity || 'Active',
             totalStrikes,
             pendingLoaCount,
             attendedThisWeek,
             staffSummary,
             pendingLoaTotal,
-            announcements: announcementsWithNames
+            pendingAppsTotal,
+            newFeedbackTotal,
+            isManager,
+            announcements: announcementsWithNames,
+            settings,
+            houseColorMap,
+            shiftColorMap,
+            activityColorMap
         });
     } catch (error) {
         console.error('Error loading dashboard:', error);
