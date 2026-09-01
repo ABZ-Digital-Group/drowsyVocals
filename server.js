@@ -3783,10 +3783,38 @@ app.get('/bingo', requireDatabase, async (req, res) => {
                 .sort((a, b) => (a.displayName || a.discordUser || '').localeCompare(b.displayName || b.discordUser || ''))
         })).filter((group) => group.users.length);
 
+        const totalParticipants = groups.reduce((acc, g) => acc + g.users.length, 0);
+        let totalCompletedTasks = 0;
+        let totalPossibleTasks = totalParticipants * BINGO_GOALS.length;
+        let totalBingoHp = 0;
+        let totalBingoCc = 0;
+
+        groups.forEach(g => {
+            g.users.forEach(u => {
+                if (u.bingoProgress) {
+                    BINGO_GOALS.forEach(goal => {
+                        if (u.bingoProgress[goal.id]) totalCompletedTasks += 1;
+                    });
+                }
+                if (u.bingoTotals?.hp) totalBingoHp += Number(u.bingoTotals.hp) || 0;
+                if (u.bingoTotals?.cc) totalBingoCc += Number(u.bingoTotals.cc) || 0;
+            });
+        });
+
+        const completionPercentage = totalPossibleTasks > 0 ? Math.round((totalCompletedTasks / totalPossibleTasks) * 100) : 0;
+        const houseColorMap = Object.fromEntries((settings?.houses || []).map(h => [h.name, h.color]));
+
         res.render('pages/bingo', {
             page: 'bingo',
             groups,
             bingoGoals: BINGO_GOALS,
+            totalParticipants,
+            totalCompletedTasks,
+            totalPossibleTasks,
+            completionPercentage,
+            totalBingoHp,
+            totalBingoCc,
+            houseColorMap,
             canManageBingo: hasManagementAccess(req)
         });
     } catch (error) {
@@ -3798,39 +3826,64 @@ app.get('/bingo', requireDatabase, async (req, res) => {
 // TOGGLE ONE BINGO TARGET FOR A STAFF MEMBER
 app.post('/bingo/toggle', requireDatabase, async (req, res) => {
     if (!req.session.loggedin || !hasManagementAccess(req)) {
+        if (req.xhr || req.headers['x-requested-with'] === 'XMLHttpRequest') {
+            return res.status(403).json({ error: 'Unauthorized.' });
+        }
         req.flash('error_msg', 'You are not authorized to update the Bingo board.');
         return res.redirect('/bingo');
     }
 
     const { discordId, goalId } = req.body;
-    if (!discordId || !BINGO_GOALS.some((goal) => goal.id === goalId)) return res.redirect('/bingo');
+    if (!discordId || !BINGO_GOALS.some((goal) => goal.id === goalId)) {
+        if (req.xhr || req.headers['x-requested-with'] === 'XMLHttpRequest') {
+            return res.status(400).json({ error: 'Invalid parameters.' });
+        }
+        return res.redirect('/bingo');
+    }
 
     try {
         const [settings, user] = await Promise.all([
             getSettings(),
             db.collection('users').findOne(
-            { 'login.discordId': discordId },
-            { projection: { accountType: 1, bingoProgress: 1 } }
+                { 'login.discordId': discordId },
+                { projection: { accountType: 1, bingoProgress: 1 } }
             )
         ]);
-        if (!user) return res.redirect('/bingo');
+        if (!user) {
+            if (req.xhr || req.headers['x-requested-with'] === 'XMLHttpRequest') {
+                return res.status(404).json({ error: 'User not found.' });
+            }
+            return res.redirect('/bingo');
+        }
 
         const normalizeRank = (rank) => (rank || '').toString().toLowerCase().replace(/\./g, '').trim();
         const guardRank = settings.ranks.find((rank) => normalizeRank(rank.name) === normalizeRank('Dreamland Guard'));
         const userRank = settings.ranks.find((rank) => normalizeRank(rank.name) === normalizeRank(user.accountType));
         if (!guardRank || !userRank || (userRank.order ?? 0) < (guardRank.order ?? 0)) {
+            if (req.xhr || req.headers['x-requested-with'] === 'XMLHttpRequest') {
+                return res.status(400).json({ error: 'User is not in an eligible rank for Bingo.' });
+            }
             return res.redirect('/bingo');
         }
 
         const completed = Boolean(user.bingoProgress && user.bingoProgress[goalId]);
+        const nextState = !completed;
+
         await db.collection('users').updateOne(
             { 'login.discordId': discordId },
-            { $set: { [`bingoProgress.${goalId}`]: !completed } }
+            { $set: { [`bingoProgress.${goalId}`]: nextState } }
         );
+
+        if (req.xhr || req.headers['x-requested-with'] === 'XMLHttpRequest') {
+            return res.json({ success: true, completed: nextState });
+        }
 
         res.redirect('/bingo');
     } catch (error) {
         console.error('Error updating Bingo board:', error);
+        if (req.xhr || req.headers['x-requested-with'] === 'XMLHttpRequest') {
+            return res.status(500).json({ error: 'Unable to update Bingo board.' });
+        }
         req.flash('error_msg', 'Unable to update the Bingo board.');
         res.redirect('/bingo');
     }
