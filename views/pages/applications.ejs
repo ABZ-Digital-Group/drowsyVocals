@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <%- include('../partials/head') %>
+        <title>Staff Applications - Drowsy Vocals</title>
+    </head>
+    <body>
+        <header>
+            <%- include('../partials/nav') %>
+        </header>
+        <main>
+            <section class="profile-page">
+                <div class="profile-heading">
+                    <p class="profile-eyebrow">Management</p>
+                    <h1>Staff Applications</h1>
+                    <p class="profile-subtitle">Review incoming Google Form applications, track statuses, and add interview notes.</p>
+                </div>
+
+                <% if (typeof success_msg !== 'undefined' && success_msg && success_msg.length) { %>
+                <div class="alert alert-success" style="background:#10b98122;color:#10b981;padding:12px;border-radius:6px;margin-bottom:15px;border:1px solid #10b98144;"><%= success_msg %></div>
+                <% } %>
+                <% if (typeof error_msg !== 'undefined' && error_msg && error_msg.length) { %>
+                <div class="alert alert-danger" style="background:#ef444422;color:#ef4444;padding:12px;border-radius:6px;margin-bottom:15px;border:1px solid #ef444444;"><%= error_msg %></div>
+                <% } %>
+
+                <div class="applications-stats" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px;">
+                    <div style="background:#242320;color:#B7B2A7;padding:12px 18px;border-radius:6px;flex:1;min-width:140px;text-align:center;">
+                        <span style="font-size:0.85em;text-transform:uppercase;color:#888;">Total</span>
+                        <h2 style="margin:4px 0 0;font-size:1.6em;"><%= applications.length %></h2>
+                    </div>
+                    <div style="background:#242320;color:#F59E0B;padding:12px 18px;border-radius:6px;flex:1;min-width:140px;text-align:center;">
+                        <span style="font-size:0.85em;text-transform:uppercase;color:#888;">Pending</span>
+                        <h2 style="margin:4px 0 0;font-size:1.6em;"><%= applications.filter(a => a.status === 'Pending').length %></h2>
+                    </div>
+                    <div style="background:#242320;color:#3B82F6;padding:12px 18px;border-radius:6px;flex:1;min-width:140px;text-align:center;">
+                        <span style="font-size:0.85em;text-transform:uppercase;color:#888;">Under Review</span>
+                        <h2 style="margin:4px 0 0;font-size:1.6em;"><%= applications.filter(a => a.status === 'Under Review').length %></h2>
+                    </div>
+                    <div style="background:#242320;color:#10B981;padding:12px 18px;border-radius:6px;flex:1;min-width:140px;text-align:center;">
+                        <span style="font-size:0.85em;text-transform:uppercase;color:#888;">Accepted</span>
+                        <h2 style="margin:4px 0 0;font-size:1.6em;"><%= applications.filter(a => a.status === 'Accepted').length %></h2>
+                    </div>
+                    <div style="background:#242320;color:#EF4444;padding:12px 18px;border-radius:6px;flex:1;min-width:140px;text-align:center;">
+                        <span style="font-size:0.85em;text-transform:uppercase;color:#888;">Denied</span>
+                        <h2 style="margin:4px 0 0;font-size:1.6em;"><%= applications.filter(a => a.status === 'Denied').length %></h2>
+                    </div>
+                </div>
+
+                <% if (!applications || applications.length === 0) { %>
+                <div style="background:#242320;color:#B7B2A7;padding:30px;border-radius:8px;text-align:center;">
+                    <span class="material-symbols-outlined" style="font-size:3em;color:#6f6a60;" aria-hidden="true">inbox</span>
+                    <p style="margin:10px 0 0;font-size:1.1em;">No staff applications received yet.</p>
+                    <p style="margin:6px 0 0;color:#888;font-size:0.9em;">Connect your Google Form via the webhook guide in <a href="/settings" style="color:#B7B2A7;text-decoration:underline;">Settings</a>.</p>
+                </div>
+                <% } else { %>
+                <div class="applications-list" style="display:flex;flex-direction:column;gap:16px;">
+                    <% applications.forEach(function(app) { %>
+                    <div class="application-card" style="background:#242320;border-radius:8px;padding:20px;border-left:4px solid <%= app.status === 'Accepted' ? '#10B981' : app.status === 'Denied' ? '#EF4444' : app.status === 'Under Review' ? '#3B82F6' : '#F59E0B' %>;">
+                        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:15px;border-bottom:1px solid #333;padding-bottom:12px;">
+                            <div>
+                                <h2 style="margin:0;font-size:1.3em;color:#f3efe6;"><%= app.applicantName || app.answers?.['Name'] || app.answers?.['What is your name?'] || app.answers?.['Discord Name'] || 'Applicant' %></h2>
+                                <span style="color:#888;font-size:0.85em;">Submitted: <%= new Date(app.submittedAt).toLocaleString() %></span>
+                            </div>
+                            <span style="display:inline-block;padding:4px 10px;border-radius:20px;font-size:0.85em;font-weight:bold;background:<%= app.status === 'Accepted' ? '#10B98122' : app.status === 'Denied' ? '#EF444422' : app.status === 'Under Review' ? '#3B82F622' : '#F59E0B22' %>;color:<%= app.status === 'Accepted' ? '#10B981' : app.status === 'Denied' ? '#EF4444' : app.status === 'Under Review' ? '#3B82F6' : '#F59E0B' %>;"><%= app.status %></span>
+                        </div>
+
+                        <div class="application-answers" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:14px;margin-bottom:20px;">
+                            <% Object.entries(app.answers || {}).forEach(function([question, answer]) { %>
+                            <div style="background:#1a1917;padding:12px;border-radius:6px;border:1px solid #2f2e2b;">
+                                <strong style="display:block;color:#B7B2A7;font-size:0.85em;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;"><%= question %></strong>
+                                <span style="color:#f3efe6;font-size:0.95em;white-space:pre-wrap;word-break:break-word;"><%= answer || '-' %></span>
+                            </div>
+                            <% }); %>
+                        </div>
+
+                        <% if (app.managerNotes) { %>
+                        <div style="background:#1a1917;padding:12px;border-radius:6px;border-left:3px solid #3B82F6;margin-bottom:15px;">
+                            <strong style="color:#3B82F6;font-size:0.85em;display:block;margin-bottom:4px;">Management Notes (by <%= app.reviewedBy || 'Manager' %>):</strong>
+                            <p style="margin:0;color:#cfcac0;font-size:0.95em;"><%= app.managerNotes %></p>
+                        </div>
+                        <% } %>
+
+                        <form class="login-form-actions" action="/applications/<%= app._id %>/review" method="POST" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                            <label for="status-<%= app._id %>" style="margin:0;font-size:0.9em;">Status:</label>
+                            <select id="status-<%= app._id %>" name="status" style="background:#1a1917;color:#B7B2A7;border:1px solid #444;padding:6px 10px;border-radius:4px;">
+                                <option value="Pending" <%= app.status === 'Pending' ? 'selected' : '' %>>Pending</option>
+                                <option value="Under Review" <%= app.status === 'Under Review' ? 'selected' : '' %>>Under Review</option>
+                                <option value="Accepted" <%= app.status === 'Accepted' ? 'selected' : '' %>>Accepted</option>
+                                <option value="Denied" <%= app.status === 'Denied' ? 'selected' : '' %>>Denied</option>
+                            </select>
+                            <input type="text" name="managerNotes" placeholder="Add management/interview note..." value="<%= app.managerNotes || '' %>" style="flex:1;min-width:200px;background:#1a1917;color:#B7B2A7;border:1px solid #444;padding:6px 10px;border-radius:4px;">
+                            <button type="submit" style="padding:6px 14px;">Update</button>
+                        </form>
+                    </div>
+                    <% }); %>
+                </div>
+                <% } %>
+            </section>
+        </main>
+        <div class="footer">
+            <p>&copy; 2026 Drowsy Vocals | All rights reserved.</p>
+        </div>
+    </body>
+</html>

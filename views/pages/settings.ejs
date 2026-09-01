@@ -32,12 +32,16 @@
                     </div>
 
                     <div class="profile-detail-full">
-                        <span>Discord Webhooks</span>
-                        <p class="settings-hint">Post real-time embeds to a Discord channel when management events occur.</p>
+                        <span>Discord Webhooks & Google Forms</span>
+                        <p class="settings-hint">Post real-time embeds to a Discord channel when events occur, and connect your Google Forms staff application.</p>
                         <form class="login-form-actions settings-add-form" action="/settings/webhooks" method="POST">
                             <label for="webhookUrl">Discord Webhook URL:</label>
                             <input type="url" id="webhookUrl" name="url" placeholder="https://discord.com/api/webhooks/..." value="<%= settings.webhooks?.url || '' %>">
-                            <div class="maintenance-toggle-row" style="flex-wrap: wrap; gap: 16px; margin: 10px 0;">
+
+                            <label for="applicationsSecret" style="margin-top:10px;">Google Form Webhook Secret Key:</label>
+                            <input type="text" id="applicationsSecret" name="applicationsSecret" value="<%= settings.webhooks?.applicationsSecret || 'drowsy-apps-secret' %>" required>
+
+                            <div class="maintenance-toggle-row" style="flex-wrap: wrap; gap: 16px; margin: 12px 0;">
                                 <label style="display: flex; align-items: center; gap: 6px; font-weight: normal; cursor: pointer;">
                                     <input type="checkbox" name="notifyLoa" value="true" <%= settings.webhooks?.notifyLoa !== false ? 'checked' : '' %>>
                                     <span>LOA Requests & Decisions</span>
@@ -50,9 +54,42 @@
                                     <input type="checkbox" name="notifyFeedback" value="true" <%= settings.webhooks?.notifyFeedback !== false ? 'checked' : '' %>>
                                     <span>Submitted Feedback</span>
                                 </label>
+                                <label style="display: flex; align-items: center; gap: 6px; font-weight: normal; cursor: pointer;">
+                                    <input type="checkbox" name="notifyApplications" value="true" <%= settings.webhooks?.notifyApplications !== false ? 'checked' : '' %>>
+                                    <span>New Staff Applications</span>
+                                </label>
                             </div>
                             <button type="submit">Save Webhook Settings</button>
                         </form>
+
+                        <details style="margin-top:15px;background:#1a1917;padding:12px;border-radius:6px;border:1px solid #333;">
+                            <summary style="cursor:pointer;font-weight:bold;color:#B7B2A7;">Google Form Setup Instructions (Click to expand)</summary>
+                            <div style="margin-top:10px;font-size:0.9em;line-height:1.6;color:#ccc;">
+                                <p>1. Open your Google Form &gt; Click the <strong>three dots (⋮)</strong> &gt; <strong>Script editor</strong>.</p>
+                                <p>2. Paste the following script:</p>
+                                <pre style="background:#000;padding:10px;border-radius:4px;overflow-x:auto;color:#3ddc71;font-size:0.85em;">function onFormSubmit(e) {
+  var itemResponses = e.response.getItemResponses();
+  var answers = {};
+  for (var i = 0; i &lt; itemResponses.length; i++) {
+    answers[itemResponses[i].getItem().getTitle()] = itemResponses[i].getResponse();
+  }
+
+  var payload = {
+    secret: "<%= settings.webhooks?.applicationsSecret || 'drowsy-apps-secret' %>",
+    answers: answers
+  };
+
+  UrlFetchApp.fetch("https://manage.drowsyvocals.com/api/applications/webhook", {
+    method: "post",
+    contentType: "application/json",
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true
+  });
+}</pre>
+                                <p>3. In the Apps Script sidebar, click the <strong>Triggers (alarm clock icon)</strong> &gt; <strong>Add Trigger</strong>.</p>
+                                <p>4. Set <em>Choose which function to run</em> to <code>onFormSubmit</code> and <em>Select event type</em> to <strong>On form submit</strong> &gt; Click <strong>Save</strong>.</p>
+                            </div>
+                        </details>
                     </div>
                     <% } %>
 
