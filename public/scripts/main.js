@@ -44,7 +44,22 @@ document.querySelectorAll('.nav-notifications-trigger, .nav-account-trigger, .na
 
 // REFRESH SHARED DATA VIEWS WHEN ANOTHER USER SAVES A CHANGE.
 let lastLocalSaveTime = 0;
+let lastUserInputTime = 0;
 let pendingLiveReload = false;
+
+// Track user input/typing globally so live reload never interrupts active typing or interaction
+document.addEventListener("input", () => {
+  lastUserInputTime = Date.now();
+}, true);
+
+document.addEventListener("keydown", () => {
+  lastUserInputTime = Date.now();
+}, true);
+
+document.addEventListener("submit", () => {
+  lastLocalSaveTime = Date.now();
+  lastUserInputTime = Date.now();
+}, true);
 
 const isUserInteracting = () => {
   const active = document.activeElement;
@@ -52,13 +67,12 @@ const isUserInteracting = () => {
   const isInput = tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || Boolean(active?.isContentEditable);
   const hasOpenDialog = Boolean(document.querySelector("dialog[open]"));
   const isDragging = Boolean(document.querySelector(".is-dragging"));
-  return isInput || hasOpenDialog || isDragging;
+  const typedRecently = (Date.now() - lastUserInputTime) < 5000;
+  const savedRecently = (Date.now() - lastLocalSaveTime) < 5000;
+  return isInput || hasOpenDialog || isDragging || typedRecently || savedRecently;
 };
 
 const triggerOrScheduleReload = () => {
-  if (Date.now() - lastLocalSaveTime < 3000) {
-    return;
-  }
   if (isUserInteracting()) {
     pendingLiveReload = true;
     return;
@@ -70,19 +84,13 @@ if (window.io && ["/roster", "/bingo", "/roster-planner", "/settings", "/reports
   const liveSocket = window.io();
   liveSocket.on("data-updated", () => triggerOrScheduleReload());
 
-  const handleInteractionEnd = () => {
-    if (!pendingLiveReload) return;
-    setTimeout(() => {
-      if (pendingLiveReload && !isUserInteracting() && Date.now() - lastLocalSaveTime >= 1500) {
-        pendingLiveReload = false;
-        window.location.reload();
-      }
-    }, 300);
-  };
-
-  document.addEventListener("focusout", handleInteractionEnd);
-  document.addEventListener("pointerup", handleInteractionEnd);
-  document.addEventListener("keyup", handleInteractionEnd);
+  // Periodically check if there's a pending reload once the user is completely idle
+  setInterval(() => {
+    if (pendingLiveReload && !isUserInteracting()) {
+      pendingLiveReload = false;
+      window.location.reload();
+    }
+  }, 2000);
 }
 
 // SHARED AVATAR RENDERING HELPERS (USED BY THE ONLINE-NOW BAR AND VIEW-USER POPUP)
@@ -96,12 +104,28 @@ const escapeHtml = (str) => (str || "").toString().replace(/[&<>"']/g, (c) => ({
 
 const renderAvatarHtml = (user, size, online) => {
   const initial = escapeHtml((user.displayName || "?").trim().charAt(0).toUpperCase() || "?");
+  const fallbackHtml = `<span class="avatar-initials" style="width:${size}px;height:${size}px;font-size:${Math.floor(size / 2.2)}px;">${initial}</span>`;
   const inner = user.avatarUrl
-    ? `<img class="avatar-img" src="${escapeHtml(user.avatarUrl)}" alt="${escapeHtml(user.displayName)}" style="width:${size}px;height:${size}px;">`
-    : `<span class="avatar-initials" style="width:${size}px;height:${size}px;font-size:${Math.floor(size / 2.2)}px;">${initial}</span>`;
+    ? `<img class="avatar-img" src="${escapeHtml(user.avatarUrl)}" alt="${escapeHtml(user.displayName)}" style="width:${size}px;height:${size}px;" onerror="this.outerHTML='${escapeHtml(fallbackHtml)}';">`
+    : fallbackHtml;
 
   return `<span class="avatar-wrapper${online ? " is-online" : ""}" data-discord-id="${escapeHtml(user.discordId)}" style="width:${size}px;height:${size}px;" title="${escapeHtml(user.displayName)}">${inner}<span class="avatar-online-dot"></span></span>`;
 };
+
+// GLOBAL PRESENCE HEARTBEAT (KEEPS ACTIVE USERS ONLINE ACROSS ALL PAGES)
+const sendPresencePing = () => {
+  fetch("/api/online-users", { cache: "no-store" }).catch(() => {});
+};
+
+// Periodic heartbeat every 45s (well within 2 minute cutoff)
+setInterval(sendPresencePing, 45000);
+
+// Ping on tab regain focus / visibility change
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") {
+    sendPresencePing();
+  }
+});
 
 // LIVE "WHO'S ONLINE" PRESENCE, POLLED WHILE THE ROSTER IS OPEN
 const onlineNowBar = document.getElementById("onlineNowBar");
@@ -112,7 +136,7 @@ if (onlineNowBar) {
   const refreshOnlineUsers = () => {
     if (!onlineNowAvatars) return;
 
-    fetch("/api/online-users")
+    fetch("/api/online-users", { cache: "no-store" })
       .then((response) => (response.ok ? response.json() : Promise.reject(new Error("Request failed"))))
       .then((payload) => {
         const onlineUsers = payload.onlineUsers || [];
@@ -138,7 +162,9 @@ if (onlineNowBar) {
       .catch(() => {});
   };
 
-  setInterval(refreshOnlineUsers, 20000);
+  // Run immediately on page load and poll every 15s
+  refreshOnlineUsers();
+  setInterval(refreshOnlineUsers, 15000);
 }
 
 
@@ -479,25 +505,38 @@ if (rosterPlanner) {
 document.querySelectorAll(".bingo-total-input").forEach((input) => {
   let saveTimer;
 
-  input.addEventListener("input", () => {
+  const saveTotals = () => {
     clearTimeout(saveTimer);
-    saveTimer = setTimeout(() => {
-      const row = input.closest("tr");
-      const hpInput = row?.querySelector(".bingo-hp-input");
-      const ccInput = row?.querySelector(".bingo-cc-input");
-      if (!hpInput || !ccInput) return;
+    const row = input.closest("tr");
+    const hpInput = row?.querySelector(".bingo-hp-input");
+    const ccInput = row?.querySelector(".bingo-cc-input");
+    if (!hpInput || !ccInput) return;
 
-      fetch("/bingo/totals", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-          discordId: input.dataset.discordId,
-          hp: hpInput.value,
-          cc: ccInput.value
-        })
-      }).catch(() => {});
-    }, 700);
+    lastLocalSaveTime = Date.now();
+    lastUserInputTime = Date.now();
+
+    fetch("/bingo/totals", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "X-Requested-With": "XMLHttpRequest"
+      },
+      body: new URLSearchParams({
+        discordId: input.dataset.discordId,
+        hp: hpInput.value,
+        cc: ccInput.value
+      })
+    }).catch(() => {});
+  };
+
+  input.addEventListener("input", () => {
+    lastUserInputTime = Date.now();
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(saveTotals, 1500);
   });
+
+  input.addEventListener("change", saveTotals);
+  input.addEventListener("blur", saveTotals);
 });
 
 const guidelinesEditToggle = document.querySelector("[data-guidelines-edit]");

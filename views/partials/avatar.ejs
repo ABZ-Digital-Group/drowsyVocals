@@ -12,7 +12,8 @@ var _initial = (_displayName || '?').trim().charAt(0).toUpperCase() || '?';
     title="<%= _displayName %>"
 >
     <% if (typeof avatarUrl !== 'undefined' && avatarUrl) { %>
-    <img class="avatar-img" src="<%= avatarUrl %>" alt="<%= _displayName %>" style="width: <%= _size %>px; height: <%= _size %>px;">
+    <img class="avatar-img" src="<%= avatarUrl %>" alt="<%= _displayName %>" style="width: <%= _size %>px; height: <%= _size %>px;" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';">
+    <span class="avatar-initials" style="display: none; width: <%= _size %>px; height: <%= _size %>px; font-size: <%= Math.floor(_size / 2.2) %>px;"><%= _initial %></span>
     <% } else { %>
     <span class="avatar-initials" style="width: <%= _size %>px; height: <%= _size %>px; font-size: <%= Math.floor(_size / 2.2) %>px;"><%= _initial %></span>
     <% } %>

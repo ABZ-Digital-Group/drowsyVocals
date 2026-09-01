@@ -141,7 +141,57 @@ app.use(async (req, res, next) => {
     res.locals.userType = req.session.isDeveloper ? 'Realm God' : req.session.accountType;
     res.locals.userIsDeveloper = Boolean(req.session.isDeveloper);
     res.locals.navUser = res.locals.navUser || null;
+    res.locals.maintenanceActive = false;
+
+    if (isDatabaseReady && db) {
+        try {
+            const currentSettings = await getSettings();
+            res.locals.maintenanceActive = Boolean(currentSettings?.maintenance?.enabled);
+            res.locals.maintenanceMessage = currentSettings?.maintenance?.message || 'The website is currently undergoing scheduled maintenance. Please check back soon.';
+        } catch {
+            // Non-blocking fallback
+        }
+    }
     next();
+});
+
+// MAINTENANCE MODE MIDDLEWARE
+app.use(async (req, res, next) => {
+    // Always allow static files, health checks, login/auth pages, and logout
+    const bypassedPaths = ['/health', '/logout', '/login', '/index'];
+    if (bypassedPaths.includes(req.path) || req.path.startsWith('/css') || req.path.startsWith('/scripts') || req.path.startsWith('/assets') || req.path.startsWith('/uploads')) {
+        return next();
+    }
+
+    if (!isDatabaseReady || !db) return next();
+
+    try {
+        const settings = await getSettings();
+        const isMaintenance = Boolean(settings?.maintenance?.enabled);
+
+        if (!isMaintenance) {
+            return next();
+        }
+
+        // God roles (Mr. Sandman, Realm God) and Developers can bypass maintenance mode
+        const canBypass = Boolean(req.session.isDeveloper) || GOD_ROLES.includes(req.session.accountType);
+        if (canBypass) {
+            return next();
+        }
+
+        // Handle AJAX/API requests with a JSON 503 response
+        if (req.xhr || req.headers['x-requested-with'] === 'XMLHttpRequest' || req.path.startsWith('/api/')) {
+            return res.status(503).json({ error: 'Website is in maintenance mode.' });
+        }
+
+        // Render the maintenance view for regular users and guests
+        return res.status(503).render('pages/maintenance', {
+            message: settings.maintenance?.message
+        });
+    } catch (error) {
+        console.error('Maintenance middleware error:', error.message);
+        next();
+    }
 });
 
 // FIRE-AND-FORGET PRESENCE PING SO OTHER USERS CAN SEE WHO IS ONLINE
@@ -286,7 +336,11 @@ const DEFAULT_SETTINGS = {
         { name: 'Semi-Active', color: '#FFF1C2' },
         { name: 'Inactive', color: '#F9C0BC' },
         { name: 'LOA', color: '#A9CAFF' }
-    ]
+    ],
+    maintenance: {
+        enabled: false,
+        message: 'The website is currently undergoing scheduled maintenance. Please check back soon.'
+    }
 };
 
 // FETCH THE SINGLE APP SETTINGS DOCUMENT, SEEDING DEFAULTS ON FIRST USE
@@ -917,6 +971,46 @@ app.post('/settings/developer-access', requireDatabase, async (req, res) => {
     }
 });
 
+// TOGGLE MAINTENANCE MODE AND UPDATE CUSTOM MESSAGE
+app.post('/settings/maintenance', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !hasGodAccess(req)) {
+        req.flash('error_msg', 'You are not authorized to manage maintenance mode.');
+        return res.redirect('/settings');
+    }
+
+    const enabled = req.body.enabled === 'true' || req.body.enabled === 'on';
+    const message = (req.body.message || '').toString().trim() || 'The website is currently undergoing scheduled maintenance. Please check back soon.';
+
+    try {
+        await db.collection('settings').updateOne(
+            { _id: 'appSettings' },
+            {
+                $set: {
+                    'maintenance.enabled': enabled,
+                    'maintenance.message': message,
+                    'maintenance.updatedAt': new Date().toISOString().slice(0, 19),
+                    'maintenance.updatedBy': req.session.currentuser
+                }
+            },
+            { upsert: true }
+        );
+
+        await writeAudit(
+            req,
+            enabled ? 'Maintenance Mode Enabled' : 'Maintenance Mode Disabled',
+            `Maintenance mode was turned ${enabled ? 'ON' : 'OFF'}`
+        );
+
+        broadcastDataUpdate('settings');
+        req.flash('success_msg', `Maintenance mode is now ${enabled ? 'ENABLED' : 'DISABLED'}.`);
+        res.redirect('/settings');
+    } catch (error) {
+        console.error('Error updating maintenance mode:', error);
+        req.flash('error_msg', 'Unable to update maintenance mode.');
+        res.redirect('/settings');
+    }
+});
+
 // ADD SETTINGS OPTION
 app.post('/settings/add-option', requireDatabase, async (req, res) => {
     if (!req.session.loggedin) return res.redirect('/');
@@ -1095,6 +1189,12 @@ app.post('/login', requireDatabase, async (req, res) => {
         req.session.accountType = userDoc.accountType;
         req.session.isDeveloper = Boolean(userDoc.isDeveloper);
 
+        // Update lastSeen immediately on login
+        db.collection('users').updateOne(
+            { 'login.discordId': discordId },
+            { $set: { lastSeen: new Date() } }
+        ).catch((err) => console.error('Login presence update failed:', err.message));
+
         // Explicitly save the session before redirecting so the reverse proxy
         // does not receive the dashboard request before the session is stored.
         return req.session.save((error) => {
@@ -1114,6 +1214,14 @@ app.post('/login', requireDatabase, async (req, res) => {
 
 // USER LOGOUT
 app.get('/logout', (req, res) => {
+    const currentDiscordId = req.session?.currentuser;
+    if (isDatabaseReady && db && currentDiscordId) {
+        db.collection('users').updateOne(
+            { 'login.discordId': currentDiscordId },
+            { $unset: { lastSeen: '' } }
+        ).catch((err) => console.error('Logout presence update failed:', err.message));
+    }
+
     req.session.destroy((error) => {
         if (error) {
             console.error('Logout session error:', error);
@@ -2013,9 +2121,16 @@ app.post('/bingo/totals', requireDatabase, async (req, res) => {
             { 'login.discordId': discordId },
             { $set: { bingoTotals: { hp: hpTotal, cc: ccTotal } } }
         );
+
+        if (req.headers['x-requested-with'] === 'XMLHttpRequest' || req.accepts('json')) {
+            return res.json({ success: true });
+        }
         res.redirect('/bingo');
     } catch (error) {
         console.error('Error updating Bingo totals:', error);
+        if (req.headers['x-requested-with'] === 'XMLHttpRequest' || req.accepts('json')) {
+            return res.status(500).json({ error: 'Unable to update Bingo totals.' });
+        }
         req.flash('error_msg', 'Unable to update Bingo totals.');
         res.redirect('/bingo');
     }

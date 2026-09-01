@@ -1,3 +1,12 @@
+<% if (typeof maintenanceActive !== 'undefined' && maintenanceActive) { %>
+<div class="maintenance-admin-banner">
+    <span class="material-symbols-outlined" aria-hidden="true" style="font-size: 1.2em;">construction</span>
+    <span>Maintenance mode is currently ACTIVE. Regular users cannot access the site.</span>
+    <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userIsDeveloper) { %>
+    <a href="/settings">Manage in Settings</a>
+    <% } %>
+</div>
+<% } %>
 <nav>
     <img src="/assets/DrowsyLogo.png" alt="Drowsy Vocals Logo">
     <button class="nav-menu-toggle" type="button" aria-expanded="false" aria-controls="primaryNavigation"><span class="material-symbols-outlined" aria-hidden="true">menu</span> Menu</button>

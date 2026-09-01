@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <%- include('../partials/head') %>
+        <title>Maintenance Mode - Drowsy Vocals</title>
+    </head>
+    <body class="maintenance-body">
+        <main class="maintenance-container">
+            <div class="maintenance-card">
+                <img src="/assets/DrowsyLogoDark.png" alt="Drowsy Vocals Logo" class="maintenance-logo">
+                <div class="maintenance-badge">
+                    <span class="material-symbols-outlined" aria-hidden="true">construction</span>
+                    <span>Maintenance Mode</span>
+                </div>
+                <h1>We'll be back shortly</h1>
+                <p class="maintenance-message"><%= message || 'The website is currently undergoing scheduled maintenance. Please check back soon.' %></p>
+                <div class="maintenance-actions">
+                    <a href="/index?splash=1" class="maintenance-btn">Staff Login</a>
+                </div>
+            </div>
+        </main>
+        <div class="footer">
+            <p>&copy; 2026 Drowsy Vocals | All rights reserved.</p>
+        </div>
+    </body>
+</html>
