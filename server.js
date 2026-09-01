@@ -411,6 +411,145 @@ const avatarUpload = multer({
     }
 });
 
+// DROWSY DISCORD BOT INTEGRATION PATHS & HELPERS
+const DROWSY_BOT_DIR = process.env.DROWSY_BOT_DIR || path.resolve(__dirname, '..', 'drowsy_bot');
+const BOT_DATA_DIR = path.join(DROWSY_BOT_DIR, 'data');
+const BOT_ASSETS_DIR = path.join(DROWSY_BOT_DIR, 'assets');
+const BOT_ADS_DIR = path.join(BOT_ASSETS_DIR, 'ads');
+const BOT_ENV_FILE = path.join(DROWSY_BOT_DIR, '.env');
+
+try {
+    fs.mkdirSync(BOT_DATA_DIR, { recursive: true });
+    fs.mkdirSync(BOT_ASSETS_DIR, { recursive: true });
+    fs.mkdirSync(BOT_ADS_DIR, { recursive: true });
+} catch (e) {
+    console.error('Bot directories init error:', e.message);
+}
+
+app.use('/bot-assets/ads', express.static(BOT_ADS_DIR));
+
+const botAdUpload = multer({
+    storage: multer.diskStorage({
+        destination: (req, file, cb) => cb(null, BOT_ADS_DIR),
+        filename: (req, file, cb) => {
+            const ext = path.extname(file.originalname).toLowerCase() || '.png';
+            const safeName = `ad-${Date.now()}-${crypto.randomBytes(4).toString('hex')}${ext}`;
+            cb(null, safeName);
+        }
+    }),
+    limits: { fileSize: 10 * 1024 * 1024 },
+    fileFilter: (req, file, cb) => {
+        const allowedMimes = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
+        if (!allowedMimes.includes(file.mimetype)) {
+            return cb(new Error('Only PNG, JPEG, WEBP, or GIF images are allowed.'));
+        }
+        cb(null, true);
+    }
+});
+
+function readBotJson(filePath, fallback = {}) {
+    try {
+        if (fs.existsSync(filePath)) {
+            return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+        }
+    } catch (e) {
+        console.error(`Failed to read bot JSON at ${filePath}:`, e.message);
+    }
+    return fallback;
+}
+
+function writeBotJson(filePath, data) {
+    try {
+        const dir = path.dirname(filePath);
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+        fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
+        return true;
+    } catch (e) {
+        console.error(`Failed to write bot JSON at ${filePath}:`, e.message);
+        return false;
+    }
+}
+
+function parseBotEnv(filePath) {
+    if (!fs.existsSync(filePath)) return {};
+    try {
+        const content = fs.readFileSync(filePath, 'utf8');
+        const env = {};
+        for (const line of content.split('\n')) {
+            const trimmed = line.trim();
+            if (!trimmed || trimmed.startsWith('#')) continue;
+            const idx = trimmed.indexOf('=');
+            if (idx > 0) {
+                const key = trimmed.slice(0, idx).trim();
+                let val = trimmed.slice(idx + 1).trim();
+                if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+                    val = val.slice(1, -1);
+                }
+                env[key] = val;
+            }
+        }
+        return env;
+    } catch (e) {
+        console.error('Failed to parse bot .env:', e.message);
+        return {};
+    }
+}
+
+function updateBotEnv(filePath, updates) {
+    if (!fs.existsSync(filePath)) return false;
+    try {
+        let content = fs.readFileSync(filePath, 'utf8');
+        for (const [key, val] of Object.entries(updates)) {
+            const regex = new RegExp(`^${key}=.*$`, 'm');
+            if (regex.test(content)) {
+                content = content.replace(regex, `${key}=${val}`);
+            } else {
+                content += `\n${key}=${val}`;
+            }
+        }
+        fs.writeFileSync(filePath, content, 'utf8');
+        return true;
+    } catch (e) {
+        console.error('Failed to update bot .env:', e.message);
+        return false;
+    }
+}
+
+async function getBotLiveState() {
+    const env = parseBotEnv(BOT_ENV_FILE);
+    const port = env.OBS_HTTP_PORT || 8080;
+    const host = env.OBS_HTTP_HOST === '0.0.0.0' ? '127.0.0.1' : (env.OBS_HTTP_HOST || '127.0.0.1');
+    const url = `http://${host}:${port}/admin/api/state`;
+
+    try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 1200);
+        const res = await fetch(url, { signal: controller.signal, headers: { 'Accept': 'application/json' } });
+        clearTimeout(timeout);
+        if (res.ok) {
+            const data = await res.json();
+            return { online: true, ...data };
+        }
+    } catch {
+        // Fallback when bot is offline
+    }
+
+    const adsData = readBotJson(path.join(BOT_DATA_DIR, 'obs-ads.json'), { items: [], activeId: null });
+    const activeAd = (adsData.items || []).find(ad => ad.id === adsData.activeId) || (adsData.items || [])[0] || null;
+
+    return {
+        online: false,
+        botUser: 'Offline / Standby',
+        guildCount: 0,
+        guilds: [],
+        trackedStages: [],
+        advertisements: adsData.items || [],
+        activeAdvertisement: activeAd,
+        rotationIntervalMs: adsData.rotationIntervalMs || null,
+        allowedInviteUsers: readBotJson(path.join(BOT_DATA_DIR, 'allowed-invite-users.json'), []) || []
+    };
+}
+
 // MONDAY-STARTING ISO DATE FOR THE WEEK CONTAINING THE GIVEN DATE
 function getWeekStart(date) {
     const d = new Date(date);
@@ -1536,6 +1675,327 @@ app.post('/deleteUser', requireDatabase, async (req, res) => {
         req.flash('error_msg', 'Unable to delete user.');
         res.redirect('/roster');
     }
+});
+
+// ==========================================================================
+// DROWSY DISCORD BOT MANAGEMENT PORTAL (GODS & DEVELOPERS ONLY)
+// ==========================================================================
+
+// BOT MAIN DASHBOARD
+app.get('/bot', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin) return res.redirect('/');
+
+    if (!hasGodAccess(req)) {
+        req.flash('error_msg', 'You are not authorized to manage the Discord bot.');
+        return res.redirect('/dashboard');
+    }
+
+    try {
+        const [botLiveState, settings] = await Promise.all([
+            getBotLiveState(),
+            getSettings()
+        ]);
+
+        const botEnv = parseBotEnv(BOT_ENV_FILE);
+        const nowSinging = readBotJson(path.join(BOT_ASSETS_DIR, 'obs-now-singing.json'), {
+            text: 'Show Offline',
+            avatarUrl: null
+        });
+        const obsAds = readBotJson(path.join(BOT_DATA_DIR, 'obs-ads.json'), {
+            items: [],
+            activeId: null,
+            rotationIntervalMs: null
+        });
+        const allowedInvites = readBotJson(path.join(BOT_DATA_DIR, 'allowed-invite-users.json'), []);
+        const guildConfigs = readBotJson(path.join(BOT_DATA_DIR, 'guild-config.json'), {});
+
+        res.render('pages/bot', {
+            page: 'bot',
+            botLiveState,
+            botEnv,
+            nowSinging,
+            obsAds,
+            allowedInvites: Array.isArray(allowedInvites) ? allowedInvites : (allowedInvites?.users || []),
+            guildConfigs,
+            settings
+        });
+    } catch (error) {
+        console.error('Error loading bot management portal:', error);
+        res.status(500).send('Error loading bot management portal.');
+    }
+});
+
+// UPDATE SHY STAGE SETTINGS
+app.post('/bot/shy-stages', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !hasGodAccess(req)) {
+        req.flash('error_msg', 'Unauthorized.');
+        return res.redirect('/dashboard');
+    }
+
+    const {
+        baseName,
+        unusedDeleteMinutes,
+        emptyDeleteMinutes,
+        cleanupIntervalSeconds,
+        limitChoices
+    } = req.body;
+
+    const updates = {
+        SHY_STAGE_BASE_NAME: (baseName || 'sleepy singing').toString().trim(),
+        SHY_STAGE_UNUSED_DELETE_MINUTES: Number(unusedDeleteMinutes) || 5,
+        SHY_STAGE_EMPTY_DELETE_MINUTES: Number(emptyDeleteMinutes) || 15,
+        SHY_STAGE_CLEANUP_INTERVAL_SECONDS: Number(cleanupIntervalSeconds) || 60,
+        SHY_STAGE_LIMIT_CHOICES: (limitChoices || '2,3,4,5,6').toString().trim()
+    };
+
+    const success = updateBotEnv(BOT_ENV_FILE, updates);
+    if (success) {
+        await writeAudit(req, 'Updated Bot Shy Stage Settings', `Base: ${updates.SHY_STAGE_BASE_NAME}, Limits: ${updates.SHY_STAGE_LIMIT_CHOICES}`);
+        req.flash('success_msg', 'Shy stage configuration saved to bot environment.');
+    } else {
+        req.flash('error_msg', 'Failed to update bot configuration file.');
+    }
+    res.redirect('/bot#shystages');
+});
+
+// UPDATE OBS NOW SINGING OVERLAY
+app.post('/bot/now-singing', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !hasGodAccess(req)) {
+        req.flash('error_msg', 'Unauthorized.');
+        return res.redirect('/dashboard');
+    }
+
+    const text = (req.body.text || '').toString().trim() || 'Show Offline';
+    const avatarUrl = (req.body.avatarUrl || '').toString().trim() || null;
+
+    try {
+        fs.writeFileSync(path.join(BOT_ASSETS_DIR, 'obs-now-singing.txt'), text + '\n', 'utf8');
+        writeBotJson(path.join(BOT_ASSETS_DIR, 'obs-now-singing.json'), { text, avatarUrl });
+        await writeAudit(req, 'Updated OBS Now Singing Overlay', text);
+        req.flash('success_msg', 'OBS Now Singing overlay updated.');
+    } catch (e) {
+        console.error('Error saving now singing data:', e);
+        req.flash('error_msg', 'Failed to update OBS Now Singing overlay.');
+    }
+    res.redirect('/bot#obs');
+});
+
+// UPLOAD OBS ADVERTISEMENT IMAGE
+app.post('/bot/ads/upload', requireDatabase, (req, res) => {
+    if (!req.session.loggedin || !hasGodAccess(req)) {
+        req.flash('error_msg', 'Unauthorized.');
+        return res.redirect('/dashboard');
+    }
+
+    botAdUpload.single('image')(req, res, async (uploadError) => {
+        if (uploadError) {
+            req.flash('error_msg', uploadError.message || 'Unable to upload image.');
+            return res.redirect('/bot#ads');
+        }
+
+        if (!req.file) {
+            req.flash('error_msg', 'Please select an image file to upload.');
+            return res.redirect('/bot#ads');
+        }
+
+        try {
+            const title = (req.body.title || req.file.originalname).toString().trim();
+            const adsData = readBotJson(path.join(BOT_DATA_DIR, 'obs-ads.json'), { items: [], activeId: null });
+            const newId = crypto.randomUUID();
+
+            const newAd = {
+                id: newId,
+                title,
+                fileName: req.file.filename,
+                contentType: req.file.mimetype,
+                uploadedAt: new Date().toISOString().slice(0, 19)
+            };
+
+            adsData.items = Array.isArray(adsData.items) ? adsData.items : [];
+            adsData.items.push(newAd);
+            if (!adsData.activeId) adsData.activeId = newId;
+
+            writeBotJson(path.join(BOT_DATA_DIR, 'obs-ads.json'), adsData);
+            await writeAudit(req, 'Uploaded OBS Advertisement', title);
+            req.flash('success_msg', `Uploaded ad: ${title}`);
+        } catch (e) {
+            console.error('Error uploading ad:', e);
+            req.flash('error_msg', 'Failed to register advertisement.');
+        }
+
+        res.redirect('/bot#ads');
+    });
+});
+
+// SET ACTIVE OBS ADVERTISEMENT
+app.post('/bot/ads/select', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !hasGodAccess(req)) {
+        req.flash('error_msg', 'Unauthorized.');
+        return res.redirect('/dashboard');
+    }
+
+    const { id } = req.body;
+    if (!id) return res.redirect('/bot#ads');
+
+    try {
+        const adsData = readBotJson(path.join(BOT_DATA_DIR, 'obs-ads.json'), { items: [], activeId: null });
+        adsData.activeId = id;
+        writeBotJson(path.join(BOT_DATA_DIR, 'obs-ads.json'), adsData);
+
+        const activeItem = (adsData.items || []).find(ad => ad.id === id);
+        await writeAudit(req, 'Selected Active OBS Advertisement', activeItem?.title || id);
+        req.flash('success_msg', `Active advertisement set to "${activeItem?.title || 'Selected Ad'}".`);
+    } catch (e) {
+        console.error('Error selecting ad:', e);
+        req.flash('error_msg', 'Failed to select active ad.');
+    }
+    res.redirect('/bot#ads');
+});
+
+// DELETE OBS ADVERTISEMENT
+app.post('/bot/ads/delete', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !hasGodAccess(req)) {
+        req.flash('error_msg', 'Unauthorized.');
+        return res.redirect('/dashboard');
+    }
+
+    const { id } = req.body;
+    if (!id) return res.redirect('/bot#ads');
+
+    try {
+        const adsData = readBotJson(path.join(BOT_DATA_DIR, 'obs-ads.json'), { items: [], activeId: null });
+        const itemToDelete = (adsData.items || []).find(ad => ad.id === id);
+
+        if (itemToDelete?.fileName) {
+            const filePath = path.join(BOT_ADS_DIR, itemToDelete.fileName);
+            fs.unlink(filePath, () => {});
+        }
+
+        adsData.items = (adsData.items || []).filter(ad => ad.id !== id);
+        if (adsData.activeId === id) {
+            adsData.activeId = adsData.items[0]?.id || null;
+        }
+
+        writeBotJson(path.join(BOT_DATA_DIR, 'obs-ads.json'), adsData);
+        await writeAudit(req, 'Deleted OBS Advertisement', itemToDelete?.title || id);
+        req.flash('success_msg', 'Advertisement deleted.');
+    } catch (e) {
+        console.error('Error deleting ad:', e);
+        req.flash('error_msg', 'Failed to delete advertisement.');
+    }
+    res.redirect('/bot#ads');
+});
+
+// SET OBS AD ROTATION
+app.post('/bot/ads/rotate', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !hasGodAccess(req)) {
+        req.flash('error_msg', 'Unauthorized.');
+        return res.redirect('/dashboard');
+    }
+
+    const seconds = Number(req.body.seconds);
+    const intervalMs = Number.isFinite(seconds) && seconds >= 5 ? seconds * 1000 : null;
+
+    try {
+        const adsData = readBotJson(path.join(BOT_DATA_DIR, 'obs-ads.json'), { items: [], activeId: null });
+        adsData.rotationIntervalMs = intervalMs;
+        adsData.rotationStartedAt = intervalMs ? new Date().toISOString() : null;
+        writeBotJson(path.join(BOT_DATA_DIR, 'obs-ads.json'), adsData);
+
+        await writeAudit(req, intervalMs ? 'Configured OBS Ad Rotation' : 'Stopped OBS Ad Rotation', intervalMs ? `${seconds}s interval` : 'Disabled');
+        req.flash('success_msg', intervalMs ? `Ad rotation set to ${seconds} seconds.` : 'Ad rotation stopped.');
+    } catch (e) {
+        console.error('Error configuring ad rotation:', e);
+        req.flash('error_msg', 'Failed to update rotation setting.');
+    }
+    res.redirect('/bot#ads');
+});
+
+// ADD INVITE WHITELIST USER
+app.post('/bot/invites/add', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !hasGodAccess(req)) {
+        req.flash('error_msg', 'Unauthorized.');
+        return res.redirect('/dashboard');
+    }
+
+    const userId = (req.body.userId || '').toString().trim();
+    if (!userId) {
+        req.flash('error_msg', 'Discord User ID is required.');
+        return res.redirect('/bot#invites');
+    }
+
+    try {
+        let invites = readBotJson(path.join(BOT_DATA_DIR, 'allowed-invite-users.json'), []);
+        if (!Array.isArray(invites)) invites = invites?.users || [];
+
+        if (!invites.includes(userId)) {
+            invites.push(userId);
+            writeBotJson(path.join(BOT_DATA_DIR, 'allowed-invite-users.json'), invites);
+            await writeAudit(req, 'Added Discord Invite Whitelist Exception', userId);
+            req.flash('success_msg', `Added User ID ${userId} to invite whitelist.`);
+        } else {
+            req.flash('error_msg', 'User ID is already in the whitelist.');
+        }
+    } catch (e) {
+        console.error('Error adding invite exception:', e);
+        req.flash('error_msg', 'Failed to add invite exception.');
+    }
+    res.redirect('/bot#invites');
+});
+
+// REMOVE INVITE WHITELIST USER
+app.post('/bot/invites/remove', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !hasGodAccess(req)) {
+        req.flash('error_msg', 'Unauthorized.');
+        return res.redirect('/dashboard');
+    }
+
+    const userId = (req.body.userId || '').toString().trim();
+    if (!userId) return res.redirect('/bot#invites');
+
+    try {
+        let invites = readBotJson(path.join(BOT_DATA_DIR, 'allowed-invite-users.json'), []);
+        if (!Array.isArray(invites)) invites = invites?.users || [];
+
+        invites = invites.filter(id => id !== userId);
+        writeBotJson(path.join(BOT_DATA_DIR, 'allowed-invite-users.json'), invites);
+        await writeAudit(req, 'Removed Discord Invite Whitelist Exception', userId);
+        req.flash('success_msg', `Removed User ID ${userId} from invite whitelist.`);
+    } catch (e) {
+        console.error('Error removing invite exception:', e);
+        req.flash('error_msg', 'Failed to remove invite exception.');
+    }
+    res.redirect('/bot#invites');
+});
+
+// UPDATE GENERAL BOT CONFIG
+app.post('/bot/config', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !hasGodAccess(req)) {
+        req.flash('error_msg', 'Unauthorized.');
+        return res.redirect('/dashboard');
+    }
+
+    const {
+        guildId,
+        unbelievaboatPrefix,
+        obsHttpPort,
+        obsHttpHost
+    } = req.body;
+
+    const updates = {};
+    if (guildId) updates.GUILD_ID = guildId.trim();
+    if (unbelievaboatPrefix) updates.UNBELIEVABOAT_PREFIX = unbelievaboatPrefix.trim();
+    if (obsHttpPort) updates.OBS_HTTP_PORT = Number(obsHttpPort) || 8080;
+    if (obsHttpHost) updates.OBS_HTTP_HOST = obsHttpHost.trim();
+
+    const success = updateBotEnv(BOT_ENV_FILE, updates);
+    if (success) {
+        await writeAudit(req, 'Updated Bot Core Parameters', JSON.stringify(updates));
+        req.flash('success_msg', 'Bot environment parameters updated.');
+    } else {
+        req.flash('error_msg', 'Failed to update bot parameters.');
+    }
+    res.redirect('/bot#config');
 });
 
 // USER LOGIN (WITH BRUTE-FORCE RATE LIMITING & SESSION REGENERATION)

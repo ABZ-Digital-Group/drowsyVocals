@@ -47,10 +47,11 @@
                 <a href="/roster-planner">Roster Planner</a>
                 <a href="/reports">Reports</a>
                 <a href="/audit-log">Audit Log</a>
+                <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userIsDeveloper) { %>
+                <a href="/bot">Discord Bot</a>
+                <% } %>
             </div>
         </li>
-        <% } %>
-        <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userIsDeveloper) { %>
         <% } %>
         <li class="nav-notifications-menu">
             <button class="nav-notifications-trigger" type="button" aria-expanded="false" aria-controls="notificationsMenu" aria-label="Notifications">
@@ -75,6 +76,7 @@
                 <a href="/account">Account</a>
                 <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userIsDeveloper) { %>
                 <a href="/settings">Settings</a>
+                <a href="/bot">Discord Bot</a>
                 <% } %>
                 <a href="/logout">Logout</a>
             </div>

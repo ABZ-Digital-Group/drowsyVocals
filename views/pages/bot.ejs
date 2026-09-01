@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <%- include('../partials/head') %>
+        <title>Discord Bot Management - Drowsy Vocals</title>
+    </head>
+    <body>
+        <header>
+            <%- include('../partials/nav') %>
+        </header>
+        <main>
+            <section class="settings-page">
+                <!-- Page Header -->
+                <div class="settings-header">
+                    <div class="settings-header-top">
+                        <div>
+                            <p class="profile-eyebrow">Gods & Developer Control</p>
+                            <h1 style="margin: 0; font-size: 2.4em; color: #242320;">Discord Bot Control Center</h1>
+                            <p class="profile-subtitle">Configure DrowsyBot features, shy stage limits, OBS now-singing overlays, rotating ads, and moderation exceptions.</p>
+                        </div>
+                    </div>
+
+                    <!-- Bot Stat / Status Bar -->
+                    <div class="settings-stats-bar">
+                        <div class="settings-stat-item">
+                            <span class="material-symbols-outlined settings-stat-icon" style="color: <%= botLiveState.online ? '#10b981' : '#f59e0b' %>;">smart_toy</span>
+                            <div class="settings-stat-info">
+                                <span class="settings-stat-label">Bot Service</span>
+                                <span class="settings-stat-val" style="color: <%= botLiveState.online ? '#10b981' : '#fbbf24' %>;">
+                                    <%= botLiveState.online ? '🟢 Connected' : '🟡 Standby / Synced' %>
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="settings-stat-item">
+                            <span class="material-symbols-outlined settings-stat-icon" style="color: #60a5fa;">podcasts</span>
+                            <div class="settings-stat-info">
+                                <span class="settings-stat-label">Tracked Stages</span>
+                                <span class="settings-stat-val">
+                                    <%= (botLiveState.trackedStages || []).length %> Active
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="settings-stat-item">
+                            <span class="material-symbols-outlined settings-stat-icon" style="color: #a78bfa;">featured_video</span>
+                            <div class="settings-stat-info">
+                                <span class="settings-stat-label">OBS Ads</span>
+                                <span class="settings-stat-val">
+                                    <%= (obsAds.items || []).length %> Uploaded
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="settings-stat-item">
+                            <span class="material-symbols-outlined settings-stat-icon" style="color: #34d399;">verified_user</span>
+                            <div class="settings-stat-info">
+                                <span class="settings-stat-label">Invite Whitelist</span>
+                                <span class="settings-stat-val">
+                                    <%= (allowedInvites || []).length %> Users
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Flash Message Alerts -->
+                <% if (typeof success_msg !== 'undefined' && success_msg && success_msg.length) { %>
+                <div class="settings-alert is-success" style="margin-bottom: 24px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span class="material-symbols-outlined" style="background: transparent; color: #10b981;">check_circle</span>
+                        <span><%= success_msg %></span>
+                    </div>
+                    <button type="button" onclick="this.parentElement.remove()" style="background:none;border:none;color:inherit;cursor:pointer;font-weight:bold;">&times;</button>
+                </div>
+                <% } %>
+                <% if (typeof error_msg !== 'undefined' && error_msg && error_msg.length) { %>
+                <div class="settings-alert is-error" style="margin-bottom: 24px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span class="material-symbols-outlined" style="background: transparent; color: #ef4444;">error</span>
+                        <span><%= error_msg %></span>
+                    </div>
+                    <button type="button" onclick="this.parentElement.remove()" style="background:none;border:none;color:inherit;cursor:pointer;font-weight:bold;">&times;</button>
+                </div>
+                <% } %>
+
+                <!-- Navigation Tabs -->
+                <nav class="settings-tabs-nav" aria-label="Bot Settings Categories">
+                    <button type="button" class="settings-tab-btn is-active" data-tab="all">
+                        <span class="material-symbols-outlined">tune</span>
+                        <span>All Controls</span>
+                    </button>
+                    <button type="button" class="settings-tab-btn" data-tab="shystages">
+                        <span class="material-symbols-outlined">mic</span>
+                        <span>Shy Stages</span>
+                    </button>
+                    <button type="button" class="settings-tab-btn" data-tab="obs">
+                        <span class="material-symbols-outlined">live_tv</span>
+                        <span>OBS Now Singing</span>
+                    </button>
+                    <button type="button" class="settings-tab-btn" data-tab="ads">
+                        <span class="material-symbols-outlined">featured_video</span>
+                        <span>OBS Ad Rotation</span>
+                        <span class="settings-tab-badge"><%= (obsAds.items || []).length %></span>
+                    </button>
+                    <button type="button" class="settings-tab-btn" data-tab="invites">
+                        <span class="material-symbols-outlined">link</span>
+                        <span>Invite Whitelist</span>
+                        <span class="settings-tab-badge"><%= (allowedInvites || []).length %></span>
+                    </button>
+                    <button type="button" class="settings-tab-btn" data-tab="config">
+                        <span class="material-symbols-outlined">settings</span>
+                        <span>Bot Core Config</span>
+                    </button>
+                </nav>
+
+                <div class="settings-section-container">
+                    <!-- SECTION 1: SHY STAGES CONFIGURATION -->
+                    <div class="settings-group" data-section="shystages">
+                        <div class="settings-group-header">
+                            <span class="material-symbols-outlined" style="background: #242320; color: #B7B2A7; padding: 4px; border-radius: 4px;">mic</span>
+                            <h2>Shy Stages & Auto-Managed Voice Rooms</h2>
+                        </div>
+
+                        <div class="settings-card">
+                            <div class="settings-card-header">
+                                <div class="settings-card-title-wrap">
+                                    <h3 class="settings-card-title">
+                                        <span class="material-symbols-outlined">settings_voice</span>
+                                        <span>Shy Stage Parameters</span>
+                                    </h3>
+                                    <p class="settings-card-desc">Customize dynamic voice rooms created for shy performers with automatic cleanup timers and user limit options.</p>
+                                </div>
+                            </div>
+
+                            <form action="/bot/shy-stages" method="POST" style="display: flex; flex-direction: column; gap: 16px;">
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px;">
+                                    <div class="settings-form-group" style="margin-bottom: 0;">
+                                        <label for="baseName">Base Stage Name</label>
+                                        <input type="text" id="baseName" name="baseName" class="settings-input" value="<%= botEnv.SHY_STAGE_BASE_NAME || 'sleepy singing' %>" required>
+                                        <span class="settings-hint">Default name given to dynamically spawned shy stage voice channels.</span>
+                                    </div>
+
+                                    <div class="settings-form-group" style="margin-bottom: 0;">
+                                        <label for="limitChoices">User Limit Choices (Comma-Separated)</label>
+                                        <input type="text" id="limitChoices" name="limitChoices" class="settings-input" value="<%= botEnv.SHY_STAGE_LIMIT_CHOICES || '2,3,4,5,6' %>" placeholder="e.g. 2,3,4,5,6" required>
+                                        <span class="settings-hint">Cap choices offered to users (use 0 or 'unlimited' for no cap).</span>
+                                    </div>
+
+                                    <div class="settings-form-group" style="margin-bottom: 0;">
+                                        <label for="unusedDeleteMinutes">Unused Room Delete Timer (Minutes)</label>
+                                        <input type="number" id="unusedDeleteMinutes" name="unusedDeleteMinutes" class="settings-input" min="1" max="120" value="<%= botEnv.SHY_STAGE_UNUSED_DELETE_MINUTES || 5 %>" required>
+                                        <span class="settings-hint">Auto-delete if created but nobody joins within this duration.</span>
+                                    </div>
+
+                                    <div class="settings-form-group" style="margin-bottom: 0;">
+                                        <label for="emptyDeleteMinutes">Empty Room Delete Timer (Minutes)</label>
+                                        <input type="number" id="emptyDeleteMinutes" name="emptyDeleteMinutes" class="settings-input" min="1" max="120" value="<%= botEnv.SHY_STAGE_EMPTY_DELETE_MINUTES || 15 %>" required>
+                                        <span class="settings-hint">Auto-delete after all users leave the room.</span>
+                                    </div>
+
+                                    <div class="settings-form-group" style="margin-bottom: 0;">
+                                        <label for="cleanupIntervalSeconds">Cleanup Task Frequency (Seconds)</label>
+                                        <input type="number" id="cleanupIntervalSeconds" name="cleanupIntervalSeconds" class="settings-input" min="10" max="600" value="<%= botEnv.SHY_STAGE_CLEANUP_INTERVAL_SECONDS || 60 %>" required>
+                                        <span class="settings-hint">How often the bot checks and prunes stale voice channels.</span>
+                                    </div>
+                                </div>
+
+                                <div style="display: flex; justify-content: flex-start; margin-top: 8px;">
+                                    <button type="submit" class="settings-btn settings-btn-primary">
+                                        <span class="material-symbols-outlined">save</span>
+                                        Save Shy Stage Settings
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- SECTION 2: OBS NOW SINGING OVERLAY -->
+                    <div class="settings-group" data-section="obs">
+                        <div class="settings-group-header">
+                            <span class="material-symbols-outlined" style="background: #242320; color: #B7B2A7; padding: 4px; border-radius: 4px;">live_tv</span>
+                            <h2>OBS Stream Overlays</h2>
+                        </div>
+
+                        <div class="settings-card">
+                            <div class="settings-card-header">
+                                <div class="settings-card-title-wrap">
+                                    <h3 class="settings-card-title">
+                                        <span class="material-symbols-outlined">music_note</span>
+                                        <span>Now Singing Text & Performer Overlay</span>
+                                    </h3>
+                                    <p class="settings-card-desc">Control the live text and singer information captured by OBS browser sources and text files.</p>
+                                </div>
+                            </div>
+
+                            <form action="/bot/now-singing" method="POST" style="display: flex; flex-direction: column; gap: 16px;">
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                                    <div class="settings-form-group" style="margin-bottom: 0;">
+                                        <label for="nowSingingText">Now Singing Title / Artist / Performer</label>
+                                        <input type="text" id="nowSingingText" name="text" class="settings-input" value="<%= nowSinging.text || 'Show Offline' %>" placeholder="e.g. John Doe - Bohemian Rhapsody" required>
+                                        <span class="settings-hint">Written directly to <code>assets/obs-now-singing.txt</code> for OBS text sources.</span>
+                                    </div>
+
+                                    <div class="settings-form-group" style="margin-bottom: 0;">
+                                        <label for="nowSingingAvatar">Performer Avatar URL (Optional)</label>
+                                        <input type="url" id="nowSingingAvatar" name="avatarUrl" class="settings-input" value="<%= nowSinging.avatarUrl || '' %>" placeholder="https://cdn.discordapp.com/avatars/...">
+                                        <span class="settings-hint">Used by the OBS browser source widget.</span>
+                                    </div>
+                                </div>
+
+                                <!-- Live Stream Overlay Preview Box -->
+                                <div style="background: #111; border: 1px solid #383734; border-radius: 8px; padding: 18px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+                                    <div style="display: flex; align-items: center; gap: 14px;">
+                                        <div style="width: 50px; height: 50px; border-radius: 50%; background: #242320; border: 2px solid #555; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                                            <% if (nowSinging.avatarUrl) { %>
+                                            <img src="<%= nowSinging.avatarUrl %>" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover;">
+                                            <% } else { %>
+                                            <span class="material-symbols-outlined" style="color: #8e897e; background: transparent;">person</span>
+                                            <% } %>
+                                        </div>
+                                        <div>
+                                            <span style="font-size: 0.75em; text-transform: uppercase; letter-spacing: 0.08em; color: #8e897e; font-weight: bold;">LIVE STREAM PREVIEW</span>
+                                            <h4 style="margin: 2px 0 0; font-size: 1.25em; color: #34d399;"><%= nowSinging.text || 'Show Offline' %></h4>
+                                        </div>
+                                    </div>
+
+                                    <div style="display: flex; gap: 10px;">
+                                        <button type="button" class="settings-btn settings-btn-secondary settings-btn-sm" onclick="document.getElementById('nowSingingText').value='Show Offline'; document.getElementById('nowSingingAvatar').value='';">
+                                            <span class="material-symbols-outlined">power_settings_new</span>
+                                            Set Offline
+                                        </button>
+                                        <button type="submit" class="settings-btn settings-btn-primary settings-btn-sm">
+                                            <span class="material-symbols-outlined">publish</span>
+                                            Push Update
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- SECTION 3: OBS ADVERTISEMENT ROTATION -->
+                    <div class="settings-group" data-section="ads">
+                        <div class="settings-group-header">
+                            <span class="material-symbols-outlined" style="background: #242320; color: #B7B2A7; padding: 4px; border-radius: 4px;">featured_video</span>
+                            <h2>OBS Rotating Banner Advertisements</h2>
+                        </div>
+
+                        <div class="settings-card">
+                            <div class="settings-card-header">
+                                <div class="settings-card-title-wrap">
+                                    <h3 class="settings-card-title">
+                                        <span class="material-symbols-outlined">view_carousel</span>
+                                        <span>Ad Campaign Management</span>
+                                    </h3>
+                                    <p class="settings-card-desc">Upload, activate, and automatically cycle image banners displayed on your live streams and events.</p>
+                                </div>
+                                <div>
+                                    <% if (obsAds.rotationIntervalMs) { %>
+                                    <span class="settings-badge badge-success">
+                                        ⏱️ Rotating Every <%= Math.floor(obsAds.rotationIntervalMs / 1000) %>s
+                                    </span>
+                                    <% } else { %>
+                                    <span class="settings-badge badge-neutral">Static Ad Active</span>
+                                    <% } %>
+                                </div>
+                            </div>
+
+                            <!-- Upload New Ad Form -->
+                            <div style="background: #1a1917; border: 1px dashed #444; border-radius: 8px; padding: 18px;">
+                                <h4 style="margin: 0 0 12px; color: #f3efe6; font-size: 1em; display: flex; align-items: center; gap: 6px;">
+                                    <span class="material-symbols-outlined" style="background: transparent; color: #B7B2A7;">cloud_upload</span>
+                                    Upload New Advertisement Banner
+                                </h4>
+                                <form action="/bot/ads/upload" method="POST" enctype="multipart/form-data" style="display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end;">
+                                    <div class="settings-form-group" style="flex: 2; min-width: 200px; margin-bottom: 0;">
+                                        <label for="adTitle">Banner Title / Sponsor</label>
+                                        <input type="text" id="adTitle" name="title" class="settings-input" placeholder="e.g. VIP Club Promo" required>
+                                    </div>
+
+                                    <div class="settings-form-group" style="flex: 3; min-width: 220px; margin-bottom: 0;">
+                                        <label for="adImageFile">Select Image (PNG, JPG, WEBP, GIF)</label>
+                                        <input type="file" id="adImageFile" name="image" class="settings-input" accept="image/png, image/jpeg, image/webp, image/gif" required style="padding: 6px 10px;">
+                                    </div>
+
+                                    <button type="submit" class="settings-btn settings-btn-primary">
+                                        <span class="material-symbols-outlined">upload</span>
+                                        Upload Ad
+                                    </button>
+                                </form>
+                            </div>
+
+                            <!-- Ad Rotation Control -->
+                            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; background: #1a1917; padding: 14px 18px; border-radius: 6px; border: 1px solid #383734;">
+                                <div>
+                                    <span style="font-weight: bold; color: #f3efe6; font-size: 0.95em;">Automatic Timer Rotation</span>
+                                    <p style="margin: 2px 0 0; font-size: 0.85em; color: #8e897e;">Automatically switch banners on stream every N seconds.</p>
+                                </div>
+                                <form action="/bot/ads/rotate" method="POST" style="display: flex; align-items: center; gap: 8px; margin: 0;">
+                                    <input type="number" name="seconds" min="5" max="3600" class="settings-input" style="width: 100px;" value="<%= obsAds.rotationIntervalMs ? Math.floor(obsAds.rotationIntervalMs / 1000) : 30 %>" placeholder="Secs">
+                                    <button type="submit" class="settings-btn settings-btn-primary settings-btn-sm">
+                                        <span class="material-symbols-outlined">play_arrow</span>
+                                        Start
+                                    </button>
+                                </form>
+                                <% if (obsAds.rotationIntervalMs) { %>
+                                <form action="/bot/ads/rotate" method="POST" style="margin: 0;">
+                                    <input type="hidden" name="seconds" value="">
+                                    <button type="submit" class="settings-btn settings-btn-danger settings-btn-sm">
+                                        <span class="material-symbols-outlined">stop</span>
+                                        Stop Rotation
+                                    </button>
+                                </form>
+                                <% } %>
+                            </div>
+
+                            <!-- Uploaded Ads Gallery Grid -->
+                            <div>
+                                <span class="account-info-label" style="display: block; margin-bottom: 12px;">Active Ad Banners (<%= (obsAds.items || []).length %> Total)</span>
+                                <% if (!obsAds.items || obsAds.items.length === 0) { %>
+                                <div style="background: #1a1917; border: 1px solid #383734; border-radius: 6px; padding: 24px; text-align: center; color: #8e897e;">
+                                    <p style="margin: 0;">No banner advertisements uploaded yet.</p>
+                                </div>
+                                <% } else { %>
+                                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">
+                                    <% obsAds.items.forEach(function(ad) { %>
+                                    <div style="background: #1a1917; border: 2px solid <%= obsAds.activeId === ad.id ? '#10b981' : '#383734' %>; border-radius: 8px; overflow: hidden; display: flex; flex-direction: column;">
+                                        <div style="height: 140px; background: #000; display: flex; align-items: center; justify-content: center; position: relative;">
+                                            <img src="/bot-assets/ads/<%= ad.fileName %>" alt="<%= ad.title %>" style="max-width: 100%; max-height: 100%; object-fit: contain;" onerror="this.outerHTML='<span style=\'color:#666;font-size:0.85em;\'>Image not found</span>';">
+                                            <% if (obsAds.activeId === ad.id) { %>
+                                            <span style="position: absolute; top: 8px; right: 8px; background: #10b981; color: #000; font-size: 0.75em; font-weight: bold; padding: 2px 8px; border-radius: 12px;">ACTIVE NOW</span>
+                                            <% } %>
+                                        </div>
+
+                                        <div style="padding: 12px; display: flex; flex-direction: column; gap: 8px; flex: 1;">
+                                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                                <strong style="color: #f3efe6; font-size: 0.95em;"><%= ad.title %></strong>
+                                                <span style="font-size: 0.75em; color: #8e897e;"><%= (ad.uploadedAt || '').slice(0, 10) %></span>
+                                            </div>
+
+                                            <div style="display: flex; gap: 8px; margin-top: auto; padding-top: 8px; border-top: 1px solid #282724;">
+                                                <form action="/bot/ads/select" method="POST" style="flex: 1; margin: 0;">
+                                                    <input type="hidden" name="id" value="<%= ad.id %>">
+                                                    <button type="submit" class="settings-btn <%= obsAds.activeId === ad.id ? 'settings-btn-secondary' : 'settings-btn-primary' %> settings-btn-sm" style="width: 100%;">
+                                                        <span class="material-symbols-outlined"><%= obsAds.activeId === ad.id ? 'check' : 'visibility' %></span>
+                                                        <span><%= obsAds.activeId === ad.id ? 'Active' : 'Set Active' %></span>
+                                                    </button>
+                                                </form>
+
+                                                <form action="/bot/ads/delete" method="POST" onsubmit="return confirm('Delete advertisement banner <%= ad.title %>?');" style="margin: 0;">
+                                                    <input type="hidden" name="id" value="<%= ad.id %>">
+                                                    <button type="submit" class="settings-btn settings-btn-danger settings-btn-sm" title="Delete Ad">
+                                                        <span class="material-symbols-outlined">delete</span>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <% }); %>
+                                </div>
+                                <% } %>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SECTION 4: INVITE WHITELIST & MODERATION -->
+                    <div class="settings-group" data-section="invites">
+                        <div class="settings-group-header">
+                            <span class="material-symbols-outlined" style="background: #242320; color: #B7B2A7; padding: 4px; border-radius: 4px;">link</span>
+                            <h2>Discord Invite Link Whitelist</h2>
+                        </div>
+
+                        <div class="settings-card">
+                            <div class="settings-card-header">
+                                <div class="settings-card-title-wrap">
+                                    <h3 class="settings-card-title">
+                                        <span class="material-symbols-outlined">shield_person</span>
+                                        <span>Authorized Link Senders</span>
+                                    </h3>
+                                    <p class="settings-card-desc">Users in this whitelist bypass automatic invite link deletion in the Discord server.</p>
+                                </div>
+                                <div>
+                                    <span class="settings-badge badge-neutral"><%= (allowedInvites || []).length %> Whitelisted</span>
+                                </div>
+                            </div>
+
+                            <form action="/bot/invites/add" method="POST" style="display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end;">
+                                <div class="settings-form-group" style="flex: 1; min-width: 240px; margin-bottom: 0;">
+                                    <label for="inviteUserId">Discord User ID</label>
+                                    <input type="text" id="inviteUserId" name="userId" class="settings-input" placeholder="e.g. 148534233251263705" pattern="[0-9]{17,20}" required>
+                                </div>
+                                <button type="submit" class="settings-btn settings-btn-primary">
+                                    <span class="material-symbols-outlined">person_add</span>
+                                    Add Whitelist Exception
+                                </button>
+                            </form>
+
+                            <% if (allowedInvites && allowedInvites.length) { %>
+                            <div style="margin-top: 10px;">
+                                <div class="settings-dev-grid">
+                                    <% allowedInvites.forEach(function(userId) { %>
+                                    <div class="settings-dev-card">
+                                        <div class="settings-dev-user">
+                                            <div class="settings-dev-avatar">
+                                                <span class="material-symbols-outlined" style="background:transparent;color:inherit;">person</span>
+                                            </div>
+                                            <div class="settings-dev-names">
+                                                <span class="settings-dev-name" style="font-family: monospace;"><%= userId %></span>
+                                                <span class="settings-dev-id">Bypass Allowed</span>
+                                            </div>
+                                        </div>
+                                        <form action="/bot/invites/remove" method="POST" onsubmit="return confirm('Remove user <%= userId %> from whitelist?');" style="margin: 0;">
+                                            <input type="hidden" name="userId" value="<%= userId %>">
+                                            <button type="submit" class="settings-btn settings-btn-danger settings-btn-sm" title="Remove User">
+                                                <span class="material-symbols-outlined">delete</span>
+                                                Remove
+                                            </button>
+                                        </form>
+                                    </div>
+                                    <% }); %>
+                                </div>
+                            </div>
+                            <% } else { %>
+                            <div style="background: #1a1917; border: 1px solid #383734; border-radius: 6px; padding: 20px; text-align: center; color: #8e897e;">
+                                No invite link whitelist exceptions registered.
+                            </div>
+                            <% } %>
+                        </div>
+                    </div>
+
+                    <!-- SECTION 5: BOT CORE CONFIG -->
+                    <div class="settings-group" data-section="config">
+                        <div class="settings-group-header">
+                            <span class="material-symbols-outlined" style="background: #242320; color: #B7B2A7; padding: 4px; border-radius: 4px;">settings</span>
+                            <h2>Bot Core Configuration</h2>
+                        </div>
+
+                        <div class="settings-card">
+                            <div class="settings-card-header">
+                                <div class="settings-card-title-wrap">
+                                    <h3 class="settings-card-title">
+                                        <span class="material-symbols-outlined">dns</span>
+                                        <span>Server & Environment Variables</span>
+                                    </h3>
+                                    <p class="settings-card-desc">Configure the primary server ID, economy prefix, and HTTP listener parameters in <code>drowsy_bot/.env</code>.</p>
+                                </div>
+                            </div>
+
+                            <form action="/bot/config" method="POST" style="display: flex; flex-direction: column; gap: 16px;">
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px;">
+                                    <div class="settings-form-group" style="margin-bottom: 0;">
+                                        <label for="guildId">Primary Discord Guild ID</label>
+                                        <input type="text" id="guildId" name="guildId" class="settings-input" value="<%= botEnv.GUILD_ID || '' %>" placeholder="e.g. 694920632940625951" required>
+                                    </div>
+
+                                    <div class="settings-form-group" style="margin-bottom: 0;">
+                                        <label for="unbelievaboatPrefix">UnbelievaBoat Command Prefix</label>
+                                        <input type="text" id="unbelievaboatPrefix" name="unbelievaboatPrefix" class="settings-input" value="<%= botEnv.UNBELIEVABOAT_PREFIX || '!!' %>" placeholder="!!">
+                                    </div>
+
+                                    <div class="settings-form-group" style="margin-bottom: 0;">
+                                        <label for="obsHttpPort">Bot HTTP Server Port</label>
+                                        <input type="number" id="obsHttpPort" name="obsHttpPort" class="settings-input" value="<%= botEnv.OBS_HTTP_PORT || 8080 %>" required>
+                                    </div>
+
+                                    <div class="settings-form-group" style="margin-bottom: 0;">
+                                        <label for="obsHttpHost">Bot HTTP Listener Host</label>
+                                        <input type="text" id="obsHttpHost" name="obsHttpHost" class="settings-input" value="<%= botEnv.OBS_HTTP_HOST || '0.0.0.0' %>" required>
+                                    </div>
+                                </div>
+
+                                <div style="display: flex; justify-content: flex-start; margin-top: 8px;">
+                                    <button type="submit" class="settings-btn settings-btn-primary">
+                                        <span class="material-symbols-outlined">save</span>
+                                        Save Bot Parameters
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+        <div class="footer">
+            <p>&copy; 2026 Drowsy Vocals | All rights reserved.</p>
+        </div>
+
+        <script>
+            // Client-side Tab Switcher
+            document.querySelectorAll('.settings-tab-btn').forEach(button => {
+                button.addEventListener('click', () => {
+                    const tab = button.getAttribute('data-tab');
+                    
+                    document.querySelectorAll('.settings-tab-btn').forEach(btn => btn.classList.remove('is-active'));
+                    button.classList.add('is-active');
+
+                    document.querySelectorAll('.settings-group').forEach(group => {
+                        if (tab === 'all' || group.getAttribute('data-section') === tab) {
+                            group.style.display = 'flex';
+                        } else {
+                            group.style.display = 'none';
+                        }
+                    });
+
+                    history.replaceState(null, null, '#' + tab);
+                });
+            });
+
+            // Handle URL Hash on page load
+            if (window.location.hash) {
+                const targetTab = window.location.hash.substring(1);
+                const matchingBtn = document.querySelector(`.settings-tab-btn[data-tab="${targetTab}"]`);
+                if (matchingBtn) {
+                    matchingBtn.click();
+                }
+            }
+        </script>
+    </body>
+</html>
