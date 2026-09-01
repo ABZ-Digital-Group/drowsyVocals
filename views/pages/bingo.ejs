@@ -1,87 +1,265 @@
 <!DOCTYPE html>
-
 <html lang="en">
     <head>
         <%- include('../partials/head') %>
-        <title>Drowsy Bingo</title>
+        <title>Staff Bingo Board - Drowsy Vocals</title>
     </head>
     <body>
         <header>
             <%- include('../partials/nav') %>
         </header>
         <main class="bingo-page">
-            <section class="bingo-heading">
-                <div>
-                    <h1>Bingo Board</h1>
-                    <p>Staff activity progress</p>
-                </div>
-                <div class="bingo-legend" aria-label="Bingo status legend">
-                    <span><i class="bingo-key bingo-key-complete"></i>Complete</span>
-                    <span><i class="bingo-key bingo-key-pending"></i>Pending</span>
-                </div>
-                <% if (canManageBingo) { %>
-                <form class="bingo-reset-form" action="/bingo/reset" method="POST" onsubmit="return confirm('Reset the Bingo board for everyone?');">
-                    <button type="submit">Reset Weekly Bingo</button>
-                </form>
-                <% } %>
-            </section>
+            <!-- Header & Summary Area -->
+            <div class="bingo-heading-wrap">
+                <div class="bingo-heading-top">
+                    <div>
+                        <p class="profile-eyebrow">Gamification & Milestone Tracking</p>
+                        <h1 style="margin: 0; font-size: 2.4em; color: #242320;">Staff Bingo Board</h1>
+                        <p class="profile-subtitle">Weekly milestone targets for Dreamland Guards and staff ranks. Track completions, bonus House Points (HP), and Chat Coins (CC).</p>
+                    </div>
 
-            <section class="bingo-board" aria-label="Staff Bingo board">
+                    <div class="bingo-actions-bar">
+                        <div class="bingo-legend" aria-label="Bingo status legend">
+                            <span class="bingo-legend-pill bingo-legend-complete">
+                                <span class="material-symbols-outlined" style="font-size: 1.1em; background: transparent; color: inherit; padding: 0;">check_circle</span>
+                                <span>Completed</span>
+                            </span>
+                            <span class="bingo-legend-pill bingo-legend-pending">
+                                <span class="material-symbols-outlined" style="font-size: 1.1em; background: transparent; color: inherit; padding: 0;">schedule</span>
+                                <span>Pending</span>
+                            </span>
+                        </div>
+
+                        <% if (canManageBingo) { %>
+                        <form action="/bingo/reset" method="POST" onsubmit="return confirm('⚠️ Are you sure you want to reset all Bingo milestones and totals for the new week?');" style="margin: 0;">
+                            <button type="submit" class="settings-btn settings-btn-danger">
+                                <span class="material-symbols-outlined">restart_alt</span>
+                                <span>Reset Weekly Board</span>
+                            </button>
+                        </form>
+                        <% } %>
+                    </div>
+                </div>
+
+                <!-- Top Stats Summary Bar -->
+                <div class="settings-stats-bar" style="margin-top: 20px;">
+                    <div class="settings-stat-item">
+                        <span class="material-symbols-outlined settings-stat-icon" style="color: #60a5fa;">group</span>
+                        <div class="settings-stat-info">
+                            <span class="settings-stat-label">Eligible Staff</span>
+                            <span class="settings-stat-val"><%= totalParticipants %> Members</span>
+                        </div>
+                    </div>
+
+                    <div class="settings-stat-item">
+                        <span class="material-symbols-outlined settings-stat-icon" style="color: #34d399;">task_alt</span>
+                        <div class="settings-stat-info">
+                            <span class="settings-stat-label">Milestones Completed</span>
+                            <span class="settings-stat-val" style="color: #34d399;">
+                                <%= totalCompletedTasks %> / <%= totalPossibleTasks %> <small style="font-size: 0.65em; color: #8e897e;">(<%= completionPercentage %>%)</small>
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="settings-stat-item">
+                        <span class="material-symbols-outlined settings-stat-icon" style="color: #fbbf24;">military_tech</span>
+                        <div class="settings-stat-info">
+                            <span class="settings-stat-label">Total House Points</span>
+                            <span class="settings-stat-val" style="color: #fbbf24;"><%= totalBingoHp %> HP</span>
+                        </div>
+                    </div>
+
+                    <div class="settings-stat-item">
+                        <span class="material-symbols-outlined settings-stat-icon" style="color: #a78bfa;">toll</span>
+                        <div class="settings-stat-info">
+                            <span class="settings-stat-label">Total Chat Coins</span>
+                            <span class="settings-stat-val" style="color: #a78bfa;"><%= totalBingoCc %> CC</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Search & Filter Controls -->
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 20px;">
+                    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; flex: 1;">
+                        <input type="search" id="bingoSearchInput" class="bingo-search-input" placeholder="🔍 Filter staff by name..." aria-label="Search staff members">
+                        <select id="bingoRankFilter" class="bingo-search-input" style="min-width: 180px;">
+                            <option value="">All Ranks</option>
+                            <% groups.forEach(function(group) { %>
+                            <option value="<%= group.name.toLowerCase() %>"><%= group.name %></option>
+                            <% }); %>
+                        </select>
+                    </div>
+
+                    <span style="font-size: 0.85em; color: #8e897e; font-weight: bold;">
+                        <% if (canManageBingo) { %>
+                        💡 Click any task tile to toggle status instantly. Changes save automatically.
+                        <% } %>
+                    </span>
+                </div>
+            </div>
+
+            <!-- Flash Message Alerts -->
+            <% if (typeof success_msg !== 'undefined' && success_msg && success_msg.length) { %>
+            <div class="settings-alert is-success" style="margin-bottom: 24px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span class="material-symbols-outlined" style="background: transparent; color: #10b981;">check_circle</span>
+                    <span><%= success_msg %></span>
+                </div>
+                <button type="button" onclick="this.parentElement.remove()" style="background:none;border:none;color:inherit;cursor:pointer;font-weight:bold;">&times;</button>
+            </div>
+            <% } %>
+            <% if (typeof error_msg !== 'undefined' && error_msg && error_msg.length) { %>
+            <div class="settings-alert is-error" style="margin-bottom: 24px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span class="material-symbols-outlined" style="background: transparent; color: #ef4444;">error</span>
+                    <span><%= error_msg %></span>
+                </div>
+                <button type="button" onclick="this.parentElement.remove()" style="background:none;border:none;color:inherit;cursor:pointer;font-weight:bold;">&times;</button>
+            </div>
+            <% } %>
+
+            <!-- Interactive Board Container -->
+            <section class="bingo-board-container" aria-label="Staff Bingo board">
                 <table class="bingo-table">
                     <thead>
+                        <!-- Super Category Row -->
+                        <tr class="bingo-super-header">
+                            <th colspan="2">Staff Member Information</th>
+                            <th colspan="5" class="bingo-super-hp">🏆 House Points Goals (1 - 5)</th>
+                            <th colspan="5" class="bingo-super-cc">🪙 Chat Coins Goals (6 - 10)</th>
+                            <th colspan="3" class="bingo-super-summary">📊 Weekly Summary & Progress</th>
+                        </tr>
+                        <!-- Column Labels Row -->
                         <tr>
-                            <th>Rank</th>
-                            <th>Display Name</th>
-                            <th>Discord User</th>
-                            <% bingoGoals.forEach(function(goal) { %>
-                            <th class="<%= goal.id === '1' || goal.id === '6' ? 'bingo-divider-left' : '' %>"><%= goal.label %></th>
+                            <th class="bingo-th-member">Staff Member</th>
+                            <th class="bingo-th-rank">Rank</th>
+                            <% bingoGoals.forEach(function(goal, idx) { %>
+                            <th class="<%= idx === 0 ? 'bingo-divider-hp-start' : idx === 5 ? 'bingo-divider-cc-start' : '' %>" title="Goal <%= goal.label %>: <%= goal.target %>">
+                                <span>Goal <%= goal.label %></span>
+                            </th>
                             <% }); %>
-                            <th class="bingo-divider-left">Total HP</th>
-                            <th>Total CC</th>
+                            <th class="bingo-divider-summary-start" title="Total House Points">Total HP</th>
+                            <th title="Total Chat Coins">Total CC</th>
+                            <th title="Completion Progress">Progress</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <% groups.forEach(function(group) { %>
-                        <tr class="bingo-rank-header">
-                            <th colspan="15"><%= group.name %></th>
-                        </tr>
-                        <% group.users.forEach(function(user) { %>
+                        <% if (!groups || groups.length === 0) { %>
                         <tr>
-                            <td><%= user.accountType %></td>
-                            <td><%= user.displayName || '-' %></td>
-                            <td><%= user.discordUser || user.login.discordId %></td>
-                            <% bingoGoals.forEach(function(goal) {
+                            <td colspan="15" style="text-align: center; color: #8e897e; padding: 36px;">
+                                No staff members currently in eligible bingo ranks (Dreamland Guard and above).
+                            </td>
+                        </tr>
+                        <% } else { %>
+                        <% groups.forEach(function(group) { %>
+                        <tr class="bingo-rank-header" data-rank-group="<%= group.name.toLowerCase() %>">
+                            <th colspan="15">
+                                <div class="bingo-rank-header-content">
+                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                        <span class="material-symbols-outlined" style="font-size: 1.2em; color: #fbbf24; background: transparent; padding: 0;">military_tech</span>
+                                        <span><%= group.name %></span>
+                                    </div>
+                                    <span style="font-size: 0.8em; color: #8e897e; font-weight: normal;"><%= group.users.length %> member<%= group.users.length === 1 ? '' : 's' %></span>
+                                </div>
+                            </th>
+                        </tr>
+                        <% group.users.forEach(function(user) {
+                            const completedCount = bingoGoals.filter(g => user.bingoProgress && user.bingoProgress[g.id]).length;
+                            const percent = Math.round((completedCount / bingoGoals.length) * 100);
+                            const userSearchText = `${user.displayName || ''} ${user.discordUser || ''} ${user.login.discordId} ${user.accountType || ''} ${user.house || ''}`.toLowerCase();
+                        %>
+                        <tr class="bingo-user-row" data-search="<%= userSearchText %>" data-rank="<%= (user.accountType || '').toLowerCase() %>" data-discord-id="<%= user.login.discordId %>">
+                            <!-- Member Display & Discord -->
+                            <td class="bingo-member-cell">
+                                <div class="bingo-member-info">
+                                    <%- include('../partials/avatar', {
+                                        avatarUrl: user.avatarUrl,
+                                        displayName: user.displayName || user.discordUser || user.login.discordId,
+                                        discordId: user.login.discordId,
+                                        size: 36,
+                                        online: false
+                                    }) %>
+                                    <div class="bingo-member-names">
+                                        <span class="bingo-member-display"><%= user.displayName || user.discordUser || user.login.discordId %></span>
+                                        <div class="bingo-member-sub">
+                                            <span>@<%= user.discordUser || user.login.discordId %></span>
+                                            <% if (user.house) { %>
+                                            <span>·</span>
+                                            <span style="color: <%= houseColorMap[user.house] || '#8e897e' %>; font-weight: bold;"><%= user.house %></span>
+                                            <% } %>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+
+                            <!-- Rank Column -->
+                            <td>
+                                <span class="account-badge account-badge-rank" style="font-size: 0.75em;">
+                                    <%= user.accountType %>
+                                </span>
+                            </td>
+
+                            <!-- 10 Bingo Goals -->
+                            <% bingoGoals.forEach(function(goal, idx) {
                                 const completed = Boolean(user.bingoProgress && user.bingoProgress[goal.id]);
                             %>
-                            <td class="bingo-cell <%= goal.id === '1' || goal.id === '6' ? 'bingo-divider-left' : '' %> <%= completed ? 'is-complete' : 'is-pending' %>">
+                            <td class="bingo-cell <%= idx === 0 ? 'bingo-divider-hp-start' : idx === 5 ? 'bingo-divider-cc-start' : '' %> <%= completed ? 'is-complete' : 'is-pending' %>" data-goal-id="<%= goal.id %>">
                                 <% if (canManageBingo) { %>
-                                <form action="/bingo/toggle" method="POST">
+                                <form action="/bingo/toggle" method="POST" class="bingo-toggle-form" style="margin: 0;">
                                     <input type="hidden" name="discordId" value="<%= user.login.discordId %>">
                                     <input type="hidden" name="goalId" value="<%= goal.id %>">
-                                    <button type="submit" aria-label="Mark <%= goal.target %> <%= completed ? 'incomplete' : 'complete' %> for <%= user.displayName || user.discordUser || user.login.discordId %>"><%= goal.target %></button>
+                                    <button type="submit" class="bingo-goal-btn" title="Click to toggle Goal <%= goal.label %> (<%= goal.target %>)" aria-label="Goal <%= goal.label %>: <%= goal.target %> <%= completed ? 'Complete' : 'Pending' %>">
+                                        <span class="material-symbols-outlined bingo-goal-icon"><%= completed ? 'check_circle' : 'circle' %></span>
+                                        <span><%= goal.target %></span>
+                                    </button>
                                 </form>
                                 <% } else { %>
-                                <span><%= goal.target %></span>
+                                <div class="bingo-goal-static">
+                                    <span class="material-symbols-outlined bingo-goal-icon"><%= completed ? 'check_circle' : 'circle' %></span>
+                                    <span><%= goal.target %></span>
+                                </div>
                                 <% } %>
                             </td>
                             <% }); %>
-                            <td class="bingo-total-cell bingo-divider-left">
-                                <% if (canManageBingo) { %>
-                                <input type="text" value="<%= user.bingoTotals?.hp ?? 0 %>" aria-label="Total HP for <%= user.displayName || user.discordUser || user.login.discordId %>" class="bingo-total-input bingo-hp-input" data-discord-id="<%= user.login.discordId %>">
-                                <% } else { %>
-                                <span><%= user.bingoTotals?.hp ?? 0 %></span>
-                                <% } %>
+
+                            <!-- Total HP Input / Display -->
+                            <td class="bingo-total-cell bingo-divider-summary-start">
+                                <div class="bingo-total-box">
+                                    <% if (canManageBingo) { %>
+                                    <input type="text" value="<%= user.bingoTotals?.hp ?? 0 %>" aria-label="Total HP for <%= user.displayName || user.login.discordId %>" class="bingo-total-input bingo-hp-input" data-discord-id="<%= user.login.discordId %>" title="Edit total HP">
+                                    <% } else { %>
+                                    <span class="bingo-hp-input"><%= user.bingoTotals?.hp ?? 0 %></span>
+                                    <% } %>
+                                </div>
                             </td>
+
+                            <!-- Total CC Input / Display -->
                             <td class="bingo-total-cell">
-                                <% if (canManageBingo) { %>
-                                <input type="text" value="<%= user.bingoTotals?.cc ?? 0 %>" aria-label="Total CC for <%= user.displayName || user.discordUser || user.login.discordId %>" class="bingo-total-input bingo-cc-input" data-discord-id="<%= user.login.discordId %>">
-                                <% } else { %>
-                                <span><%= user.bingoTotals?.cc ?? 0 %></span>
-                                <% } %>
+                                <div class="bingo-total-box">
+                                    <% if (canManageBingo) { %>
+                                    <input type="text" value="<%= user.bingoTotals?.cc ?? 0 %>" aria-label="Total CC for <%= user.displayName || user.login.discordId %>" class="bingo-total-input bingo-cc-input" data-discord-id="<%= user.login.discordId %>" title="Edit total CC">
+                                    <% } else { %>
+                                    <span class="bingo-cc-input"><%= user.bingoTotals?.cc ?? 0 %></span>
+                                    <% } %>
+                                </div>
+                            </td>
+
+                            <!-- Member Progress Bar -->
+                            <td class="bingo-progress-cell">
+                                <div class="bingo-progress-wrap">
+                                    <div class="bingo-progress-labels">
+                                        <span class="bingo-progress-fraction"><%= completedCount %>/10</span>
+                                        <span class="bingo-progress-pct" style="color: <%= percent === 100 ? '#34d399' : percent >= 50 ? '#fbbf24' : '#8e897e' %>;"><%= percent %>%</span>
+                                    </div>
+                                    <div class="bingo-progress-bar">
+                                        <div class="bingo-progress-fill" style="width: <%= percent %>%;"></div>
+                                    </div>
+                                </div>
                             </td>
                         </tr>
                         <% }); %>
                         <% }); %>
+                        <% } %>
                     </tbody>
                 </table>
             </section>
@@ -89,5 +267,102 @@
         <div class="footer">
             <p>&copy; 2026 Drowsy Vocals | All rights reserved.</p>
         </div>
+
+        <script>
+            // Instant Search & Rank Filter
+            const searchInput = document.getElementById('bingoSearchInput');
+            const rankFilter = document.getElementById('bingoRankFilter');
+            const rows = document.querySelectorAll('.bingo-user-row');
+            const headerRows = document.querySelectorAll('.bingo-rank-header');
+
+            function applyBingoFilters() {
+                const query = (searchInput?.value || '').toLowerCase().trim();
+                const selectedRank = (rankFilter?.value || '').toLowerCase().trim();
+
+                rows.forEach(row => {
+                    const searchData = row.dataset.search || '';
+                    const rankData = row.dataset.rank || '';
+                    const matchesSearch = !query || searchData.includes(query);
+                    const matchesRank = !selectedRank || rankData === selectedRank;
+
+                    row.style.display = (matchesSearch && matchesRank) ? '' : 'none';
+                });
+
+                // Hide rank group headers if all child rows in that rank are hidden
+                headerRows.forEach(header => {
+                    const groupRank = header.dataset.rankGroup;
+                    const visibleChildren = Array.from(rows).some(r => r.dataset.rank === groupRank && r.style.display !== 'none');
+                    header.style.display = visibleChildren ? '' : 'none';
+                });
+            }
+
+            if (searchInput) searchInput.addEventListener('input', applyBingoFilters);
+            if (rankFilter) rankFilter.addEventListener('change', applyBingoFilters);
+
+            // AJAX Toggle for Bingo Buttons (Instant UI response without page reload)
+            document.querySelectorAll('.bingo-toggle-form').forEach(form => {
+                form.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const cell = form.closest('.bingo-cell');
+                    const row = form.closest('.bingo-user-row');
+                    const btn = form.querySelector('.bingo-goal-btn');
+                    const icon = btn?.querySelector('.bingo-goal-icon');
+                    
+                    const discordId = form.querySelector('input[name="discordId"]')?.value;
+                    const goalId = form.querySelector('input[name="goalId"]')?.value;
+                    if (!discordId || !goalId) return form.submit();
+
+                    // Optimistic UI toggle
+                    const currentlyComplete = cell.classList.contains('is-complete');
+                    const nextComplete = !currentlyComplete;
+
+                    cell.classList.toggle('is-complete', nextComplete);
+                    cell.classList.toggle('is-pending', !nextComplete);
+                    if (icon) icon.textContent = nextComplete ? 'check_circle' : 'circle';
+
+                    // Update row progress calculation
+                    updateRowProgress(row);
+
+                    try {
+                        const response = await fetch('/bingo/toggle', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            },
+                            body: new URLSearchParams({ discordId, goalId }).toString()
+                        });
+
+                        if (!response.ok) {
+                            // Revert on failure
+                            cell.classList.toggle('is-complete', currentlyComplete);
+                            cell.classList.toggle('is-pending', !currentlyComplete);
+                            if (icon) icon.textContent = currentlyComplete ? 'check_circle' : 'circle';
+                            updateRowProgress(row);
+                        }
+                    } catch (err) {
+                        console.error('Failed to toggle bingo goal:', err);
+                    }
+                });
+            });
+
+            function updateRowProgress(row) {
+                if (!row) return;
+                const totalGoals = 10;
+                const completedGoals = row.querySelectorAll('.bingo-cell.is-complete').length;
+                const pct = Math.round((completedGoals / totalGoals) * 100);
+
+                const fractionEl = row.querySelector('.bingo-progress-fraction');
+                const pctEl = row.querySelector('.bingo-progress-pct');
+                const fillEl = row.querySelector('.bingo-progress-fill');
+
+                if (fractionEl) fractionEl.textContent = `${completedGoals}/${totalGoals}`;
+                if (pctEl) {
+                    pctEl.textContent = `${pct}%`;
+                    pctEl.style.color = pct === 100 ? '#34d399' : pct >= 50 ? '#fbbf24' : '#8e897e';
+                }
+                if (fillEl) fillEl.style.width = `${pct}%`;
+            }
+        </script>
     </body>
 </html>
