@@ -1701,7 +1701,10 @@ app.get('/account', requireDatabase, async (req, res) => {
 
     try {
         const currentDiscordId = req.session.currentuser;
-        const user = await db.collection('users').findOne({ 'login.discordId': currentDiscordId });
+        const [user, settings] = await Promise.all([
+            db.collection('users').findOne({ 'login.discordId': currentDiscordId }),
+            getSettings()
+        ]);
 
         if (!user) return res.redirect('/logout');
 
@@ -1710,11 +1713,43 @@ app.get('/account', requireDatabase, async (req, res) => {
         const attendanceAttendedCount = (user.attendance || []).filter((record) => record.attended).length;
         const attendanceRate = attendanceTakenCount ? Math.round((attendanceAttendedCount / attendanceTakenCount) * 100) : null;
 
+        const houseColorMap = Object.fromEntries((settings?.houses || []).map(h => [h.name, h.color]));
+        const shiftColorMap = Object.fromEntries((settings?.shifts || []).map(s => [s.name, s.color]));
+        const activityColorMap = Object.fromEntries((settings?.activities || []).map(a => [a.name, a.color]));
+
+        // Calculate days in service (tenure)
+        let tenureDays = null;
+        if (user.hireDate) {
+            const hireTime = new Date(user.hireDate).getTime();
+            if (!isNaN(hireTime)) {
+                tenureDays = Math.max(0, Math.floor((Date.now() - hireTime) / (1000 * 60 * 60 * 24)));
+            }
+        }
+
+        // Calculate days in current grade
+        let daysInGrade = null;
+        const gradeAnchorDate = user.lastPromotion || user.hireDate;
+        if (gradeAnchorDate) {
+            const promoTime = new Date(gradeAnchorDate).getTime();
+            if (!isNaN(promoTime)) {
+                daysInGrade = Math.max(0, Math.floor((Date.now() - promoTime) / (1000 * 60 * 60 * 24)));
+            }
+        }
+
+        const totalStrikes = (user.strikes || []).reduce((sum, s) => sum + (Number(s.count) || 0), 0);
+
         res.render('pages/account', {
             page: 'account',
             user,
+            settings,
+            houseColorMap,
+            shiftColorMap,
+            activityColorMap,
             attendanceHistory,
-            attendanceRate
+            attendanceRate,
+            tenureDays,
+            daysInGrade,
+            totalStrikes
         });
     } catch (error) {
         console.error('Error loading account page:', error);

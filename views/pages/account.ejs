@@ -1,110 +1,353 @@
 <!DOCTYPE html>
-
 <html lang="en">
     <head>
         <%- include('../partials/head') %>
-        <title>Drowsy Account</title>
+        <title><%= user.displayName || user.discordUser || 'Account' %> - Drowsy Vocals</title>
     </head>
     <body>
         <header>
             <%- include('../partials/nav') %>
         </header>
         <main>
-            <section class="profile-page">
-                <div class="profile-heading">
-                    <p class="profile-eyebrow">Account profile</p>
-                    <%- include('../partials/avatar', {
-                        avatarUrl: user.avatarUrl,
-                        displayName: user.displayName || user.discordUser || user.login.discordId,
-                        size: 96
-                    }) %>
-                    <h1><%= user.displayName || user.discordUser || user.login.discordId %></h1>
-                    <p class="profile-subtitle">Your Drowsy Vocals member details.</p>
+            <section class="account-page">
+                <!-- Hero Profile Card -->
+                <div class="account-hero-card">
+                    <div class="account-hero-identity">
+                        <div class="account-hero-avatar-wrap">
+                            <%- include('../partials/avatar', {
+                                avatarUrl: user.avatarUrl,
+                                displayName: user.displayName || user.discordUser || user.login.discordId,
+                                discordId: user.login.discordId,
+                                size: 104,
+                                online: true
+                            }) %>
+                        </div>
+                        <div class="account-hero-details">
+                            <p class="profile-eyebrow" style="margin: 0; color: #8e897e;">Member Account</p>
+                            <h1 class="account-hero-name"><%= user.displayName || user.discordUser || user.login.discordId %></h1>
+                            <div class="account-hero-tags">
+                                <% if (user.discordUser) { %>
+                                <span class="account-badge">
+                                    <span class="material-symbols-outlined" style="font-size: 1.1em;">alternate_email</span>
+                                    <span><%= user.discordUser %></span>
+                                </span>
+                                <% } %>
+
+                                <span class="account-badge account-badge-rank">
+                                    <span class="material-symbols-outlined">military_tech</span>
+                                    <span><%= user.accountType || 'Staff' %></span>
+                                </span>
+
+                                <% if (user.isDeveloper) { %>
+                                <span class="account-badge account-badge-dev">
+                                    <span class="material-symbols-outlined">terminal</span>
+                                    <span>Developer</span>
+                                </span>
+                                <% } %>
+
+                                <% if (user.house) { %>
+                                <span class="account-badge" title="Assigned House">
+                                    <span class="account-color-dot" style="background-color: <%= (typeof houseColorMap !== 'undefined' && houseColorMap[user.house]) ? houseColorMap[user.house] : '#888' %>;"></span>
+                                    <span><%= user.house %></span>
+                                </span>
+                                <% } %>
+
+                                <% if (user.shift) { %>
+                                <span class="account-badge" title="Assigned Shift">
+                                    <span class="account-color-dot" style="background-color: <%= (typeof shiftColorMap !== 'undefined' && shiftColorMap[user.shift]) ? shiftColorMap[user.shift] : '#888' %>;"></span>
+                                    <span><%= user.shift %></span>
+                                </span>
+                                <% } %>
+
+                                <span class="account-badge <%= user.activity === 'Active' ? 'account-badge-active' : user.activity === 'LOA' ? 'account-badge-loa' : user.activity === 'Inactive' ? 'account-badge-warning' : '' %>">
+                                    <span><%= user.activity || 'Active' %></span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="profile-details">
-                    <div class="profile-detail">
-                        <span>Display Name</span>
-                        <strong><%= user.displayName || 'Not provided' %></strong>
-                    </div>
-                    <div class="profile-detail">
-                        <span>Discord User</span>
-                        <strong><%= user.discordUser || 'Not provided' %></strong>
-                    </div>
-                    <div class="profile-detail">
-                        <span>Discord ID</span>
-                        <strong><%= user.login.discordId %></strong>
-                    </div>
-                    <div class="profile-detail">
-                        <span>Account Type</span>
-                        <strong><%= user.accountType || 'Not assigned' %></strong>
-                    </div>
-                    <div class="profile-detail">
-                        <span>House</span>
-                        <strong><%= user.house || 'Not assigned' %></strong>
-                    </div>
-                    <div class="profile-detail">
-                        <span>Shift</span>
-                        <strong><%= user.shift || 'Not assigned' %></strong>
-                    </div>
-                    <div class="profile-detail">
-                        <span>Hire Date</span>
-                        <strong><%= user.hireDate || 'Not provided' %></strong>
-                    </div>
-                    <div class="profile-detail">
-                        <span>Activity</span>
-                        <strong><%= user.activity || 'Not assigned' %></strong>
-                    </div>
-                    <div class="profile-detail-full">
-                        <span>Strikes</span>
-                        <% if (user.strikes && user.strikes.length) { %>
-                        <strong><%= user.strikes.reduce((sum, strike) => sum + (Number(strike.count) || 0), 0) %> total strike(s)</strong>
-                        <ul class="strikes-list">
-                            <% user.strikes.forEach(function(strike) { %>
-                            <li>
-                                <strong><%= strike.count %> strike(s)</strong> - <%= strike.reason %>
-                                <br><small><%= (strike.date || '').slice(0, 10) %></small>
-                            </li>
-                            <% }); %>
-                        </ul>
-                        <% } else { %>
-                        <strong>No strikes on record</strong>
-                        <% } %>
-                    </div>
-                    <div class="profile-detail-full attendance-history">
-                        <span>Attendance History <%= attendanceRate === null ? '' : `(${attendanceRate}% attended)` %></span>
-                        <% if (!attendanceHistory.length) { %>
-                        <strong>No meetings have been recorded for you yet.</strong>
-                        <% } else { %>
-                        <ul>
-                            <% attendanceHistory.forEach(function(record) { %>
-                            <li><strong><%= record.week %></strong><span class="attendance-status <%= record.attended ? 'attended' : 'absent' %>"><%= record.attended ? 'Attended' : 'Absent' %></span></li>
-                            <% }); %>
-                        </ul>
-                        <% } %>
-                    </div>
-                    <div class="profile-detail-full">
-                        <span>Profile Picture</span>
-                        <form class="login-form-actions" action="/account/upload-avatar" method="POST" enctype="multipart/form-data">
-                            <label for="avatar">Upload New Photo (PNG, JPEG, or WEBP, max 2MB):</label>
-                            <input type="file" id="avatar" name="avatar" accept="image/png, image/jpeg, image/webp" required>
 
-                            <button type="submit">Upload Photo</button>
-                        </form>
+                <!-- Flash Notification Messages -->
+                <% if (typeof success_msg !== 'undefined' && success_msg && success_msg.length) { %>
+                <div class="settings-alert is-success" style="margin-bottom: 24px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span class="material-symbols-outlined" style="background: transparent; color: #10b981;">check_circle</span>
+                        <span><%= success_msg %></span>
                     </div>
-                    <div class="profile-detail-full">
-                        <span>Change Password</span>
-                        <form class="login-form-actions" action="/change-password" method="POST">
-                            <label for="currentPassword">Current Password:</label>
-                            <input type="password" id="currentPassword" name="currentPassword" required>
+                    <button type="button" onclick="this.parentElement.remove()" style="background:none;border:none;color:inherit;cursor:pointer;font-weight:bold;">&times;</button>
+                </div>
+                <% } %>
+                <% if (typeof error_msg !== 'undefined' && error_msg && error_msg.length) { %>
+                <div class="settings-alert is-error" style="margin-bottom: 24px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span class="material-symbols-outlined" style="background: transparent; color: #ef4444;">error</span>
+                        <span><%= error_msg %></span>
+                    </div>
+                    <button type="button" onclick="this.parentElement.remove()" style="background:none;border:none;color:inherit;cursor:pointer;font-weight:bold;">&times;</button>
+                </div>
+                <% } %>
 
-                            <label for="newPassword">New Password:</label>
-                            <input type="password" id="newPassword" name="newPassword" minlength="8" required>
+                <!-- Quick Stats Ribbon -->
+                <div class="account-stats-ribbon">
+                    <div class="account-stat-card">
+                        <span class="material-symbols-outlined account-stat-icon">how_to_reg</span>
+                        <div class="account-stat-info">
+                            <span class="account-stat-label">Attendance Rate</span>
+                            <span class="account-stat-val" style="color: <%= (attendanceRate !== null && attendanceRate >= 80) ? '#34d399' : (attendanceRate !== null && attendanceRate >= 50) ? '#fbbf24' : '#f3efe6' %>;">
+                                <%= attendanceRate === null ? 'No Data' : `${attendanceRate}%` %>
+                            </span>
+                        </div>
+                    </div>
 
-                            <label for="confirmPassword">Confirm New Password:</label>
-                            <input type="password" id="confirmPassword" name="confirmPassword" minlength="8" required>
+                    <div class="account-stat-card">
+                        <span class="material-symbols-outlined account-stat-icon">verified_user</span>
+                        <div class="account-stat-info">
+                            <span class="account-stat-label">Disciplinary Record</span>
+                            <span class="account-stat-val" style="color: <%= (typeof totalStrikes !== 'undefined' && totalStrikes > 0) ? '#f87171' : '#34d399' %>;">
+                                <%= (typeof totalStrikes !== 'undefined' && totalStrikes > 0) ? `${totalStrikes} Strike${totalStrikes === 1 ? '' : 's'}` : 'Clean Record' %>
+                            </span>
+                        </div>
+                    </div>
 
-                            <button type="submit">Update Password</button>
-                        </form>
+                    <div class="account-stat-card">
+                        <span class="material-symbols-outlined account-stat-icon">calendar_month</span>
+                        <div class="account-stat-info">
+                            <span class="account-stat-label">Days in Grade</span>
+                            <span class="account-stat-val"><%= (typeof daysInGrade !== 'undefined' && daysInGrade !== null) ? `${daysInGrade} Days` : 'Recent' %></span>
+                        </div>
+                    </div>
+
+                    <div class="account-stat-card">
+                        <span class="material-symbols-outlined account-stat-icon">stars</span>
+                        <div class="account-stat-info">
+                            <span class="account-stat-label">House Points</span>
+                            <span class="account-stat-val"><%= user.housePoints || 0 %> Pts</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2-Column Responsive Layout -->
+                <div class="account-grid">
+                    <!-- Left Column: Details & Performance -->
+                    <div class="account-column">
+                        <!-- Personnel Details Card -->
+                        <div class="account-card">
+                            <div class="account-card-header">
+                                <h3 class="account-card-title">
+                                    <span class="material-symbols-outlined">badge</span>
+                                    <span>Staff Profile & Assignments</span>
+                                </h3>
+                                <span class="account-badge"><%= user.accountType || 'Staff' %></span>
+                            </div>
+
+                            <div class="account-info-grid">
+                                <div class="account-info-item">
+                                    <span class="account-info-label">Display Name</span>
+                                    <span class="account-info-val"><%= user.displayName || 'Not Provided' %></span>
+                                </div>
+
+                                <div class="account-info-item">
+                                    <span class="account-info-label">Discord Username</span>
+                                    <span class="account-info-val"><%= user.discordUser ? `@${user.discordUser}` : 'Not Provided' %></span>
+                                </div>
+
+                                <div class="account-info-item full-width">
+                                    <span class="account-info-label">Discord ID</span>
+                                    <span class="account-info-val" style="font-family: monospace;">
+                                        <span id="accountDiscordId"><%= user.login.discordId %></span>
+                                        <button type="button" class="account-copy-id-btn" onclick="copyDiscordId(this)">
+                                            <span class="material-symbols-outlined" style="font-size: 1.1em; background: transparent; padding: 0;">content_copy</span>
+                                            <span>Copy</span>
+                                        </button>
+                                    </span>
+                                </div>
+
+                                <div class="account-info-item">
+                                    <span class="account-info-label">House Team</span>
+                                    <span class="account-info-val">
+                                        <% if (user.house) { %>
+                                        <span class="account-color-dot" style="background-color: <%= (typeof houseColorMap !== 'undefined' && houseColorMap[user.house]) ? houseColorMap[user.house] : '#888' %>;"></span>
+                                        <%= user.house %>
+                                        <% } else { %>
+                                        Not Assigned
+                                        <% } %>
+                                    </span>
+                                </div>
+
+                                <div class="account-info-item">
+                                    <span class="account-info-label">Shift Slot</span>
+                                    <span class="account-info-val">
+                                        <% if (user.shift) { %>
+                                        <span class="account-color-dot" style="background-color: <%= (typeof shiftColorMap !== 'undefined' && shiftColorMap[user.shift]) ? shiftColorMap[user.shift] : '#888' %>;"></span>
+                                        <%= user.shift %>
+                                        <% } else { %>
+                                        Not Assigned
+                                        <% } %>
+                                    </span>
+                                </div>
+
+                                <div class="account-info-item">
+                                    <span class="account-info-label">Hire Date</span>
+                                    <span class="account-info-val"><%= user.hireDate || 'Not Provided' %></span>
+                                </div>
+
+                                <div class="account-info-item">
+                                    <span class="account-info-label">Last Promotion</span>
+                                    <span class="account-info-val"><%= user.lastPromotion || user.hireDate || 'N/A' %></span>
+                                </div>
+                            </div>
+
+                            <!-- Training & Onboarding Status -->
+                            <div>
+                                <span class="account-info-label" style="display: block; margin-bottom: 8px;">Training & Certifications</span>
+                                <div class="account-checklist">
+                                    <div class="account-check-item <%= user.onboardingComplete ? 'is-done' : 'is-pending' %>">
+                                        <span class="material-symbols-outlined" style="font-size: 1.2em; background: transparent; color: inherit; padding: 0;">
+                                            <%= user.onboardingComplete ? 'check_circle' : 'pending' %>
+                                        </span>
+                                        <span>Onboarding <%= user.onboardingComplete ? 'Completed' : 'Pending' %></span>
+                                    </div>
+                                    <div class="account-check-item <%= user.hostTrainingComplete ? 'is-done' : 'is-pending' %>">
+                                        <span class="material-symbols-outlined" style="font-size: 1.2em; background: transparent; color: inherit; padding: 0;">
+                                            <%= user.hostTrainingComplete ? 'check_circle' : 'pending' %>
+                                        </span>
+                                        <span>Host Training <%= user.hostTrainingComplete ? 'Completed' : 'Pending' %></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Attendance & Strikes Card -->
+                        <div class="account-card">
+                            <div class="account-card-header">
+                                <h3 class="account-card-title">
+                                    <span class="material-symbols-outlined">analytics</span>
+                                    <span>Attendance & Record</span>
+                                </h3>
+                                <% if (attendanceRate !== null) { %>
+                                <span class="account-badge <%= attendanceRate >= 80 ? 'account-badge-active' : attendanceRate >= 50 ? 'account-badge-rank' : 'account-badge-warning' %>">
+                                    <%= attendanceRate %>% Meeting Attendance
+                                </span>
+                                <% } %>
+                            </div>
+
+                            <!-- Attendance Section -->
+                            <div>
+                                <span class="account-info-label" style="display: block; margin-bottom: 10px;">Recent Weekly Meetings (Last 6 Weeks)</span>
+                                <% if (!attendanceHistory || !attendanceHistory.length) { %>
+                                <div style="background: #1a1917; border: 1px solid #383734; border-radius: 6px; padding: 14px; text-align: center; color: #8e897e; font-size: 0.9em;">
+                                    No meeting attendance records logged yet.
+                                </div>
+                                <% } else { %>
+                                <div class="account-attendance-grid">
+                                    <% attendanceHistory.forEach(function(record) { %>
+                                    <div class="account-attendance-item">
+                                        <span class="account-attendance-week"><%= record.week %></span>
+                                        <span class="account-attendance-pill <%= record.attended ? 'attended' : 'absent' %>">
+                                            <%= record.attended ? 'Attended' : 'Absent' %>
+                                        </span>
+                                    </div>
+                                    <% }); %>
+                                </div>
+                                <% } %>
+                            </div>
+
+                            <!-- Strikes Section -->
+                            <div style="border-top: 1px solid #383734; padding-top: 16px;">
+                                <span class="account-info-label" style="display: block; margin-bottom: 10px;">Disciplinary Strikes</span>
+                                <% if (user.strikes && user.strikes.length) { %>
+                                <div class="account-strikes-list">
+                                    <% user.strikes.forEach(function(strike) { %>
+                                    <div class="account-strike-card">
+                                        <div class="account-strike-top">
+                                            <span class="account-strike-count">⚠️ <%= strike.count %> Strike<%= strike.count > 1 ? 's' : '' %></span>
+                                            <span class="account-strike-date"><%= (strike.date || '').slice(0, 10) %></span>
+                                        </div>
+                                        <p class="account-strike-reason"><%= strike.reason %></p>
+                                    </div>
+                                    <% }); %>
+                                </div>
+                                <% } else { %>
+                                <div class="account-clean-banner">
+                                    <span class="material-symbols-outlined">verified</span>
+                                    <div>
+                                        <div class="account-clean-title">Clean Disciplinary Record</div>
+                                        <div class="account-clean-sub">You have no active strikes recorded on your profile.</div>
+                                    </div>
+                                </div>
+                                <% } %>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column: Avatar & Security -->
+                    <div class="account-column">
+                        <!-- Profile Photo Card -->
+                        <div class="account-card">
+                            <div class="account-card-header">
+                                <h3 class="account-card-title">
+                                    <span class="material-symbols-outlined">photo_camera</span>
+                                    <span>Profile Picture</span>
+                                </h3>
+                            </div>
+
+                            <form class="account-form" action="/account/upload-avatar" method="POST" enctype="multipart/form-data">
+                                <div style="display: flex; align-items: center; justify-content: center; padding: 10px 0;">
+                                    <%- include('../partials/avatar', {
+                                        avatarUrl: user.avatarUrl,
+                                        displayName: user.displayName || user.discordUser || user.login.discordId,
+                                        discordId: user.login.discordId,
+                                        size: 90
+                                    }) %>
+                                </div>
+
+                                <div class="account-file-box" onclick="document.getElementById('avatarFileInput').click()">
+                                    <input type="file" id="avatarFileInput" name="avatar" accept="image/png, image/jpeg, image/webp" required onchange="updateFileLabel(this)">
+                                    <label class="account-file-box-label" for="avatarFileInput">
+                                        <span class="material-symbols-outlined">cloud_upload</span>
+                                        <span class="account-file-box-text" id="avatarFileText">Choose an image or drop file here</span>
+                                        <span class="account-file-box-hint">Supported formats: PNG, JPEG, WEBP (Max 2MB)</span>
+                                    </label>
+                                </div>
+
+                                <button type="submit" class="account-btn account-btn-primary">
+                                    <span class="material-symbols-outlined">upload</span>
+                                    <span>Upload New Avatar</span>
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- Password Update Card -->
+                        <div class="account-card">
+                            <div class="account-card-header">
+                                <h3 class="account-card-title">
+                                    <span class="material-symbols-outlined">lock_reset</span>
+                                    <span>Security & Password</span>
+                                </h3>
+                            </div>
+
+                            <form class="account-form" action="/change-password" method="POST">
+                                <div class="settings-form-group" style="margin-bottom: 0;">
+                                    <label for="currentPassword">Current Password</label>
+                                    <input type="password" id="currentPassword" name="currentPassword" class="settings-input" placeholder="••••••••" required autocomplete="current-password">
+                                </div>
+
+                                <div class="settings-form-group" style="margin-bottom: 0;">
+                                    <label for="newPassword">New Password</label>
+                                    <input type="password" id="newPassword" name="newPassword" class="settings-input" placeholder="At least 8 characters" minlength="8" required autocomplete="new-password">
+                                </div>
+
+                                <div class="settings-form-group" style="margin-bottom: 0;">
+                                    <label for="confirmPassword">Confirm New Password</label>
+                                    <input type="password" id="confirmPassword" name="confirmPassword" class="settings-input" placeholder="Repeat new password" minlength="8" required autocomplete="new-password">
+                                </div>
+
+                                <button type="submit" class="account-btn account-btn-primary">
+                                    <span class="material-symbols-outlined">key</span>
+                                    <span>Update Password</span>
+                                </button>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -112,5 +355,27 @@
         <div class="footer">
             <p>&copy; 2026 Drowsy Vocals | All rights reserved.</p>
         </div>
+
+        <script>
+            function copyDiscordId(buttonEl) {
+                const idEl = document.getElementById('accountDiscordId');
+                if (!idEl) return;
+                navigator.clipboard.writeText(idEl.innerText.trim()).then(() => {
+                    const originalHtml = buttonEl.innerHTML;
+                    buttonEl.innerHTML = '<span class="material-symbols-outlined" style="font-size:1.1em;background:transparent;padding:0;color:#34d399;">check</span><span style="color:#34d399;">Copied!</span>';
+                    setTimeout(() => {
+                        buttonEl.innerHTML = originalHtml;
+                    }, 2000);
+                });
+            }
+
+            function updateFileLabel(input) {
+                const label = document.getElementById('avatarFileText');
+                if (input.files && input.files.length > 0) {
+                    label.textContent = input.files[0].name;
+                    label.style.color = '#34d399';
+                }
+            }
+        </script>
     </body>
 </html>
