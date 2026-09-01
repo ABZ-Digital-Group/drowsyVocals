@@ -182,7 +182,7 @@
                                             <form action="/announcements/<%= item._id %>/pin" method="POST" style="margin:0;">
                                                 <input type="hidden" name="pinned" value="<%= item.pinned ? 'false' : 'true' %>">
                                                 <button type="submit" class="settings-btn settings-btn-secondary settings-btn-sm">
-                                                    <span class="material-symbols-outlined" style="font-size:1em;"><%= item.pinned ? 'keep_off' : 'push_pin' %></span>
+                                                    <span class="material-symbols-outlined" style="font-size:1em;">push_pin</span>
                                                     <span><%= item.pinned ? 'Unpin' : 'Pin' %></span>
                                                 </button>
                                             </form>
