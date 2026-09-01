@@ -158,8 +158,8 @@ app.use(async (req, res, next) => {
 
 // MAINTENANCE MODE MIDDLEWARE
 app.use(async (req, res, next) => {
-    // Always allow static files, health checks, login/auth pages, and logout
-    const bypassedPaths = ['/health', '/logout', '/login', '/index'];
+    // Always allow static files, health checks, login/auth pages, logout, and external webhook ingestion
+    const bypassedPaths = ['/health', '/logout', '/login', '/index', '/api/applications/webhook'];
     if (bypassedPaths.includes(req.path) || req.path.startsWith('/css') || req.path.startsWith('/scripts') || req.path.startsWith('/assets') || req.path.startsWith('/uploads')) {
         return next();
     }
@@ -253,6 +253,7 @@ async function sendDiscordWebhook(embed, eventType = null) {
         if (eventType === 'loa' && webhookConfig.notifyLoa === false) return;
         if (eventType === 'strikes' && webhookConfig.notifyStrikes === false) return;
         if (eventType === 'feedback' && webhookConfig.notifyFeedback === false) return;
+        if (eventType === 'applications' && webhookConfig.notifyApplications === false) return;
 
         const payload = JSON.stringify({
             username: 'Drowsy Vocals Management',
@@ -301,12 +302,14 @@ app.use(async (req, res, next) => {
     if (!isDatabaseReady || !db || !req.session.loggedin) return next();
     try {
         if (hasManagementAccess(req)) {
-            const [pendingLoa, newFeedback] = await Promise.all([
+            const [pendingLoa, newFeedback, pendingApps] = await Promise.all([
                 db.collection('users').countDocuments({ 'loaRequests.status': 'Pending' }),
-                db.collection('feedback').countDocuments({ status: { $in: ['New', null] } })
+                db.collection('feedback').countDocuments({ status: { $in: ['New', null] } }),
+                db.collection('applications').countDocuments({ status: 'Pending' })
             ]);
             if (pendingLoa) res.locals.notifications.push({ href: '/loa', text: `${pendingLoa} pending LOA request${pendingLoa === 1 ? '' : 's'}` });
             if (newFeedback) res.locals.notifications.push({ href: '/feedback', text: `${newFeedback} feedback item${newFeedback === 1 ? '' : 's'} to review` });
+            if (pendingApps) res.locals.notifications.push({ href: '/applications', text: `${pendingApps} pending application${pendingApps === 1 ? '' : 's'}` });
         }
     } catch (error) {
         console.error('Notification refresh failed:', error.message);
@@ -404,7 +407,9 @@ const DEFAULT_SETTINGS = {
         url: '',
         notifyLoa: true,
         notifyStrikes: true,
-        notifyFeedback: true
+        notifyFeedback: true,
+        notifyApplications: true,
+        applicationsSecret: 'drowsy-apps-secret'
     }
 };
 
@@ -1095,9 +1100,11 @@ app.post('/settings/webhooks', requireDatabase, async (req, res) => {
     }
 
     const url = (req.body.url || '').toString().trim();
+    const applicationsSecret = (req.body.applicationsSecret || '').toString().trim() || 'drowsy-apps-secret';
     const notifyLoa = req.body.notifyLoa === 'true' || req.body.notifyLoa === 'on';
     const notifyStrikes = req.body.notifyStrikes === 'true' || req.body.notifyStrikes === 'on';
     const notifyFeedback = req.body.notifyFeedback === 'true' || req.body.notifyFeedback === 'on';
+    const notifyApplications = req.body.notifyApplications === 'true' || req.body.notifyApplications === 'on';
 
     if (url && !url.startsWith('https://discord.com/api/webhooks/')) {
         req.flash('error_msg', 'Discord webhook URL must start with https://discord.com/api/webhooks/');
@@ -1110,9 +1117,11 @@ app.post('/settings/webhooks', requireDatabase, async (req, res) => {
             {
                 $set: {
                     'webhooks.url': url,
+                    'webhooks.applicationsSecret': applicationsSecret,
                     'webhooks.notifyLoa': notifyLoa,
                     'webhooks.notifyStrikes': notifyStrikes,
                     'webhooks.notifyFeedback': notifyFeedback,
+                    'webhooks.notifyApplications': notifyApplications,
                     'webhooks.updatedAt': new Date().toISOString().slice(0, 19),
                     'webhooks.updatedBy': req.session.currentuser
                 }
@@ -1134,12 +1143,13 @@ app.post('/settings/webhooks', requireDatabase, async (req, res) => {
                 fields: [
                     { name: 'LOA Alerts', value: notifyLoa ? '✅ Enabled' : '❌ Disabled', inline: true },
                     { name: 'Strike Alerts', value: notifyStrikes ? '✅ Enabled' : '❌ Disabled', inline: true },
-                    { name: 'Feedback Alerts', value: notifyFeedback ? '✅ Enabled' : '❌ Disabled', inline: true }
+                    { name: 'Feedback Alerts', value: notifyFeedback ? '✅ Enabled' : '❌ Disabled', inline: true },
+                    { name: 'Application Alerts', value: notifyApplications ? '✅ Enabled' : '❌ Disabled', inline: true }
                 ]
             });
         }
 
-        req.flash('success_msg', 'Discord webhook configuration saved.');
+        req.flash('success_msg', 'Discord webhook & Google Form configuration saved.');
         res.redirect('/settings');
     } catch (error) {
         console.error('Error updating webhook settings:', error);
@@ -1851,6 +1861,120 @@ app.post('/review-loa', requireDatabase, async (req, res) => {
     } catch (error) {
         console.error('Error reviewing LOA request:', error);
         res.redirect('/loa');
+    }
+});
+
+// VIEW ALL STAFF APPLICATIONS
+app.get('/applications', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin) return res.redirect('/');
+
+    if (!hasManagementAccess(req)) {
+        req.flash('error_msg', 'You are not authorized to view staff applications.');
+        return res.redirect('/dashboard');
+    }
+
+    try {
+        const applications = await db.collection('applications')
+            .find()
+            .sort({ submittedAt: -1 })
+            .toArray();
+
+        res.render('pages/applications', {
+            page: 'applications',
+            applications
+        });
+    } catch (error) {
+        console.error('Error loading applications:', error);
+        res.status(500).send('Error loading applications.');
+    }
+});
+
+// UPDATE APPLICATION STATUS AND NOTES
+app.post('/applications/:applicationId/review', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin) return res.redirect('/');
+
+    if (!hasManagementAccess(req)) {
+        req.flash('error_msg', 'You are not authorized to update applications.');
+        return res.redirect('/applications');
+    }
+
+    const { applicationId } = req.params;
+    const { status, managerNotes } = req.body;
+    const allowedStatuses = ['Pending', 'Under Review', 'Accepted', 'Denied'];
+
+    if (!ObjectId.isValid(applicationId) || !allowedStatuses.includes(status)) {
+        req.flash('error_msg', 'Invalid application update.');
+        return res.redirect('/applications');
+    }
+
+    try {
+        await db.collection('applications').updateOne(
+            { _id: new ObjectId(applicationId) },
+            {
+                $set: {
+                    status,
+                    managerNotes: (managerNotes || '').toString().trim(),
+                    reviewedBy: req.session.currentuser,
+                    reviewedAt: new Date().toISOString().slice(0, 19)
+                }
+            }
+        );
+
+        await writeAudit(req, 'Updated Staff Application', `Status set to ${status} for app ${applicationId}`);
+        broadcastDataUpdate('applications');
+
+        req.flash('success_msg', `Application updated to "${status}".`);
+        res.redirect('/applications');
+    } catch (error) {
+        console.error('Error reviewing application:', error);
+        req.flash('error_msg', 'Unable to update application.');
+        res.redirect('/applications');
+    }
+});
+
+// INCOMING GOOGLE FORM WEBHOOK ENDPOINT
+app.post('/api/applications/webhook', requireDatabase, async (req, res) => {
+    try {
+        const settings = await getSettings();
+        const configuredSecret = settings.webhooks?.applicationsSecret || 'drowsy-apps-secret';
+        const incomingSecret = req.headers['x-webhook-secret'] || req.query.secret || req.body?.secret;
+
+        if (configuredSecret && incomingSecret !== configuredSecret) {
+            return res.status(401).json({ error: 'Unauthorized: Invalid webhook secret.' });
+        }
+
+        const payload = req.body || {};
+        const answers = payload.answers || payload.responses || payload;
+        const applicantName = payload.applicantName || answers['What is your name?'] || answers['Name'] || answers['Discord Name'] || 'New Applicant';
+        const discordUser = payload.discordUser || answers['What is your Discord username?'] || answers['Discord Username'] || answers['Discord Tag'] || '';
+
+        const newApplication = {
+            applicantName,
+            discordUser,
+            answers,
+            status: 'Pending',
+            managerNotes: '',
+            submittedAt: new Date().toISOString().slice(0, 19)
+        };
+
+        const result = await db.collection('applications').insertOne(newApplication);
+
+        broadcastDataUpdate('applications');
+
+        sendDiscordWebhook({
+            title: '📥 New Staff Application Received',
+            color: 0x8B5CF6,
+            fields: [
+                { name: 'Applicant Name', value: applicantName, inline: true },
+                { name: 'Discord', value: discordUser ? `${discordUser}` : 'N/A', inline: true },
+                { name: 'Status', value: 'Pending', inline: true }
+            ]
+        }, 'applications');
+
+        res.status(200).json({ success: true, id: result.insertedId });
+    } catch (error) {
+        console.error('Error handling application webhook:', error);
+        res.status(500).json({ error: 'Failed to record application.' });
     }
 });
 
