@@ -79,5 +79,22 @@
                 <a href="/logout">Logout</a>
             </div>
         </li>
+        <li class="nav-security-menu">
+            <button class="nav-stream-toggle" id="streamModeToggle" type="button" title="Toggle Streamer Privacy Redaction Mode (Alt + P)" aria-pressed="false">
+                <span class="material-symbols-outlined" id="streamModeIcon" aria-hidden="true">visibility</span>
+                <span class="nav-stream-label">Stream Safe</span>
+            </button>
+        </li>
     </ul>
 </nav>
+<div id="securityCurtain" class="security-curtain" aria-hidden="true" style="display: none;">
+    <div class="security-curtain-content">
+        <span class="material-symbols-outlined security-curtain-icon" aria-hidden="true">lock</span>
+        <h2>CONFIDENTIAL MANAGEMENT PORTAL</h2>
+        <p>Screen capture and background window display is protected.</p>
+        <span class="security-curtain-sub">Click anywhere or focus this window to resume viewing.</span>
+    </div>
+</div>
+<% if (typeof currentuser !== 'undefined' && currentuser) { %>
+<div class="security-forensic-watermark" aria-hidden="true" data-watermark="Drowsy Vocals • <%= (typeof navUser !== 'undefined' && navUser && navUser.displayName) ? navUser.displayName : currentuser %> (<%= currentuser %>) • CONFIDENTIAL"></div>
+<% } %>
