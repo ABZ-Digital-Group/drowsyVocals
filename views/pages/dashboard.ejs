@@ -2,107 +2,503 @@
 <html lang="en">
     <head>
         <%- include('../partials/head') %>
-        <title>Drowsy Dashboard</title>
+        <title>Dashboard - Drowsy Vocals</title>
     </head>
     <body>
         <header>
             <%- include('../partials/nav') %>
         </header>
         <main>
-            <section class="dashboard-content">
-                <h1><span id="time-greeting"></span> <%= currentDisplayName %></h1>
-                <p>Here you can manage your account, view your roster, and access online coaching resources.</p>
-            </section>
+            <section class="dashboard-page">
+                <!-- Welcome Hero Card -->
+                <div class="dashboard-hero-card">
+                    <div class="dashboard-hero-identity">
+                        <div class="account-hero-avatar-wrap">
+                            <%- include('../partials/avatar', {
+                                avatarUrl: user ? user.avatarUrl : null,
+                                displayName: currentDisplayName,
+                                discordId: currentDiscordId,
+                                size: 84,
+                                online: true
+                            }) %>
+                        </div>
+                        <div class="dashboard-hero-details">
+                            <p class="dashboard-greeting-eyebrow"><span id="time-greeting">Welcome</span>, staff member</p>
+                            <h1 class="dashboard-hero-name"><%= currentDisplayName %></h1>
+                            <div class="dashboard-hero-tags">
+                                <span class="account-badge account-badge-rank">
+                                    <span class="material-symbols-outlined">military_tech</span>
+                                    <span><%= accountType || 'Staff' %></span>
+                                </span>
 
-            <section class="profile-page">
-                <% if (announcements.length) { %><div class="dashboard-announcements"><span>Announcements</span><% announcements.forEach(function(item) { %><article><p><% if (item.pinned) { %><span class="announcement-pin">Pinned</span><% } %> <%= item.content %></p><div class="announcement-meta"><small><%= item.createdByName %> · <%= (item.createdAt || '').slice(0, 10) %><%= item.expiresAt ? ` · Expires ${item.expiresAt}` : '' %></small><% if (staffSummary) { %><div class="announcement-actions"><form action="/announcements/<%= item._id %>/pin" method="POST"><input type="hidden" name="pinned" value="<%= item.pinned ? 'false' : 'true' %>"><button type="submit"><%= item.pinned ? 'Unpin' : 'Pin' %></button></form><form action="/announcements/<%= item._id %>/delete" method="POST" onsubmit="return confirm('Remove this announcement?');"><button type="submit">Remove</button></form></div><% } %></div></article><% }); %></div><% } %>
-                <div class="profile-details">
-                    <div class="profile-detail">
-                        <span>Rank</span>
-                        <strong><%= accountType || 'Not assigned' %></strong>
+                                <% if (user && user.isDeveloper) { %>
+                                <span class="account-badge account-badge-dev">
+                                    <span class="material-symbols-outlined">terminal</span>
+                                    <span>Developer</span>
+                                </span>
+                                <% } %>
+
+                                <% if (house) { %>
+                                <span class="account-badge" title="Assigned House">
+                                    <span class="account-color-dot" style="background-color: <%= (typeof houseColorMap !== 'undefined' && houseColorMap[house]) ? houseColorMap[house] : '#888' %>;"></span>
+                                    <span><%= house %></span>
+                                </span>
+                                <% } %>
+
+                                <% if (shift) { %>
+                                <span class="account-badge" title="Assigned Shift">
+                                    <span class="account-color-dot" style="background-color: <%= (typeof shiftColorMap !== 'undefined' && shiftColorMap[shift]) ? shiftColorMap[shift] : '#888' %>;"></span>
+                                    <span><%= shift %></span>
+                                </span>
+                                <% } %>
+
+                                <span class="account-badge <%= activity === 'Active' ? 'account-badge-active' : activity === 'LOA' ? 'account-badge-loa' : activity === 'Inactive' ? 'account-badge-warning' : '' %>">
+                                    <span><%= activity || 'Active' %></span>
+                                </span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="profile-detail">
-                        <span>House</span>
-                        <strong><%= house || 'Not assigned' %></strong>
-                    </div>
-                    <div class="profile-detail">
-                        <span>House Points</span>
-                        <strong><%= housePoints ?? 0 %></strong>
-                    </div>
-                    <div class="profile-detail">
-                        <span>Activity</span>
-                        <strong><%= activity || 'Not assigned' %></strong>
-                    </div>
-                    <div class="profile-detail">
-                        <span>Total Strikes</span>
-                        <strong><%= totalStrikes %></strong>
-                    </div>
-                    <div class="profile-detail">
-                        <span>This Week's Meeting</span>
-                        <strong><%= attendedThisWeek ? 'Attended' : 'Not marked yet' %></strong>
-                    </div>
-                    <div class="profile-detail">
-                        <span>Your Pending LOA Requests</span>
-                        <strong><%= pendingLoaCount %></strong>
+
+                    <div class="dashboard-hero-actions">
+                        <a href="/roster" class="account-btn account-btn-primary">
+                            <span class="material-symbols-outlined">group</span>
+                            <span>View Roster</span>
+                        </a>
+                        <a href="/account" class="settings-btn settings-btn-secondary">
+                            <span class="material-symbols-outlined">person</span>
+                            <span>My Account</span>
+                        </a>
                     </div>
                 </div>
-            </section>
 
-            <% if (staffSummary) { %>
-            <section class="dashboard-widgets"><a href="/loa"><strong><%= pendingLoaTotal %></strong><span>Pending LOA requests</span></a><a href="/feedback"><strong><%= notifications.length %></strong><span>Open management notifications</span></a><a href="/audit-log"><span>View</span><strong>Recent audit activity</strong></a></section>
-            <form class="announcement-form" action="/announcements" method="POST"><label for="announcementContent">Post announcement</label><textarea id="announcementContent" name="content" rows="2" maxlength="1000" required></textarea><label>Expiry date (optional)<input type="date" name="expiresAt"></label><label class="checkbox-label"><input type="checkbox" name="pinned" value="true"> Pin announcement</label><button type="submit">Publish</button></form>
-            <section class="roster-content">
-                <h2>Staff Overview</h2>
-                <div class="roster-stats">
-                    <div>
-                        <p>Total Staff: <%= staffSummary.total %></p>
+                <!-- Flash Notification Messages -->
+                <% if (typeof success_msg !== 'undefined' && success_msg && success_msg.length) { %>
+                <div class="settings-alert is-success" style="margin-bottom: 24px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span class="material-symbols-outlined" style="background: transparent; color: #10b981;">check_circle</span>
+                        <span><%= success_msg %></span>
                     </div>
-                    <div>
-                        <p>Active Staff: <%= staffSummary.active %></p>
+                    <button type="button" onclick="this.parentElement.remove()" style="background:none;border:none;color:inherit;cursor:pointer;font-weight:bold;">&times;</button>
+                </div>
+                <% } %>
+                <% if (typeof error_msg !== 'undefined' && error_msg && error_msg.length) { %>
+                <div class="settings-alert is-error" style="margin-bottom: 24px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span class="material-symbols-outlined" style="background: transparent; color: #ef4444;">error</span>
+                        <span><%= error_msg %></span>
                     </div>
-                    <div>
-                        <p>Semi-Active Staff: <%= staffSummary.semiActive %></p>
+                    <button type="button" onclick="this.parentElement.remove()" style="background:none;border:none;color:inherit;cursor:pointer;font-weight:bold;">&times;</button>
+                </div>
+                <% } %>
+
+                <!-- Personal Weekly Status Ribbon -->
+                <div class="account-stats-ribbon">
+                    <div class="account-stat-card">
+                        <span class="material-symbols-outlined account-stat-icon">event_available</span>
+                        <div class="account-stat-info">
+                            <span class="account-stat-label">This Week's Meeting</span>
+                            <span class="account-stat-val" style="color: <%= attendedThisWeek ? '#34d399' : '#fbbf24' %>;">
+                                <%= attendedThisWeek ? '✅ Attended' : '⏳ Pending / Unmarked' %>
+                            </span>
+                        </div>
                     </div>
-                    <div>
-                        <p>LOA: <%= staffSummary.loa %></p>
+
+                    <div class="account-stat-card">
+                        <span class="material-symbols-outlined account-stat-icon">military_tech</span>
+                        <div class="account-stat-info">
+                            <span class="account-stat-label">House Points</span>
+                            <span class="account-stat-val" style="color: #fbbf24;">
+                                <%= housePoints %> Pts
+                            </span>
+                        </div>
                     </div>
-                    <div>
-                        <p>Inactive Staff: <%= staffSummary.inactive %></p>
+
+                    <div class="account-stat-card">
+                        <span class="material-symbols-outlined account-stat-icon">verified_user</span>
+                        <div class="account-stat-info">
+                            <span class="account-stat-label">Disciplinary Status</span>
+                            <span class="account-stat-val" style="color: <%= totalStrikes > 0 ? '#f87171' : '#34d399' %>;">
+                                <%= totalStrikes > 0 ? `${totalStrikes} Strike${totalStrikes === 1 ? '' : 's'}` : 'Clean Record' %>
+                            </span>
+                        </div>
                     </div>
-                    <div>
-                        <p>Pending LOA Requests: <%= pendingLoaTotal %></p>
+
+                    <div class="account-stat-card">
+                        <span class="material-symbols-outlined account-stat-icon">flight_takeoff</span>
+                        <div class="account-stat-info">
+                            <span class="account-stat-label">Your Active LOAs</span>
+                            <span class="account-stat-val">
+                                <%= pendingLoaCount > 0 ? `${pendingLoaCount} Pending Request` : 'None Active' %>
+                            </span>
+                        </div>
                     </div>
                 </div>
-                <div class="dashboard-actions">
-                    <button class="action-button action-button-primary" type="button" onclick="window.location.href='/reports'">
-                        <span class="material-symbols-outlined" aria-hidden="true">summarize</span>
-                        Generate Weekly Report
-                    </button>
-                </div>
-            </section>
-            <% } %>
 
+                <!-- 2-Column Responsive Dashboard Grid -->
+                <div class="dashboard-grid">
+                    <!-- Left Column: Community Noticeboard / Announcements -->
+                    <div class="dashboard-column">
+                        <div class="dashboard-announcements-card">
+                            <div class="account-card-header">
+                                <h3 class="account-card-title">
+                                    <span class="material-symbols-outlined">campaign</span>
+                                    <span>Staff Announcements</span>
+                                </h3>
+                                <span class="account-badge"><%= announcements ? announcements.length : 0 %> Active</span>
+                            </div>
+
+                            <% if (!announcements || announcements.length === 0) { %>
+                            <div style="background: #1a1917; border: 1px solid #383734; border-radius: 6px; padding: 24px; text-align: center; color: #8e897e;">
+                                <span class="material-symbols-outlined" style="font-size: 2.2em; color: #6f6a60;" aria-hidden="true">notifications_paused</span>
+                                <p style="margin: 8px 0 0; font-weight: bold; color: #d0cdc5;">No active announcements</p>
+                                <span style="font-size: 0.85em;">Important team updates will appear here when posted by management.</span>
+                            </div>
+                            <% } else { %>
+                            <div class="dashboard-announcements-list">
+                                <% announcements.forEach(function(item) { %>
+                                <div class="dashboard-announcement-item <%= item.pinned ? 'is-pinned' : '' %>">
+                                    <div class="dashboard-announcement-top">
+                                        <div class="dashboard-announcement-author">
+                                            <span class="material-symbols-outlined">account_circle</span>
+                                            <span><%= item.createdByName %></span>
+                                            <% if (item.pinned) { %>
+                                            <span class="settings-badge" style="background:#f59e0b22;color:#fbbf24;border:1px solid #f59e0b44;padding:2px 6px;font-size:0.7em;">📌 PINNED</span>
+                                            <% } %>
+                                        </div>
+                                        <span class="dashboard-announcement-date">
+                                            <%= (item.createdAt || '').slice(0, 10) %>
+                                            <% if (item.expiresAt) { %>
+                                            · <span style="color:#f59e0b;">Expires <%= item.expiresAt %></span>
+                                            <% } %>
+                                        </span>
+                                    </div>
+
+                                    <p class="dashboard-announcement-body"><%= item.content %></p>
+
+                                    <% if (isManager) { %>
+                                    <div class="dashboard-announcement-footer">
+                                        <span style="font-size:0.75em;color:#8e897e;">Management Actions:</span>
+                                        <div class="dashboard-announcement-actions">
+                                            <form action="/announcements/<%= item._id %>/pin" method="POST" style="margin:0;">
+                                                <input type="hidden" name="pinned" value="<%= item.pinned ? 'false' : 'true' %>">
+                                                <button type="submit" class="settings-btn settings-btn-secondary settings-btn-sm">
+                                                    <span class="material-symbols-outlined" style="font-size:1em;"><%= item.pinned ? 'keep_off' : 'push_pin' %></span>
+                                                    <span><%= item.pinned ? 'Unpin' : 'Pin' %></span>
+                                                </button>
+                                            </form>
+                                            <form action="/announcements/<%= item._id %>/delete" method="POST" onsubmit="return confirm('Remove this announcement?');" style="margin:0;">
+                                                <button type="submit" class="settings-btn settings-btn-danger settings-btn-sm">
+                                                    <span class="material-symbols-outlined" style="font-size:1em;">delete</span>
+                                                    <span>Remove</span>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                    <% } %>
+                                </div>
+                                <% }); %>
+                            </div>
+                            <% } %>
+
+                            <!-- Manager Post Announcement Accordion -->
+                            <% if (isManager) { %>
+                            <details class="settings-accordion" style="margin-top: 6px;">
+                                <summary>
+                                    <span class="material-symbols-outlined">add_comment</span>
+                                    <span>Post New Team Announcement</span>
+                                </summary>
+                                <div class="settings-accordion-content">
+                                    <form class="account-form" action="/announcements" method="POST">
+                                        <div class="settings-form-group" style="margin-bottom: 0;">
+                                            <label for="announcementContent">Announcement Message</label>
+                                            <textarea id="announcementContent" name="content" class="settings-textarea" rows="3" maxlength="1000" placeholder="Write an update for the team..." required></textarea>
+                                        </div>
+
+                                        <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;">
+                                            <div class="settings-form-group" style="flex:1;min-width:180px;margin-bottom:0;">
+                                                <label for="announcementExpiry">Expiry Date (Optional)</label>
+                                                <input type="date" id="announcementExpiry" name="expiresAt" class="settings-input">
+                                            </div>
+
+                                            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:18px;">
+                                                <input type="checkbox" name="pinned" value="true" style="width:18px;height:18px;accent-color:#B7B2A7;">
+                                                <span style="font-weight:bold;color:#f3efe6;font-size:0.9em;">📌 Pin to Top</span>
+                                            </label>
+                                        </div>
+
+                                        <div style="display:flex;justify-content:flex-start;">
+                                            <button type="submit" class="settings-btn settings-btn-primary">
+                                                <span class="material-symbols-outlined">send</span>
+                                                <span>Publish Announcement</span>
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </details>
+                            <% } %>
+                        </div>
+                    </div>
+
+                    <!-- Right Column: Quick Navigation & Resource Hub -->
+                    <div class="dashboard-column">
+                        <div class="account-card">
+                            <div class="account-card-header">
+                                <h3 class="account-card-title">
+                                    <span class="material-symbols-outlined">explore</span>
+                                    <span>Quick Shortcuts & Portals</span>
+                                </h3>
+                            </div>
+
+                            <div class="dashboard-shortcuts-grid">
+                                <a href="/roster" class="dashboard-shortcut-btn">
+                                    <div class="dashboard-shortcut-icon">
+                                        <span class="material-symbols-outlined">table_chart</span>
+                                    </div>
+                                    <div class="dashboard-shortcut-info">
+                                        <span class="dashboard-shortcut-title">Staff Roster</span>
+                                        <span class="dashboard-shortcut-desc">View team & houses</span>
+                                    </div>
+                                </a>
+
+                                <a href="/bingo" class="dashboard-shortcut-btn">
+                                    <div class="dashboard-shortcut-icon">
+                                        <span class="material-symbols-outlined">grid_view</span>
+                                    </div>
+                                    <div class="dashboard-shortcut-info">
+                                        <span class="dashboard-shortcut-title">Staff Bingo</span>
+                                        <span class="dashboard-shortcut-desc">Weekly task board</span>
+                                    </div>
+                                </a>
+
+                                <a href="/loa" class="dashboard-shortcut-btn">
+                                    <div class="dashboard-shortcut-icon">
+                                        <span class="material-symbols-outlined">flight_takeoff</span>
+                                    </div>
+                                    <div class="dashboard-shortcut-info">
+                                        <span class="dashboard-shortcut-title">LOA Portal</span>
+                                        <span class="dashboard-shortcut-desc">Request leave time</span>
+                                    </div>
+                                </a>
+
+                                <a href="/feedback" class="dashboard-shortcut-btn">
+                                    <div class="dashboard-shortcut-icon">
+                                        <span class="material-symbols-outlined">chat_bubble</span>
+                                    </div>
+                                    <div class="dashboard-shortcut-info">
+                                        <span class="dashboard-shortcut-title">Feedback</span>
+                                        <span class="dashboard-shortcut-desc">Submit suggestions</span>
+                                    </div>
+                                </a>
+
+                                <a href="/staff-guidelines" class="dashboard-shortcut-btn">
+                                    <div class="dashboard-shortcut-icon">
+                                        <span class="material-symbols-outlined">menu_book</span>
+                                    </div>
+                                    <div class="dashboard-shortcut-info">
+                                        <span class="dashboard-shortcut-title">Staff Guidelines</span>
+                                        <span class="dashboard-shortcut-desc">Rules & expectations</span>
+                                    </div>
+                                </a>
+
+                                <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender' || userType === 'Dreamy Defender' || userIsDeveloper) { %>
+                                <a href="/higher-guidelines" class="dashboard-shortcut-btn">
+                                    <div class="dashboard-shortcut-icon">
+                                        <span class="material-symbols-outlined">policy</span>
+                                    </div>
+                                    <div class="dashboard-shortcut-info">
+                                        <span class="dashboard-shortcut-title">Higher Guidelines</span>
+                                        <span class="dashboard-shortcut-desc">Management rules</span>
+                                    </div>
+                                </a>
+                                <% } else { %>
+                                <a href="/account" class="dashboard-shortcut-btn">
+                                    <div class="dashboard-shortcut-icon">
+                                        <span class="material-symbols-outlined">badge</span>
+                                    </div>
+                                    <div class="dashboard-shortcut-info">
+                                        <span class="dashboard-shortcut-title">Profile Settings</span>
+                                        <span class="dashboard-shortcut-desc">Manage your account</span>
+                                    </div>
+                                </a>
+                                <% } %>
+                            </div>
+                        </div>
+
+                        <!-- Training & Community Status Card -->
+                        <div class="account-card">
+                            <div class="account-card-header">
+                                <h3 class="account-card-title">
+                                    <span class="material-symbols-outlined">school</span>
+                                    <span>Staff Readiness & Training</span>
+                                </h3>
+                            </div>
+
+                            <div class="account-checklist" style="margin-top:0;">
+                                <div class="account-check-item <%= user && user.onboardingComplete ? 'is-done' : 'is-pending' %>">
+                                    <span class="material-symbols-outlined" style="font-size: 1.2em; background: transparent; color: inherit; padding: 0;">
+                                        <%= user && user.onboardingComplete ? 'check_circle' : 'pending' %>
+                                    </span>
+                                    <span>Onboarding <%= user && user.onboardingComplete ? 'Complete' : 'Pending' %></span>
+                                </div>
+                                <div class="account-check-item <%= user && user.hostTrainingComplete ? 'is-done' : 'is-pending' %>">
+                                    <span class="material-symbols-outlined" style="font-size: 1.2em; background: transparent; color: inherit; padding: 0;">
+                                        <%= user && user.hostTrainingComplete ? 'check_circle' : 'pending' %>
+                                    </span>
+                                    <span>Host Training <%= user && user.hostTrainingComplete ? 'Complete' : 'Pending' %></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Management Operations Section (Only for Management Roles / Gods / Developers) -->
+                <% if (isManager && staffSummary) { %>
+                <div class="dashboard-ops-card">
+                    <div class="account-card-header">
+                        <div style="display:flex;align-items:center;gap:10px;">
+                            <span class="material-symbols-outlined" style="background:#1a1917;color:#fbbf24;padding:6px;border-radius:6px;">admin_panel_settings</span>
+                            <div>
+                                <h3 class="account-card-title" style="margin:0;">Management Operations Center</h3>
+                                <p style="margin:2px 0 0;font-size:0.85em;color:#8e897e;">Overview of team health, applications, pending leaves, and weekly actions.</p>
+                            </div>
+                        </div>
+                        <span class="settings-badge badge-neutral"><%= staffSummary.total %> Total Staff</span>
+                    </div>
+
+                    <!-- Management Action Widgets -->
+                    <div class="dashboard-ops-widgets">
+                        <a href="/loa" class="dashboard-ops-widget">
+                            <div class="dashboard-ops-widget-left">
+                                <span class="material-symbols-outlined dashboard-ops-widget-icon" style="color:#60a5fa;">flight_takeoff</span>
+                                <div class="dashboard-ops-widget-info">
+                                    <span class="dashboard-ops-widget-title">Pending LOAs</span>
+                                    <span class="dashboard-ops-widget-sub">Review Leave Requests</span>
+                                </div>
+                            </div>
+                            <span class="dashboard-ops-widget-badge" style="color:<%= pendingLoaTotal > 0 ? '#fbbf24' : '#8e897e' %>;">
+                                <%= pendingLoaTotal %>
+                            </span>
+                        </a>
+
+                        <a href="/applications" class="dashboard-ops-widget">
+                            <div class="dashboard-ops-widget-left">
+                                <span class="material-symbols-outlined dashboard-ops-widget-icon" style="color:#a78bfa;">description</span>
+                                <div class="dashboard-ops-widget-info">
+                                    <span class="dashboard-ops-widget-title">Applications</span>
+                                    <span class="dashboard-ops-widget-sub">Google Form Submissions</span>
+                                </div>
+                            </div>
+                            <span class="dashboard-ops-widget-badge" style="color:<%= (typeof pendingAppsTotal !== 'undefined' && pendingAppsTotal > 0) ? '#a78bfa' : '#8e897e' %>;">
+                                <%= typeof pendingAppsTotal !== 'undefined' ? pendingAppsTotal : 0 %>
+                            </span>
+                        </a>
+
+                        <a href="/feedback" class="dashboard-ops-widget">
+                            <div class="dashboard-ops-widget-left">
+                                <span class="material-symbols-outlined dashboard-ops-widget-icon" style="color:#34d399;">rate_review</span>
+                                <div class="dashboard-ops-widget-info">
+                                    <span class="dashboard-ops-widget-title">Staff Feedback</span>
+                                    <span class="dashboard-ops-widget-sub">Unreviewed Responses</span>
+                                </div>
+                            </div>
+                            <span class="dashboard-ops-widget-badge" style="color:<%= (typeof newFeedbackTotal !== 'undefined' && newFeedbackTotal > 0) ? '#34d399' : '#8e897e' %>;">
+                                <%= typeof newFeedbackTotal !== 'undefined' ? newFeedbackTotal : 0 %>
+                            </span>
+                        </a>
+
+                        <a href="/audit-log" class="dashboard-ops-widget">
+                            <div class="dashboard-ops-widget-left">
+                                <span class="material-symbols-outlined dashboard-ops-widget-icon" style="color:#f3efe6;">receipt_long</span>
+                                <div class="dashboard-ops-widget-info">
+                                    <span class="dashboard-ops-widget-title">Audit Log</span>
+                                    <span class="dashboard-ops-widget-sub">Recent Manager Actions</span>
+                                </div>
+                            </div>
+                            <span class="material-symbols-outlined" style="color:#8e897e;background:transparent;">chevron_right</span>
+                        </a>
+                    </div>
+
+                    <!-- Staff Distribution Stats -->
+                    <div>
+                        <span class="account-info-label" style="display:block;margin-bottom:10px;">Staff Roster Distribution</span>
+                        <div class="settings-stats-bar" style="margin-top:0;">
+                            <div class="settings-stat-item">
+                                <span class="material-symbols-outlined settings-stat-icon" style="color:#34d399;">person_check</span>
+                                <div class="settings-stat-info">
+                                    <span class="settings-stat-label">Active Staff</span>
+                                    <span class="settings-stat-val" style="color:#34d399;"><%= staffSummary.active %></span>
+                                </div>
+                            </div>
+
+                            <div class="settings-stat-item">
+                                <span class="material-symbols-outlined settings-stat-icon" style="color:#fbbf24;">timelapse</span>
+                                <div class="settings-stat-info">
+                                    <span class="settings-stat-label">Semi-Active</span>
+                                    <span class="settings-stat-val" style="color:#fbbf24;"><%= staffSummary.semiActive %></span>
+                                </div>
+                            </div>
+
+                            <div class="settings-stat-item">
+                                <span class="material-symbols-outlined settings-stat-icon" style="color:#60a5fa;">flight</span>
+                                <div class="settings-stat-info">
+                                    <span class="settings-stat-label">On LOA</span>
+                                    <span class="settings-stat-val" style="color:#60a5fa;"><%= staffSummary.loa %></span>
+                                </div>
+                            </div>
+
+                            <div class="settings-stat-item">
+                                <span class="material-symbols-outlined settings-stat-icon" style="color:#f87171;">person_off</span>
+                                <div class="settings-stat-info">
+                                    <span class="settings-stat-label">Inactive Staff</span>
+                                    <span class="settings-stat-val" style="color:#f87171;"><%= staffSummary.inactive %></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Management Actions Bar -->
+                    <div style="display:flex;gap:12px;flex-wrap:wrap;padding-top:12px;border-top:1px solid #383734;">
+                        <a href="/reports" class="action-button action-button-primary">
+                            <span class="material-symbols-outlined" aria-hidden="true">summarize</span>
+                            <span>Generate Weekly Report</span>
+                        </a>
+                        <a href="/roster-planner" class="action-button action-button-secondary">
+                            <span class="material-symbols-outlined" aria-hidden="true">calendar_view_week</span>
+                            <span>Roster Planner</span>
+                        </a>
+                        <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userIsDeveloper) { %>
+                        <a href="/settings" class="action-button action-button-secondary">
+                            <span class="material-symbols-outlined" aria-hidden="true">settings</span>
+                            <span>Portal Settings</span>
+                        </a>
+                        <% } %>
+                    </div>
+                </div>
+                <% } %>
+            </section>
         </main>
         <div class="footer">
             <p>&copy; 2026 Drowsy Vocals | All rights reserved.</p>
         </div>
-        <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const greetingSpan = document.getElementById('time-greeting');
-            const currentHour = new Date().getHours();
-            let greeting = 'Hello'; // Default greeting
 
-            if (currentHour < 5) {
-                greeting = 'Whoa, early bird';
-            } else if (currentHour < 12) {
-                greeting = 'Good morning';
-            } else if (currentHour < 18) {
-                greeting = 'Good afternoon';
-            } else {
-                greeting = 'Good evening';
-            }
-            greetingSpan.textContent = greeting;
-        });
-    </script>
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                const greetingSpan = document.getElementById('time-greeting');
+                if (!greetingSpan) return;
+                const currentHour = new Date().getHours();
+                let greeting = 'Welcome';
+
+                if (currentHour < 5) {
+                    greeting = 'Whoa, early bird';
+                } else if (currentHour < 12) {
+                    greeting = 'Good morning';
+                } else if (currentHour < 18) {
+                    greeting = 'Good afternoon';
+                } else {
+                    greeting = 'Good evening';
+                }
+                greetingSpan.textContent = greeting;
+            });
+        </script>
     </body>
 </html>
