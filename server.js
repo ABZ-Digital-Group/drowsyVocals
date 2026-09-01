@@ -1691,9 +1691,10 @@ app.get('/bot', requireDatabase, async (req, res) => {
     }
 
     try {
-        const [botLiveState, settings] = await Promise.all([
+        const [botLiveState, settings, allUsers] = await Promise.all([
             getBotLiveState(),
-            getSettings()
+            getSettings(),
+            db.collection('users').find({}, { projection: { displayName: 1, discordUser: 1, accountType: 1, house: 1, 'login.discordId': 1 } }).toArray()
         ]);
 
         const botEnv = parseBotEnv(BOT_ENV_FILE);
@@ -1717,6 +1718,7 @@ app.get('/bot', requireDatabase, async (req, res) => {
             obsAds,
             allowedInvites: Array.isArray(allowedInvites) ? allowedInvites : (allowedInvites?.users || []),
             guildConfigs,
+            users: allUsers.sort((a, b) => (a.displayName || a.discordUser || '').localeCompare(b.displayName || b.discordUser || '')),
             settings
         });
     } catch (error) {
@@ -1998,6 +2000,133 @@ app.post('/bot/config', requireDatabase, async (req, res) => {
     res.redirect('/bot#config');
 });
 
+// WEB STAGE CONTROLLER ACTIONS (BOT API FORWARDER)
+async function sendBotApiPost(pathname, bodyParams = {}) {
+    const env = parseBotEnv(BOT_ENV_FILE);
+    const port = env.OBS_HTTP_PORT || 8080;
+    const host = env.OBS_HTTP_HOST === '0.0.0.0' ? '127.0.0.1' : (env.OBS_HTTP_HOST || '127.0.0.1');
+    const url = `http://${host}:${port}${pathname}`;
+
+    try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 2000);
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams(bodyParams).toString(),
+            signal: controller.signal
+        });
+        clearTimeout(timeout);
+        if (res.ok) {
+            return await res.json();
+        }
+    } catch (e) {
+        console.error(`Bot API error on ${pathname}:`, e.message);
+    }
+    return null;
+}
+
+// ADVANCE TO NEXT SINGER
+app.post('/bot/stage/next', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !hasGodAccess(req)) return res.redirect('/dashboard');
+    const result = await sendBotApiPost('/admin/api/stage/next', { guildId: req.body.guildId, channelId: req.body.channelId });
+    if (result?.ok) {
+        req.flash('success_msg', `Advanced to next performer${result.result?.currentSpeaker ? ` (<@${result.result.currentSpeaker}>)` : ' (Open Mic)'}.`);
+    } else {
+        req.flash('error_msg', 'Failed to advance stage queue. Is the bot running?');
+    }
+    res.redirect('/bot#stage-queue');
+});
+
+// TOGGLE INTERMISSION RADIO
+app.post('/bot/stage/radio', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !hasGodAccess(req)) return res.redirect('/dashboard');
+    const result = await sendBotApiPost('/admin/api/stage/radio', { guildId: req.body.guildId, channelId: req.body.channelId });
+    if (result?.ok) {
+        req.flash('success_msg', `Intermission radio ${result.result?.status === 'started' ? 'STARTED' : 'STOPPED'}.`);
+    } else {
+        req.flash('error_msg', 'Failed to toggle radio.');
+    }
+    res.redirect('/bot#stage-queue');
+});
+
+// TOGGLE QUEUE JOIN PERMISSION
+app.post('/bot/stage/join-toggle', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !hasGodAccess(req)) return res.redirect('/dashboard');
+    const acceptingJoins = req.body.acceptingJoins === 'true';
+    const result = await sendBotApiPost('/admin/api/stage/join-toggle', { guildId: req.body.guildId, channelId: req.body.channelId, acceptingJoins });
+    if (result?.ok) {
+        req.flash('success_msg', `Queue is now ${acceptingJoins ? 'OPEN for new singers' : 'CLOSED to new joins'}.`);
+    } else {
+        req.flash('error_msg', 'Failed to update queue state.');
+    }
+    res.redirect('/bot#stage-queue');
+});
+
+// REMOVE USER FROM QUEUE
+app.post('/bot/stage/remove-user', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !hasGodAccess(req)) return res.redirect('/dashboard');
+    const result = await sendBotApiPost('/admin/api/stage/remove-user', { guildId: req.body.guildId, channelId: req.body.channelId, userId: req.body.userId });
+    if (result?.ok) {
+        req.flash('success_msg', `Removed user from stage queue.`);
+    } else {
+        req.flash('error_msg', 'Failed to remove user from queue.');
+    }
+    res.redirect('/bot#stage-queue');
+});
+
+// TRIGGER DISCORD ROLE & NICKNAME SYNC FOR A USER OR ALL USERS
+app.post('/bot/sync-member', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !hasGodAccess(req)) return res.redirect('/dashboard');
+
+    const { discordId } = req.body;
+
+    try {
+        let targets = [];
+        if (discordId === 'ALL') {
+            targets = await db.collection('users').find({}, { projection: { displayName: 1, accountType: 1, house: 1, 'login.discordId': 1 } }).toArray();
+        } else if (discordId) {
+            const single = await db.collection('users').findOne({ 'login.discordId': discordId }, { projection: { displayName: 1, accountType: 1, house: 1, 'login.discordId': 1 } });
+            if (single) targets = [single];
+        }
+
+        if (targets.length === 0) {
+            req.flash('error_msg', 'No valid target users to sync.');
+            return res.redirect('/bot#rolesync');
+        }
+
+        let syncedCount = 0;
+        let errors = [];
+
+        for (const user of targets) {
+            const resp = await sendBotApiPost('/admin/api/sync-member', {
+                discordId: user.login.discordId,
+                displayName: user.displayName,
+                rank: user.accountType,
+                house: user.house
+            });
+            if (resp?.ok) {
+                syncedCount++;
+            } else if (resp?.error) {
+                errors.push(`${user.displayName || user.login.discordId}: ${resp.error}`);
+            }
+        }
+
+        await writeAudit(req, 'Triggered Discord Role & Nickname Sync', `${syncedCount} of ${targets.length} members synchronized`);
+
+        if (syncedCount > 0) {
+            req.flash('success_msg', `Synchronized Discord roles and nicknames for ${syncedCount} member(s).${errors.length ? ` (${errors.length} failed)` : ''}`);
+        } else {
+            req.flash('error_msg', `Sync failed. Ensure DrowsyBot is online and has "Manage Roles" and "Manage Nicknames" permissions.`);
+        }
+    } catch (e) {
+        console.error('Error during role sync:', e);
+        req.flash('error_msg', 'Encountered an error while synchronizing Discord roles.');
+    }
+
+    res.redirect('/bot#rolesync');
+});
+
 // USER LOGIN (WITH BRUTE-FORCE RATE LIMITING & SESSION REGENERATION)
 app.post('/login', requireDatabase, async (req, res) => {
     const clientIp = req.ip || req.connection?.remoteAddress || 'unknown';
@@ -2090,6 +2219,133 @@ app.get('/logout', (req, res) => {
         res.clearCookie('connect.sid');
         res.redirect('/');
     });
+});
+
+// HOUSE POINTS & COMPETITION LEADERBOARD
+app.get('/house-points', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin) return res.redirect('/');
+
+    try {
+        const [settings, users, pointsLog] = await Promise.all([
+            getSettings(),
+            db.collection('users').find({}, { projection: { 'login.password': 0 } }).toArray(),
+            db.collection('housePointsLog').find().sort({ createdAt: -1 }).limit(30).toArray()
+        ]);
+
+        const houseColorMap = Object.fromEntries((settings?.houses || []).map(h => [h.name, h.color]));
+
+        // Calculate House Standings
+        const houseStats = {};
+        (settings?.houses || []).forEach(h => {
+            houseStats[h.name] = { name: h.name, color: h.color, totalPoints: 0, memberCount: 0 };
+        });
+
+        users.forEach(u => {
+            if (u.house) {
+                if (!houseStats[u.house]) {
+                    houseStats[u.house] = { name: u.house, color: houseColorMap[u.house] || '#888', totalPoints: 0, memberCount: 0 };
+                }
+                houseStats[u.house].totalPoints += Number(u.housePoints) || 0;
+                houseStats[u.house].memberCount += 1;
+            }
+        });
+
+        const houseStandings = Object.values(houseStats).sort((a, b) => b.totalPoints - a.totalPoints);
+
+        // Top 15 Individual Staff Members
+        const topUsers = users
+            .slice()
+            .sort((a, b) => (Number(b.housePoints) || 0) - (Number(a.housePoints) || 0))
+            .slice(0, 15);
+
+        const isManager = hasManagementAccess(req);
+
+        res.render('pages/house-points', {
+            page: 'house-points',
+            houseStandings,
+            topUsers,
+            users: users.sort((a, b) => (a.displayName || a.discordUser || '').localeCompare(b.displayName || b.discordUser || '')),
+            pointsLog,
+            houseColorMap,
+            isManager
+        });
+    } catch (error) {
+        console.error('Error loading house points:', error);
+        res.status(500).send('Error loading house points.');
+    }
+});
+
+// AWARD OR DEDUCT HOUSE POINTS (MANAGEMENT ONLY)
+app.post('/house-points/award', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !hasManagementAccess(req)) {
+        req.flash('error_msg', 'You are not authorized to award house points.');
+        return res.redirect('/house-points');
+    }
+
+    const { discordId, amount, reason } = req.body;
+    const cleanDiscordId = (discordId || '').toString().trim();
+    const cleanAmount = Number(amount);
+    const cleanReason = (reason || '').toString().trim();
+
+    if (!cleanDiscordId || !Number.isFinite(cleanAmount) || !cleanReason) {
+        req.flash('error_msg', 'Staff member, valid point amount, and reason are required.');
+        return res.redirect('/house-points');
+    }
+
+    try {
+        const targetUser = await db.collection('users').findOne({ 'login.discordId': cleanDiscordId });
+        if (!targetUser) {
+            req.flash('error_msg', 'Target staff member not found.');
+            return res.redirect('/house-points');
+        }
+
+        const currentPoints = Number(targetUser.housePoints) || 0;
+        const newPoints = Math.max(0, currentPoints + cleanAmount);
+
+        await db.collection('users').updateOne(
+            { 'login.discordId': cleanDiscordId },
+            { $set: { housePoints: newPoints } }
+        );
+
+        const actor = await db.collection('users').findOne(
+            { 'login.discordId': req.session.currentuser },
+            { projection: { displayName: 1, discordUser: 1 } }
+        );
+
+        const logEntry = {
+            recipientId: cleanDiscordId,
+            recipientName: targetUser.displayName || targetUser.discordUser || cleanDiscordId,
+            recipientHouse: targetUser.house || null,
+            amount: cleanAmount,
+            reason: cleanReason,
+            actorId: req.session.currentuser,
+            actorName: actor?.displayName || actor?.discordUser || req.session.currentuser,
+            createdAt: new Date().toISOString()
+        };
+
+        await db.collection('housePointsLog').insertOne(logEntry);
+        await writeAudit(req, 'Awarded House Points', `${cleanAmount >= 0 ? '+' : ''}${cleanAmount} pts to ${logEntry.recipientName} (${cleanReason})`);
+
+        sendDiscordWebhook({
+            title: cleanAmount >= 0 ? '🏆 House Points Awarded!' : '⚠️ House Points Deducted',
+            color: cleanAmount >= 0 ? 0xFBBF24 : 0xEF4444,
+            fields: [
+                { name: 'Staff Member', value: `${logEntry.recipientName} (<@${cleanDiscordId}>)`, inline: true },
+                { name: 'House', value: targetUser.house || 'None', inline: true },
+                { name: 'Change', value: `${cleanAmount >= 0 ? '+' : ''}${cleanAmount} Pts (Total: ${newPoints})`, inline: true },
+                { name: 'Reason', value: cleanReason },
+                { name: 'Awarded By', value: `<@${req.session.currentuser}>` }
+            ]
+        }, 'feedback');
+
+        broadcastDataUpdate('users');
+        req.flash('success_msg', `Recorded point change of ${cleanAmount >= 0 ? '+' : ''}${cleanAmount} pts for ${logEntry.recipientName}.`);
+        res.redirect('/house-points');
+    } catch (error) {
+        console.error('Error awarding points:', error);
+        req.flash('error_msg', 'Failed to update points.');
+        res.redirect('/house-points');
+    }
 });
 
 // DASHBOARD
