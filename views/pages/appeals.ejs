@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <%- include('../partials/head') %>
+        <title>Strike Appeals - Drowsy Vocals</title>
+    </head>
+    <body>
+        <header>
+            <%- include('../partials/nav') %>
+        </header>
+        <main>
+            <section class="profile-page">
+                <div class="profile-heading">
+                    <p class="profile-eyebrow">Management Portal</p>
+                    <h1>Staff Strike Appeals</h1>
+                    <p class="profile-subtitle">Review written explanations from staff members seeking strike reconsideration or removal.</p>
+                </div>
+
+                <!-- Flash Message Alerts -->
+                <% if (typeof success_msg !== 'undefined' && success_msg && success_msg.length) { %>
+                <div class="settings-alert is-success" style="margin-bottom: 24px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span class="material-symbols-outlined" style="background: transparent; color: #10b981;">check_circle</span>
+                        <span><%= success_msg %></span>
+                    </div>
+                    <button type="button" onclick="this.parentElement.remove()" style="background:none;border:none;color:inherit;cursor:pointer;font-weight:bold;">&times;</button>
+                </div>
+                <% } %>
+                <% if (typeof error_msg !== 'undefined' && error_msg && error_msg.length) { %>
+                <div class="settings-alert is-error" style="margin-bottom: 24px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span class="material-symbols-outlined" style="background: transparent; color: #ef4444;">error</span>
+                        <span><%= error_msg %></span>
+                    </div>
+                    <button type="button" onclick="this.parentElement.remove()" style="background:none;border:none;color:inherit;cursor:pointer;font-weight:bold;">&times;</button>
+                </div>
+                <% } %>
+
+                <!-- Stats Overview -->
+                <div class="applications-stats" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:24px;">
+                    <div style="background:#242320;color:#B7B2A7;padding:12px 18px;border-radius:6px;flex:1;min-width:140px;text-align:center;border:1px solid #383734;">
+                        <span style="font-size:0.8em;text-transform:uppercase;color:#888;font-weight:bold;">Total Appeals</span>
+                        <h2 style="margin:4px 0 0;font-size:1.6em;color:#f3efe6;"><%= appeals.length %></h2>
+                    </div>
+                    <div style="background:#242320;color:#fbbf24;padding:12px 18px;border-radius:6px;flex:1;min-width:140px;text-align:center;border:1px solid #383734;">
+                        <span style="font-size:0.8em;text-transform:uppercase;color:#888;font-weight:bold;">Pending Review</span>
+                        <h2 style="margin:4px 0 0;font-size:1.6em;color:#fbbf24;"><%= appeals.filter(a => a.status === 'Pending').length %></h2>
+                    </div>
+                    <div style="background:#242320;color:#34d399;padding:12px 18px;border-radius:6px;flex:1;min-width:140px;text-align:center;border:1px solid #383734;">
+                        <span style="font-size:0.8em;text-transform:uppercase;color:#888;font-weight:bold;">Accepted / Removed</span>
+                        <h2 style="margin:4px 0 0;font-size:1.6em;color:#34d399;"><%= appeals.filter(a => a.status === 'Approved').length %></h2>
+                    </div>
+                    <div style="background:#242320;color:#f87171;padding:12px 18px;border-radius:6px;flex:1;min-width:140px;text-align:center;border:1px solid #383734;">
+                        <span style="font-size:0.8em;text-transform:uppercase;color:#888;font-weight:bold;">Denied / Upheld</span>
+                        <h2 style="margin:4px 0 0;font-size:1.6em;color:#f87171;"><%= appeals.filter(a => a.status === 'Denied').length %></h2>
+                    </div>
+                </div>
+
+                <!-- Appeals List -->
+                <% if (!appeals || appeals.length === 0) { %>
+                <div style="background: #242320; color: #B7B2A7; padding: 40px 20px; border-radius: 8px; text-align: center; border: 1px solid #383734;">
+                    <span class="material-symbols-outlined" style="font-size: 3em; color: #6f6a60;" aria-hidden="true">gavel</span>
+                    <h3 style="margin: 10px 0 4px; color: #f3efe6;">No Strike Appeals On File</h3>
+                    <p style="margin: 0; color: #888; font-size: 0.9em;">When staff members appeal an active strike from their profile, it will appear here for management decision.</p>
+                </div>
+                <% } else { %>
+                <div style="display: flex; flex-direction: column; gap: 16px;">
+                    <% appeals.forEach(function(appeal) { %>
+                    <div class="application-card" style="background:#242320;border-radius:8px;padding:22px;border-left:4px solid <%= appeal.status === 'Approved' ? '#10B981' : appeal.status === 'Denied' ? '#EF4444' : '#F59E0B' %>;border-top:1px solid #383734;border-right:1px solid #383734;border-bottom:1px solid #383734;">
+                        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:16px;border-bottom:1px solid #333;padding-bottom:12px;">
+                            <div>
+                                <h2 style="margin:0;font-size:1.3em;color:#f3efe6;">
+                                    <%= appeal.applicantName %> (<%= appeal.applicantDiscordId %>)
+                                </h2>
+                                <span style="color:#888;font-size:0.85em;">Submitted: <%= (appeal.submittedAt || '').slice(0, 16).replace('T', ' ') %></span>
+                            </div>
+                            <span class="settings-badge <%= appeal.status === 'Approved' ? 'badge-success' : appeal.status === 'Denied' ? 'badge-danger' : 'badge-neutral' %>" style="font-size:0.85em;">
+                                <%= appeal.status === 'Approved' ? '✅ Overturned & Removed' : appeal.status === 'Denied' ? '❌ Strike Upheld' : '⏳ Pending Review' %>
+                            </span>
+                        </div>
+
+                        <!-- Strike Details vs Appeal Explanation Grid -->
+                        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(300px, 1fr));gap:14px;margin-bottom:16px;">
+                            <div style="background:#1a1917;padding:14px;border-radius:6px;border:1px solid #383734;">
+                                <strong style="display:block;color:#f87171;font-size:0.85em;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">⚠️ Original Strike Details</strong>
+                                <p style="margin:0 0 4px;color:#f3efe6;font-size:0.95em;"><strong>Count:</strong> <%= appeal.strikeCount %> Strike(s)</p>
+                                <p style="margin:0 0 4px;color:#f3efe6;font-size:0.95em;"><strong>Reason:</strong> <%= appeal.strikeReason %></p>
+                                <span style="font-size:0.8em;color:#8e897e;">Issued Date: <%= (appeal.strikeDate || '').slice(0, 10) %></span>
+                            </div>
+
+                            <div style="background:#1a1917;padding:14px;border-radius:6px;border:1px solid #383734;">
+                                <strong style="display:block;color:#60a5fa;font-size:0.85em;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">💬 Staff Member's Appeal Statement</strong>
+                                <p style="margin:0;color:#f3efe6;font-size:0.95em;white-space:pre-wrap;line-height:1.5;"><%= appeal.explanation %></p>
+                            </div>
+                        </div>
+
+                        <% if (appeal.status === 'Pending') { %>
+                        <form action="/appeals/<%= appeal._id %>/decision" method="POST" style="background:#1a1917;padding:16px;border-radius:6px;border:1px solid #383734;">
+                            <div class="settings-form-group" style="margin-bottom:12px;">
+                                <label for="managerNote_<%= appeal._id %>" style="color:#d0cdc5;font-size:0.85em;font-weight:bold;">Management Decision Notes (Logged in Discord & Audit)</label>
+                                <textarea id="managerNote_<%= appeal._id %>" name="managerNote" class="settings-textarea" rows="2" placeholder="Explain the rationale for this decision..."></textarea>
+                            </div>
+
+                            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                                <button type="submit" name="decision" value="Approved" class="settings-btn settings-btn-primary" onclick="return confirm('Accept this appeal and remove the strike from <%= appeal.applicantName %>?');">
+                                    <span class="material-symbols-outlined">check_circle</span>
+                                    <span>Accept Appeal & Remove Strike</span>
+                                </button>
+                                <button type="submit" name="decision" value="Denied" class="settings-btn settings-btn-danger" onclick="return confirm('Reject this appeal and uphold the strike?');">
+                                    <span class="material-symbols-outlined">cancel</span>
+                                    <span>Reject Appeal & Uphold Strike</span>
+                                </button>
+                            </div>
+                        </form>
+                        <% } else { %>
+                        <div style="background:#1a1917;padding:12px 14px;border-radius:6px;border-left:3px solid <%= appeal.status === 'Approved' ? '#10B981' : '#EF4444' %>;">
+                            <strong style="color:<%= appeal.status === 'Approved' ? '#10B981' : '#EF4444' %>;font-size:0.85em;display:block;margin-bottom:2px;">
+                                Review Decision by <%= appeal.reviewedBy || 'Manager' %> (<%= (appeal.reviewedAt || '').slice(0, 16).replace('T', ' ') %>):
+                            </strong>
+                            <p style="margin:0;color:#cfcac0;font-size:0.9em;"><%= appeal.managerNote || 'No review notes recorded.' %></p>
+                        </div>
+                        <% } %>
+                    </div>
+                    <% }); %>
+                </div>
+                <% } %>
+            </section>
+        </main>
+        <div class="footer">
+            <p>&copy; 2026 Drowsy Vocals | All rights reserved.</p>
+        </div>
+    </body>
+</html>

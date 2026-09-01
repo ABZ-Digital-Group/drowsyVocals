@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <%- include('../partials/head') %>
+        <title>Events Schedule - Drowsy Vocals</title>
+    </head>
+    <body>
+        <header>
+            <%- include('../partials/nav') %>
+        </header>
+        <main>
+            <section class="settings-page">
+                <!-- Header -->
+                <div class="settings-header">
+                    <div class="settings-header-top">
+                        <div>
+                            <p class="profile-eyebrow">Community & Programming</p>
+                            <h1 style="margin: 0; font-size: 2.4em; color: #242320;">Events Schedule & Calendar</h1>
+                            <p class="profile-subtitle">Upcoming karaoke sessions, stage events, staff meetings, and community activities.</p>
+                        </div>
+                    </div>
+
+                    <!-- Quick Stats -->
+                    <div class="settings-stats-bar">
+                        <div class="settings-stat-item">
+                            <span class="material-symbols-outlined settings-stat-icon" style="color: #60a5fa;">event</span>
+                            <div class="settings-stat-info">
+                                <span class="settings-stat-label">Upcoming Events</span>
+                                <span class="settings-stat-val" style="color: #60a5fa;"><%= upcomingEvents.length %> Scheduled</span>
+                            </div>
+                        </div>
+
+                        <div class="settings-stat-item">
+                            <span class="material-symbols-outlined settings-stat-icon" style="color: #34d399;">mic</span>
+                            <div class="settings-stat-info">
+                                <span class="settings-stat-label">Karaoke Nights</span>
+                                <span class="settings-stat-val"><%= upcomingEvents.filter(e => e.category === 'Karaoke').length %> Planned</span>
+                            </div>
+                        </div>
+
+                        <div class="settings-stat-item">
+                            <span class="material-symbols-outlined settings-stat-icon" style="color: #a78bfa;">groups</span>
+                            <div class="settings-stat-info">
+                                <span class="settings-stat-label">Team Meetings</span>
+                                <span class="settings-stat-val"><%= upcomingEvents.filter(e => e.category === 'Staff Meeting').length %> Planned</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Flash Message Alerts -->
+                <% if (typeof success_msg !== 'undefined' && success_msg && success_msg.length) { %>
+                <div class="settings-alert is-success" style="margin-bottom: 24px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span class="material-symbols-outlined" style="background: transparent; color: #10b981;">check_circle</span>
+                        <span><%= success_msg %></span>
+                    </div>
+                    <button type="button" onclick="this.parentElement.remove()" style="background:none;border:none;color:inherit;cursor:pointer;font-weight:bold;">&times;</button>
+                </div>
+                <% } %>
+                <% if (typeof error_msg !== 'undefined' && error_msg && error_msg.length) { %>
+                <div class="settings-alert is-error" style="margin-bottom: 24px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span class="material-symbols-outlined" style="background: transparent; color: #ef4444;">error</span>
+                        <span><%= error_msg %></span>
+                    </div>
+                    <button type="button" onclick="this.parentElement.remove()" style="background:none;border:none;color:inherit;cursor:pointer;font-weight:bold;">&times;</button>
+                </div>
+                <% } %>
+
+                <div class="account-grid">
+                    <!-- Left Column: Upcoming Events List -->
+                    <div class="account-column">
+                        <div class="account-card">
+                            <div class="account-card-header">
+                                <h3 class="account-card-title">
+                                    <span class="material-symbols-outlined">event_available</span>
+                                    <span>Upcoming Community Events</span>
+                                </h3>
+                                <span class="account-badge"><%= upcomingEvents.length %> Upcoming</span>
+                            </div>
+
+                            <% if (!upcomingEvents || upcomingEvents.length === 0) { %>
+                            <div style="background: #1a1917; border: 1px solid #383734; border-radius: 6px; padding: 36px 16px; text-align: center; color: #8e897e;">
+                                <span class="material-symbols-outlined" style="font-size: 2.8em; color: #6f6a60;" aria-hidden="true">event_busy</span>
+                                <h4 style="margin: 8px 0 4px; color: #f3efe6;">No Upcoming Events Scheduled</h4>
+                                <p style="margin: 0; font-size: 0.85em;">Check back soon or schedule a new community event using the manager form.</p>
+                            </div>
+                            <% } else { %>
+                            <div style="display: flex; flex-direction: column; gap: 14px;">
+                                <% upcomingEvents.forEach(function(event) { %>
+                                <div style="background: #1a1917; border: 1px solid #383734; border-left: 4px solid <%= event.category === 'Karaoke' ? '#60a5fa' : event.category === 'Staff Meeting' ? '#fbbf24' : '#a78bfa' %>; border-radius: 6px; padding: 18px; display: flex; flex-direction: column; gap: 10px;">
+                                    <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px;">
+                                        <div>
+                                            <div style="display: flex; align-items: center; gap: 8px;">
+                                                <span class="settings-badge" style="background:#242320;border:1px solid #444;font-size:0.75em;"><%= event.category || 'Event' %></span>
+                                                <h4 style="margin: 0; font-size: 1.2em; color: #f3efe6;"><%= event.title %></h4>
+                                            </div>
+                                            <span style="font-size: 0.8em; color: #8e897e; margin-top: 4px; display: block;">
+                                                📍 <%= event.location || 'Discord Stage' %> · Hosted by <%= event.createdBy %>
+                                            </span>
+                                        </div>
+
+                                        <div style="text-align: right;">
+                                            <span style="font-size: 1em; font-weight: bold; color: #fbbf24; display: block;">
+                                                <%= new Date(event.scheduledStartTime).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) %>
+                                            </span>
+                                            <% if (event.scheduledEndTime) { %>
+                                            <small style="color: #8e897e;">until <%= new Date(event.scheduledEndTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) %></small>
+                                            <% } %>
+                                        </div>
+                                    </div>
+
+                                    <% if (event.description) { %>
+                                    <p style="margin: 0; color: #d0cdc5; font-size: 0.9em; line-height: 1.5; white-space: pre-wrap;"><%= event.description %></p>
+                                    <% } %>
+
+                                    <% if (isManager) { %>
+                                    <div style="display: flex; justify-content: flex-end; border-top: 1px solid #282724; padding-top: 8px;">
+                                        <form action="/events/<%= event.id || event._id %>/delete" method="POST" onsubmit="return confirm('Remove event <%= event.title %>?');" style="margin: 0;">
+                                            <button type="submit" class="settings-btn settings-btn-danger settings-btn-sm">
+                                                <span class="material-symbols-outlined">delete</span>
+                                                <span>Delete Event</span>
+                                            </button>
+                                        </form>
+                                    </div>
+                                    <% } %>
+                                </div>
+                                <% }); %>
+                            </div>
+                            <% } %>
+                        </div>
+
+                        <!-- Past Events Archive -->
+                        <% if (pastEvents && pastEvents.length > 0) { %>
+                        <details class="settings-accordion">
+                            <summary>
+                                <span class="material-symbols-outlined">history</span>
+                                <span>Past Events Archive (<%= pastEvents.length %> Events)</span>
+                            </summary>
+                            <div class="settings-accordion-content">
+                                <div style="display: flex; flex-direction: column; gap: 8px;">
+                                    <% pastEvents.slice(0, 10).forEach(function(event) { %>
+                                    <div style="background: #111; padding: 10px 14px; border-radius: 4px; border: 1px solid #333; display: flex; justify-content: space-between; align-items: center;">
+                                        <div>
+                                            <strong style="color: #d0cdc5;"><%= event.title %></strong>
+                                            <span style="font-size: 0.75em; color: #8e897e; display: block;"><%= (event.scheduledStartTime || '').slice(0, 10) %> · <%= event.category %></span>
+                                        </div>
+                                        <span class="settings-badge badge-neutral" style="font-size: 0.75em;">Concluded</span>
+                                    </div>
+                                    <% }); %>
+                                </div>
+                            </div>
+                        </details>
+                        <% } %>
+                    </div>
+
+                    <!-- Right Column: Schedule New Event (Manager Only) -->
+                    <div class="account-column">
+                        <% if (isManager) { %>
+                        <div class="account-card">
+                            <div class="account-card-header">
+                                <h3 class="account-card-title">
+                                    <span class="material-symbols-outlined">add_circle</span>
+                                    <span>Schedule New Event</span>
+                                </h3>
+                                <span class="account-badge">Manager Tool</span>
+                            </div>
+
+                            <form class="account-form" action="/events/create" method="POST">
+                                <div class="settings-form-group" style="margin-bottom: 0;">
+                                    <label for="eventTitle">Event Title</label>
+                                    <input type="text" id="eventTitle" name="title" class="settings-input" placeholder="e.g. Friday Night Karaoke Special" required>
+                                </div>
+
+                                <div class="settings-form-group" style="margin-bottom: 0;">
+                                    <label for="eventCategory">Category</label>
+                                    <select id="eventCategory" name="category" class="settings-input" required>
+                                        <option value="Karaoke">🎤 Karaoke / Singing</option>
+                                        <option value="Staff Meeting">👥 Weekly Staff Meeting</option>
+                                        <option value="Game Night">🎮 Community Game Night</option>
+                                        <option value="Training">🎓 Staff Workshop & Training</option>
+                                        <option value="Special Event">✨ Special Celebration / Gala</option>
+                                    </select>
+                                </div>
+
+                                <div class="settings-form-group" style="margin-bottom: 0;">
+                                    <label for="eventLocation">Voice Channel / Location</label>
+                                    <input type="text" id="eventLocation" name="location" class="settings-input" value="Discord Stage" placeholder="e.g. Discord Stage, Main Lounge" required>
+                                </div>
+
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                    <div class="settings-form-group" style="margin-bottom: 0;">
+                                        <label for="eventStartDate">Start Date</label>
+                                        <input type="date" id="eventStartDate" name="startDate" class="settings-input" required>
+                                    </div>
+                                    <div class="settings-form-group" style="margin-bottom: 0;">
+                                        <label for="eventStartTime">Start Time</label>
+                                        <input type="time" id="eventStartTime" name="startTime" class="settings-input" required>
+                                    </div>
+                                </div>
+
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                    <div class="settings-form-group" style="margin-bottom: 0;">
+                                        <label for="eventEndDate">End Date (Optional)</label>
+                                        <input type="date" id="eventEndDate" name="endDate" class="settings-input">
+                                    </div>
+                                    <div class="settings-form-group" style="margin-bottom: 0;">
+                                        <label for="eventEndTime">End Time (Optional)</label>
+                                        <input type="time" id="eventEndTime" name="endTime" class="settings-input">
+                                    </div>
+                                </div>
+
+                                <div class="settings-form-group" style="margin-bottom: 0;">
+                                    <label for="eventDesc">Description / Rules</label>
+                                    <textarea id="eventDesc" name="description" class="settings-textarea" rows="3" placeholder="Explain the theme, guidelines, and what users can expect..."></textarea>
+                                </div>
+
+                                <button type="submit" class="account-btn account-btn-primary">
+                                    <span class="material-symbols-outlined">event_upcoming</span>
+                                    <span>Publish & Announce Event</span>
+                                </button>
+                            </form>
+                        </div>
+                        <% } else { %>
+                        <div class="account-card">
+                            <div class="account-card-header">
+                                <h3 class="account-card-title">
+                                    <span class="material-symbols-outlined">info</span>
+                                    <span>Event Participation Guide</span>
+                                </h3>
+                            </div>
+                            <p style="margin: 0; color: #d0cdc5; font-size: 0.9em; line-height: 1.6;">
+                                Join the specified voice/stage channel on Discord when the event starts. Stage events allow you to join the queue with <code>!join</code> or using the button on the control room embed.
+                            </p>
+                        </div>
+                        <% } %>
+                    </div>
+                </div>
+            </section>
+        </main>
+        <div class="footer">
+            <p>&copy; 2026 Drowsy Vocals | All rights reserved.</p>
+        </div>
+    </body>
+</html>

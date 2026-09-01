@@ -303,6 +303,8 @@ async function sendDiscordWebhook(embed, eventType = null) {
         if (eventType === 'strikes' && webhookConfig.notifyStrikes === false) return;
         if (eventType === 'feedback' && webhookConfig.notifyFeedback === false) return;
         if (eventType === 'applications' && webhookConfig.notifyApplications === false) return;
+        if (eventType === 'appeals' && webhookConfig.notifyStrikes === false) return;
+        if (eventType === 'events' && webhookConfig.notifyFeedback === false) return;
 
         const payload = JSON.stringify({
             username: 'Drowsy Vocals Management',
@@ -1082,10 +1084,173 @@ app.post('/remove-strike', requireDatabase, async (req, res) => {
             { 'login.discordId': discordId },
             { $pull: { strikes: { id: strikeId } } }
         );
+        await writeAudit(req, 'Removed Strike', `Removed strike ${strikeId} from ${discordId}`);
+        req.flash('success_msg', 'Strike removed.');
         res.redirect('/roster');
     } catch (error) {
         console.error('Error removing strike:', error);
+        req.flash('error_msg', 'Unable to remove strike.');
         res.redirect('/roster');
+    }
+});
+
+// SUBMIT STRIKE APPEAL (STAFF MEMBER ONLY)
+app.post('/account/appeal-strike', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin) return res.redirect('/');
+
+    const { strikeId, reason } = req.body;
+    const cleanReason = (reason || '').toString().trim();
+
+    if (!strikeId || !cleanReason || cleanReason.length < 10) {
+        req.flash('error_msg', 'Please provide a detailed explanation of at least 10 characters for your appeal.');
+        return res.redirect('/account');
+    }
+
+    try {
+        const user = await db.collection('users').findOne({ 'login.discordId': req.session.currentuser });
+        const strike = (user?.strikes || []).find(s => s.id === strikeId);
+
+        if (!strike) {
+            req.flash('error_msg', 'Strike not found on your record.');
+            return res.redirect('/account');
+        }
+
+        const appealObj = {
+            id: crypto.randomUUID(),
+            strikeId,
+            strikeReason: strike.reason,
+            strikeCount: strike.count,
+            strikeDate: strike.date,
+            applicantDiscordId: req.session.currentuser,
+            applicantName: user.displayName || user.discordUser || req.session.currentuser,
+            explanation: cleanReason,
+            status: 'Pending',
+            submittedAt: new Date().toISOString()
+        };
+
+        await db.collection('strikeAppeals').insertOne(appealObj);
+
+        // Stamp strike with appeal pending
+        await db.collection('users').updateOne(
+            { 'login.discordId': req.session.currentuser, 'strikes.id': strikeId },
+            { $set: { 'strikes.$.appealStatus': 'Pending' } }
+        );
+
+        sendDiscordWebhook({
+            title: '⚖️ New Strike Appeal Submitted',
+            color: 0x3B82F6,
+            fields: [
+                { name: 'Staff Member', value: `${appealObj.applicantName} (<@${req.session.currentuser}>)`, inline: true },
+                { name: 'Original Strike', value: `${strike.count} Strike(s) - ${strike.reason}`, inline: true },
+                { name: 'Appeal Statement', value: cleanReason }
+            ]
+        }, 'appeals');
+
+        await writeAudit(req, 'Submitted Strike Appeal', `Appeal submitted for strike: ${strike.reason}`);
+        req.flash('success_msg', 'Your appeal has been submitted for management review.');
+        res.redirect('/account');
+    } catch (e) {
+        console.error('Error submitting strike appeal:', e);
+        req.flash('error_msg', 'Failed to submit appeal.');
+        res.redirect('/account');
+    }
+});
+
+// VIEW STRIKE APPEALS (MANAGEMENT ONLY)
+app.get('/appeals', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin) return res.redirect('/');
+
+    if (!hasManagementAccess(req)) {
+        req.flash('error_msg', 'You are not authorized to review strike appeals.');
+        return res.redirect('/dashboard');
+    }
+
+    try {
+        const [appeals, users] = await Promise.all([
+            db.collection('strikeAppeals').find().sort({ submittedAt: -1 }).toArray(),
+            db.collection('users').find({}, { projection: { displayName: 1, discordUser: 1, 'login.discordId': 1 } }).toArray()
+        ]);
+
+        res.render('pages/appeals', {
+            page: 'appeals',
+            appeals
+        });
+    } catch (error) {
+        console.error('Error loading appeals:', error);
+        res.status(500).send('Error loading appeals.');
+    }
+});
+
+// DECIDE ON STRIKE APPEAL (ACCEPT & REMOVE STRIKE, OR REJECT/UPHOLD)
+app.post('/appeals/:appealId/decision', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !hasManagementAccess(req)) {
+        req.flash('error_msg', 'Unauthorized.');
+        return res.redirect('/dashboard');
+    }
+
+    const { appealId } = req.params;
+    const { decision, managerNote } = req.body;
+    const allowedDecisions = ['Approved', 'Denied'];
+
+    if (!ObjectId.isValid(appealId) || !allowedDecisions.includes(decision)) {
+        req.flash('error_msg', 'Invalid appeal decision.');
+        return res.redirect('/appeals');
+    }
+
+    try {
+        const appeal = await db.collection('strikeAppeals').findOne({ _id: new ObjectId(appealId) });
+        if (!appeal) {
+            req.flash('error_msg', 'Appeal record not found.');
+            return res.redirect('/appeals');
+        }
+
+        const reviewedAt = new Date().toISOString();
+        const reviewerId = req.session.currentuser;
+
+        await db.collection('strikeAppeals').updateOne(
+            { _id: new ObjectId(appealId) },
+            {
+                $set: {
+                    status: decision,
+                    managerNote: (managerNote || '').toString().trim(),
+                    reviewedBy: reviewerId,
+                    reviewedAt
+                }
+            }
+        );
+
+        if (decision === 'Approved') {
+            // Remove the strike from the user
+            await db.collection('users').updateOne(
+                { 'login.discordId': appeal.applicantDiscordId },
+                { $pull: { strikes: { id: appeal.strikeId } } }
+            );
+        } else {
+            // Update strike appealStatus to Denied
+            await db.collection('users').updateOne(
+                { 'login.discordId': appeal.applicantDiscordId, 'strikes.id': appeal.strikeId },
+                { $set: { 'strikes.$.appealStatus': 'Denied' } }
+            );
+        }
+
+        sendDiscordWebhook({
+            title: decision === 'Approved' ? '✅ Strike Appeal Accepted' : '❌ Strike Appeal Denied',
+            color: decision === 'Approved' ? 0x10B981 : 0xEF4444,
+            fields: [
+                { name: 'Staff Member', value: `${appeal.applicantName} (<@${appeal.applicantDiscordId}>)`, inline: true },
+                { name: 'Decision', value: decision === 'Approved' ? 'Strike Overturned & Removed' : 'Strike Upheld', inline: true },
+                { name: 'Reviewed By', value: `<@${reviewerId}>`, inline: true },
+                { name: 'Manager Note', value: managerNote || 'No notes provided.' }
+            ]
+        }, 'appeals');
+
+        await writeAudit(req, 'Decided Strike Appeal', `${decision} for ${appeal.applicantName} (Strike: ${appeal.strikeReason})`);
+        req.flash('success_msg', `Appeal decision recorded: ${decision}.`);
+        res.redirect('/appeals');
+    } catch (e) {
+        console.error('Error deciding strike appeal:', e);
+        req.flash('error_msg', 'Failed to record appeal decision.');
+        res.redirect('/appeals');
     }
 });
 
@@ -2739,6 +2904,133 @@ app.get('/audit-log', requireDatabase, async (req, res) => {
     }
 });
 
+// ==========================================================================
+// EVENT SCHEDULER & DISCORD EVENT MANAGEMENT
+// ==========================================================================
+
+// VIEW EVENTS SCHEDULE
+app.get('/events', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin) return res.redirect('/');
+
+    try {
+        const events = await db.collection('scheduledEvents')
+            .find()
+            .sort({ scheduledStartTime: 1 })
+            .toArray();
+
+        const upcomingEvents = events.filter(e => new Date(e.scheduledEndTime || e.scheduledStartTime) >= new Date());
+        const pastEvents = events.filter(e => new Date(e.scheduledEndTime || e.scheduledStartTime) < new Date()).reverse();
+
+        const isManager = hasManagementAccess(req);
+
+        res.render('pages/events', {
+            page: 'events',
+            upcomingEvents,
+            pastEvents,
+            isManager
+        });
+    } catch (error) {
+        console.error('Error loading events:', error);
+        res.status(500).send('Error loading events.');
+    }
+});
+
+// CREATE SCHEDULED EVENT (MANAGEMENT ONLY)
+app.post('/events/create', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !hasManagementAccess(req)) {
+        req.flash('error_msg', 'You are not authorized to create events.');
+        return res.redirect('/events');
+    }
+
+    const {
+        title,
+        description,
+        startDate,
+        startTime,
+        endDate,
+        endTime,
+        location,
+        category
+    } = req.body;
+
+    const cleanTitle = (title || '').toString().trim();
+    const cleanDesc = (description || '').toString().trim();
+    const cleanLocation = (location || 'Discord Stage').toString().trim();
+
+    if (!cleanTitle || !startDate || !startTime) {
+        req.flash('error_msg', 'Event title, start date, and start time are required.');
+        return res.redirect('/events');
+    }
+
+    const scheduledStartTime = new Date(`${startDate}T${startTime}`).toISOString();
+    const scheduledEndTime = (endDate && endTime) ? new Date(`${endDate}T${endTime}`).toISOString() : null;
+
+    try {
+        const newEvent = {
+            id: crypto.randomUUID(),
+            title: cleanTitle,
+            description: cleanDesc,
+            category: (category || 'Karaoke').toString(),
+            location: cleanLocation,
+            scheduledStartTime,
+            scheduledEndTime,
+            createdBy: req.session.currentuser,
+            createdAt: new Date().toISOString()
+        };
+
+        await db.collection('scheduledEvents').insertOne(newEvent);
+        await writeAudit(req, 'Scheduled Event', `${cleanTitle} on ${startDate} at ${startTime}`);
+
+        // Broadcast to Discord Webhook
+        sendDiscordWebhook({
+            title: `📅 New Event Scheduled: ${cleanTitle}`,
+            color: 0x8B5CF6,
+            fields: [
+                { name: 'Category', value: newEvent.category, inline: true },
+                { name: 'Location', value: cleanLocation, inline: true },
+                { name: 'Start Time', value: `<t:${Math.floor(new Date(scheduledStartTime).getTime() / 1000)}:F>`, inline: false },
+                { name: 'Description', value: cleanDesc || 'No additional details provided.' },
+                { name: 'Host / Organizer', value: `<@${req.session.currentuser}>` }
+            ]
+        }, 'events');
+
+        req.flash('success_msg', `Event "${cleanTitle}" scheduled successfully.`);
+        res.redirect('/events');
+    } catch (e) {
+        console.error('Error scheduling event:', e);
+        req.flash('error_msg', 'Failed to schedule event.');
+        res.redirect('/events');
+    }
+});
+
+// DELETE SCHEDULED EVENT (MANAGEMENT ONLY)
+app.post('/events/:eventId/delete', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !hasManagementAccess(req)) {
+        req.flash('error_msg', 'Unauthorized.');
+        return res.redirect('/events');
+    }
+
+    const { eventId } = req.params;
+
+    try {
+        const deleted = await db.collection('scheduledEvents').findOneAndDelete({
+            $or: [{ id: eventId }, { _id: ObjectId.isValid(eventId) ? new ObjectId(eventId) : null }]
+        });
+
+        if (deleted) {
+            await writeAudit(req, 'Deleted Scheduled Event', deleted.title || eventId);
+            req.flash('success_msg', 'Event removed from schedule.');
+        } else {
+            req.flash('error_msg', 'Event not found.');
+        }
+    } catch (e) {
+        console.error('Error deleting event:', e);
+        req.flash('error_msg', 'Failed to delete event.');
+    }
+
+    res.redirect('/events');
+});
+
 // LOA
 app.get('/loa', requireDatabase, async (req, res) => {
     if (!req.session.loggedin) return res.redirect('/');
@@ -2895,6 +3187,49 @@ app.post('/review-loa', requireDatabase, async (req, res) => {
         res.redirect('/loa');
     }
 });
+
+// AUTOMATED LOA EXPIRY & AUTO-RETURN CRON TASK
+async function processExpiredLoas() {
+    if (!isDatabaseReady || !db) return;
+
+    try {
+        const todayStr = new Date().toISOString().slice(0, 10);
+        // Find users currently on LOA whose approved LOAs have an endDate < today
+        const usersOnLoa = await db.collection('users').find({
+            activity: 'LOA',
+            'loaRequests.status': 'Approved'
+        }).toArray();
+
+        for (const user of usersOnLoa) {
+            const activeLoas = (user.loaRequests || []).filter(r => r.status === 'Approved' && r.endDate >= todayStr);
+            // If they have no active/future approved LOAs remaining, auto-return them to Active
+            if (activeLoas.length === 0) {
+                await db.collection('users').updateOne(
+                    { 'login.discordId': user.login.discordId },
+                    { $set: { activity: 'Active' } }
+                );
+
+                const userName = user.displayName || user.discordUser || user.login.discordId;
+                await writeAudit({ session: { currentuser: 'SYSTEM' } }, 'Auto-Ended LOA', `${userName} (${user.login.discordId}) returned to Active (LOA concluded)`);
+
+                sendDiscordWebhook({
+                    title: '👋 Staff Member Returned from LOA',
+                    color: 0x10B981,
+                    fields: [
+                        { name: 'Staff Member', value: `${userName} (<@${user.login.discordId}>)`, inline: true },
+                        { name: 'Status', value: 'Returned to Active', inline: true },
+                        { name: 'Notice', value: 'Scheduled LOA period has concluded.' }
+                    ]
+                }, 'loa');
+            }
+        }
+    } catch (e) {
+        console.error('Error processing expired LOAs:', e.message);
+    }
+}
+
+// Check for expired LOAs once on startup and every 30 minutes
+setInterval(processExpiredLoas, 30 * 60 * 1000);
 
 // VIEW ALL STAFF APPLICATIONS
 app.get('/applications', requireDatabase, async (req, res) => {

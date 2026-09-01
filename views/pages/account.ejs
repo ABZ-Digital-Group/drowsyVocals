@@ -261,9 +261,33 @@
                                     <div class="account-strike-card">
                                         <div class="account-strike-top">
                                             <span class="account-strike-count">⚠️ <%= strike.count %> Strike<%= strike.count > 1 ? 's' : '' %></span>
-                                            <span class="account-strike-date"><%= (strike.date || '').slice(0, 10) %></span>
+                                            <div style="display:flex;align-items:center;gap:8px;">
+                                                <% if (strike.appealStatus === 'Pending') { %>
+                                                <span class="settings-badge badge-neutral" style="font-size:0.7em;">Appeal Pending</span>
+                                                <% } else if (strike.appealStatus === 'Denied') { %>
+                                                <span class="settings-badge badge-danger" style="font-size:0.7em;">Appeal Denied</span>
+                                                <% } %>
+                                                <span class="account-strike-date"><%= (strike.date || '').slice(0, 10) %></span>
+                                            </div>
                                         </div>
                                         <p class="account-strike-reason"><%= strike.reason %></p>
+
+                                        <% if (!strike.appealStatus) { %>
+                                        <details class="settings-accordion" style="margin-top:8px;padding:8px 12px;">
+                                            <summary style="font-size:0.85em;color:#60a5fa;">
+                                                <span class="material-symbols-outlined" style="font-size:1.1em;">gavel</span>
+                                                <span>Appeal This Strike</span>
+                                            </summary>
+                                            <form action="/account/appeal-strike" method="POST" style="margin-top:10px;display:flex;flex-direction:column;gap:8px;">
+                                                <input type="hidden" name="strikeId" value="<%= strike.id %>">
+                                                <textarea name="reason" class="settings-textarea" rows="2" placeholder="Explain circumstances or reasons why this strike should be reconsidered..." minlength="10" required style="font-size:0.85em;min-height:60px;"></textarea>
+                                                <button type="submit" class="settings-btn settings-btn-primary settings-btn-sm" style="align-self:flex-start;">
+                                                    <span class="material-symbols-outlined">send</span>
+                                                    <span>Submit Appeal</span>
+                                                </button>
+                                            </form>
+                                        </details>
+                                        <% } %>
                                     </div>
                                     <% }); %>
                                 </div>
