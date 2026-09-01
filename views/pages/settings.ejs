@@ -16,6 +16,22 @@
                     <p class="profile-subtitle">Manage the rank, house, shift, and activity options used across the roster forms.</p>
                 </div>
                 <div class="profile-details">
+                    <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userIsDeveloper) { %>
+                    <div class="profile-detail-full">
+                        <span>Maintenance Mode</span>
+                        <p class="settings-hint">When active, only Realm Gods, Mr. Sandman, and Developers can access the site. All other users and visitors will see the maintenance screen.</p>
+                        <form class="login-form-actions settings-add-form" action="/settings/maintenance" method="POST">
+                            <div class="maintenance-toggle-row">
+                                <input type="checkbox" id="maintenanceEnabled" name="enabled" value="true" <%= settings.maintenance?.enabled ? 'checked' : '' %>>
+                                <label for="maintenanceEnabled">Enable Maintenance Mode</label>
+                            </div>
+                            <label for="maintenanceMessage">Public Notice Message:</label>
+                            <textarea id="maintenanceMessage" name="message" rows="3" style="width: 100%; border-radius: 4px; padding: 8px; background: #1a1917; color: #B7B2A7; border: 1px solid #444;"><%= settings.maintenance?.message || 'The website is currently undergoing scheduled maintenance. Please check back soon.' %></textarea>
+                            <button type="submit" style="margin-top: 10px;">Save Maintenance Settings</button>
+                        </form>
+                    </div>
+                    <% } %>
+
                     <div class="profile-detail-full">
                         <span>Developer Access</span>
                         <p class="settings-hint">Developer access is separate from account type and includes God-level site permissions.</p>

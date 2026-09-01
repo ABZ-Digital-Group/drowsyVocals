@@ -1487,6 +1487,108 @@ dialog button {
     text-align: center;
 }
 
+/* MAINTENANCE MODE BANNER & PAGE */
+.maintenance-admin-banner {
+    background-color: #f59e0b;
+    color: #1a1917;
+    font-weight: bold;
+    padding: 8px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 0.9em;
+    border-bottom: 2px solid #d97706;
+}
+.maintenance-admin-banner a {
+    color: #1a1917;
+    text-decoration: underline;
+    margin-left: 6px;
+}
+.maintenance-body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+.maintenance-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    padding: 40px 20px;
+}
+.maintenance-card {
+    background-color: #242320;
+    color: #B7B2A7;
+    border-radius: 12px;
+    padding: 40px;
+    max-width: 540px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+}
+.maintenance-logo {
+    width: 90px;
+    height: auto;
+}
+.maintenance-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background-color: #f59e0b22;
+    color: #f59e0b;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.85em;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.maintenance-card h1 {
+    margin: 0;
+    font-size: 1.8em;
+    color: #f3efe6;
+}
+.maintenance-message {
+    font-size: 1.05em;
+    line-height: 1.6;
+    color: #cfcac0;
+    margin: 0;
+}
+.maintenance-actions {
+    margin-top: 10px;
+}
+.maintenance-btn {
+    display: inline-block;
+    padding: 10px 22px;
+    background-color: #B7B2A7;
+    color: #242320;
+    text-decoration: none;
+    font-weight: bold;
+    border-radius: 6px;
+    transition: transform 0.15s ease, opacity 0.15s ease;
+}
+.maintenance-btn:hover {
+    transform: translateY(-2px);
+    opacity: 0.9;
+}
+.maintenance-toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 12px 0;
+}
+.maintenance-toggle-row label {
+    font-size: 1.05em;
+    font-weight: bold;
+    cursor: pointer;
+}
+
 
 
 
