@@ -376,12 +376,12 @@ const SETTINGS_CATEGORIES = ['ranks', 'houses', 'shifts', 'activities'];
 
 const DEFAULT_SETTINGS = {
     ranks: [
-        { name: 'Mr. Sandman', order: 0, capacity: null },
-        { name: 'Realm God', order: 1, capacity: null },
-        { name: 'Drowsy Defender', order: 2, capacity: null },
-        { name: 'Dreamland Guard', order: 3, capacity: null },
-        { name: 'Nighty Knights', order: 4, capacity: null },
-        { name: 'Tired Esquire', order: 5, capacity: null }
+        { name: 'Mr. Sandman', order: 0, capacity: null, minDaysInGrade: null },
+        { name: 'Realm God', order: 1, capacity: null, minDaysInGrade: null },
+        { name: 'Drowsy Defender', order: 2, capacity: null, minDaysInGrade: null },
+        { name: 'Dreamland Guard', order: 3, capacity: null, minDaysInGrade: 45 },
+        { name: 'Nighty Knights', order: 4, capacity: null, minDaysInGrade: 30 },
+        { name: 'Tired Esquire', order: 5, capacity: null, minDaysInGrade: 14 }
     ],
     houses: [
         { name: 'Stubo United', color: '#B29EFA' },
@@ -410,6 +410,10 @@ const DEFAULT_SETTINGS = {
         notifyFeedback: true,
         notifyApplications: true,
         applicationsSecret: 'drowsy-apps-secret'
+    },
+    alerts: {
+        inactivityDaysThreshold: 14,
+        inactivityAttendanceThreshold: 2
     }
 };
 
@@ -434,6 +438,13 @@ function buildColorMap(list) {
 
 // PARSE A RANK CAPACITY INPUT: BLANK MEANS UNLIMITED SLOTS
 function parseCapacity(value) {
+    if (value === undefined || value === null || value === '') return null;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) && parsed >= 0 ? Math.floor(parsed) : null;
+}
+
+// PARSE POSITIVE INTEGER (E.G. MIN DAYS IN GRADE)
+function parsePositiveInt(value) {
     if (value === undefined || value === null || value === '') return null;
     const parsed = Number(value);
     return Number.isFinite(parsed) && parsed >= 0 ? Math.floor(parsed) : null;
@@ -1167,7 +1178,7 @@ app.post('/settings/add-option', requireDatabase, async (req, res) => {
         return res.redirect('/settings');
     }
 
-    const { category, name, color, order, capacity } = req.body;
+    const { category, name, color, order, capacity, minDaysInGrade } = req.body;
     const trimmedName = (name || '').toString().trim();
 
     if (!SETTINGS_CATEGORIES.includes(category) || !trimmedName) {
@@ -1190,6 +1201,7 @@ app.post('/settings/add-option', requireDatabase, async (req, res) => {
             const parsedOrder = Number(order);
             option.order = Number.isFinite(parsedOrder) ? parsedOrder : settings.ranks.length;
             option.capacity = parseCapacity(capacity);
+            option.minDaysInGrade = parsePositiveInt(minDaysInGrade);
         } else {
             option.color = color || '#242320';
         }
@@ -1217,7 +1229,7 @@ app.post('/settings/update-option', requireDatabase, async (req, res) => {
         return res.redirect('/settings');
     }
 
-    const { category, originalName, name, color, order, capacity } = req.body;
+    const { category, originalName, name, color, order, capacity, minDaysInGrade } = req.body;
     const trimmedName = (name || '').toString().trim();
 
     if (!SETTINGS_CATEGORIES.includes(category) || !originalName || !trimmedName) {
@@ -1233,6 +1245,7 @@ app.post('/settings/update-option', requireDatabase, async (req, res) => {
             const parsedOrder = Number(order);
             updateFields[`${category}.$[item].order`] = Number.isFinite(parsedOrder) ? parsedOrder : 0;
             updateFields[`${category}.$[item].capacity`] = parseCapacity(capacity);
+            updateFields[`${category}.$[item].minDaysInGrade`] = parsePositiveInt(minDaysInGrade);
         } else {
             updateFields[`${category}.$[item].color`] = color || '#242320';
         }
@@ -1264,6 +1277,46 @@ app.post('/settings/update-option', requireDatabase, async (req, res) => {
         res.redirect('/settings');
     } catch (error) {
         console.error('Error updating settings option:', error);
+        res.redirect('/settings');
+    }
+});
+
+// UPDATE INACTIVITY & PROMOTION ALERT SETTINGS
+app.post('/settings/alerts', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !hasManagementAccess(req)) {
+        req.flash('error_msg', 'You are not authorized to manage alert settings.');
+        return res.redirect('/settings');
+    }
+
+    const inactivityDays = parsePositiveInt(req.body.inactivityDaysThreshold) ?? 14;
+    const inactivityAttendance = parsePositiveInt(req.body.inactivityAttendanceThreshold) ?? 2;
+
+    try {
+        await db.collection('settings').updateOne(
+            { _id: 'appSettings' },
+            {
+                $set: {
+                    'alerts.inactivityDaysThreshold': inactivityDays,
+                    'alerts.inactivityAttendanceThreshold': inactivityAttendance,
+                    'alerts.updatedAt': new Date().toISOString().slice(0, 19),
+                    'alerts.updatedBy': req.session.currentuser
+                }
+            },
+            { upsert: true }
+        );
+
+        await writeAudit(
+            req,
+            'Updated Alert Thresholds',
+            `Inactivity days: ${inactivityDays}, Missed meetings: ${inactivityAttendance}`
+        );
+
+        broadcastDataUpdate('settings');
+        req.flash('success_msg', 'Alert thresholds updated.');
+        res.redirect('/settings');
+    } catch (error) {
+        console.error('Error updating alert settings:', error);
+        req.flash('error_msg', 'Unable to update alert settings.');
         res.redirect('/settings');
     }
 });
@@ -1946,8 +1999,25 @@ app.post('/api/applications/webhook', requireDatabase, async (req, res) => {
 
         const payload = req.body || {};
         const answers = payload.answers || payload.responses || payload;
-        const applicantName = payload.applicantName || answers['What is your name?'] || answers['Name'] || answers['Discord Name'] || answers['Username'] || 'New Applicant';
-        const discordUser = payload.discordUser || answers['What is your Discord username?'] || answers['Discord Username'] || answers['Discord Tag'] || answers['Discord ID'] || '';
+
+        // Auto-detect applicant name from any common question title or key
+        const findValueByKeywords = (keys, obj) => {
+            if (!obj || typeof obj !== 'object') return '';
+            const entries = Object.entries(obj);
+            for (const [q, val] of entries) {
+                const lowerQ = q.toLowerCase().replace(/[^a-z0-9]/g, '');
+                if (keys.some(k => lowerQ.includes(k))) {
+                    return (Array.isArray(val) ? val.join(', ') : val || '').toString().trim();
+                }
+            }
+            return '';
+        };
+
+        const detectedName = findValueByKeywords(['whatisyourname', 'yourname', 'realname', 'displayname', 'name', 'applicant', 'nickname'], answers);
+        const detectedDiscord = findValueByKeywords(['discorduser', 'discordtag', 'discordid', 'discordname', 'discordhandle', 'discord'], answers);
+
+        const applicantName = payload.applicantName || detectedName || Object.values(answers)[0] || 'New Applicant';
+        const discordUser = payload.discordUser || detectedDiscord || '';
 
         const newApplication = {
             applicantName,
@@ -2045,6 +2115,9 @@ app.get('/roster', requireDatabase, async (req, res) => {
         const today = new Date();
         const currentWeek = getWeekStart(today);
 
+        const inactivityDaysThreshold = Number(settings.alerts?.inactivityDaysThreshold) || 14;
+        const inactivityAttendanceThreshold = Number(settings.alerts?.inactivityAttendanceThreshold) || 2;
+
         const usersWithService = users.map((user) => {
             const hire = user.hireDate ? new Date(user.hireDate) : null;
             const validHireDate = hire instanceof Date && !Number.isNaN(hire.valueOf());
@@ -2059,15 +2132,61 @@ app.get('/roster', requireDatabase, async (req, res) => {
                 ? Math.max(0, Math.floor((today - promotion) / msPerDay))
                 : 0;
 
-            const attendanceRecord = (Array.isArray(user.attendance) ? user.attendance : [])
-                .find((record) => record.week === currentWeek);
+            const userRankObj = settings.ranks.find((r) => normalizeRank(r.name) === normalizeRank(user.accountType));
+            const minDaysRequired = Number.isFinite(userRankObj?.minDaysInGrade) && userRankObj.minDaysInGrade > 0
+                ? userRankObj.minDaysInGrade
+                : null;
+            const isPromotionReady = minDaysRequired !== null && daysInGrade >= minDaysRequired;
 
+            const sortedAttendance = (Array.isArray(user.attendance) ? user.attendance : [])
+                .slice()
+                .sort((a, b) => (b.week || '').localeCompare(a.week || ''));
+
+            let consecutiveMissedMeetings = 0;
+            for (const record of sortedAttendance) {
+                if (!record.attended) {
+                    consecutiveMissedMeetings += 1;
+                } else {
+                    break;
+                }
+            }
+
+            let daysSinceSeen = null;
+            if (user.lastSeen) {
+                daysSinceSeen = Math.max(0, Math.floor((today - new Date(user.lastSeen)) / msPerDay));
+            } else if (user.created) {
+                daysSinceSeen = Math.max(0, Math.floor((today - new Date(user.created)) / msPerDay));
+            }
+
+            const attendanceRecord = sortedAttendance.find((record) => record.week === currentWeek);
             const isOnline = Boolean(user.lastSeen) && (today - new Date(user.lastSeen)) < ONLINE_THRESHOLD_MS;
+
+            const isInactiveRisk = user.activity !== 'LOA' && (
+                (daysSinceSeen !== null && daysSinceSeen >= inactivityDaysThreshold) ||
+                consecutiveMissedMeetings >= inactivityAttendanceThreshold
+            );
+
+            let inactivityReason = '';
+            if (isInactiveRisk) {
+                if (daysSinceSeen !== null && daysSinceSeen >= inactivityDaysThreshold && consecutiveMissedMeetings >= inactivityAttendanceThreshold) {
+                    inactivityReason = `Not seen in ${daysSinceSeen}d & missed ${consecutiveMissedMeetings} meetings`;
+                } else if (daysSinceSeen !== null && daysSinceSeen >= inactivityDaysThreshold) {
+                    inactivityReason = `Not seen in ${daysSinceSeen} days`;
+                } else {
+                    inactivityReason = `Missed last ${consecutiveMissedMeetings} meetings`;
+                }
+            }
 
             return {
                 ...user,
                 timeInService: daysInService,
                 timeInGrade: daysInGrade,
+                minDaysRequired,
+                isPromotionReady,
+                daysSinceSeen,
+                consecutiveMissedMeetings,
+                isInactiveRisk,
+                inactivityReason,
                 attendedThisWeek: attendanceRecord ? attendanceRecord.attended : false,
                 isOnline
             };
@@ -2118,6 +2237,9 @@ app.get('/roster', requireDatabase, async (req, res) => {
                 avatarUrl: user.avatarUrl || null
             }));
 
+        const promotionReadyUsers = usersWithService.filter((u) => u.isPromotionReady).length;
+        const inactivityRiskUsers = usersWithService.filter((u) => u.isInactiveRisk).length;
+
         res.render('pages/roster', {
             page: 'roster',
             users: rosterRows,
@@ -2126,6 +2248,8 @@ app.get('/roster', requireDatabase, async (req, res) => {
             inactiveUsers,
             semiActiveUsers,
             loaUsers,
+            promotionReadyUsers,
+            inactivityRiskUsers,
             currentWeek,
             settings,
             houseColorMap,

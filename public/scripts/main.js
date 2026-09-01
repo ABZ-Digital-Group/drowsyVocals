@@ -22,15 +22,32 @@ if (navMenuToggle && primaryNavigation) {
   });
 }
 
-const rosterFilters = ['rosterSearch', 'rosterRankFilter', 'rosterHouseFilter', 'rosterActivityFilter'].map((id) => document.getElementById(id));
-if (rosterFilters.every(Boolean)) {
+const rosterFilters = ['rosterSearch', 'rosterRankFilter', 'rosterHouseFilter', 'rosterActivityFilter', 'rosterAlertFilter'].map((id) => document.getElementById(id));
+if (rosterFilters.slice(0, 4).every(Boolean)) {
   const applyRosterFilters = () => {
-    const [search, rank, house, activity] = rosterFilters.map((field) => field.value.toLowerCase().trim());
+    const search = (document.getElementById('rosterSearch')?.value || '').toLowerCase().trim();
+    const rank = (document.getElementById('rosterRankFilter')?.value || '').toLowerCase().trim();
+    const house = (document.getElementById('rosterHouseFilter')?.value || '').toLowerCase().trim();
+    const activity = (document.getElementById('rosterActivityFilter')?.value || '').toLowerCase().trim();
+    const alertFilter = (document.getElementById('rosterAlertFilter')?.value || '').toLowerCase().trim();
+
     document.querySelectorAll('.roster-user-row').forEach((row) => {
-      row.hidden = Boolean((search && !row.dataset.search.includes(search)) || (rank && row.dataset.rank.toLowerCase() !== rank) || (house && row.dataset.house.toLowerCase() !== house) || (activity && row.dataset.activity.toLowerCase() !== activity));
+      const matchesSearch = !search || row.dataset.search.includes(search);
+      const matchesRank = !rank || row.dataset.rank.toLowerCase() === rank;
+      const matchesHouse = !house || row.dataset.house.toLowerCase() === house;
+      const matchesActivity = !activity || row.dataset.activity.toLowerCase() === activity;
+
+      let matchesAlert = true;
+      if (alertFilter === 'promo') {
+        matchesAlert = Boolean(row.dataset.promotionReady);
+      } else if (alertFilter === 'inactive') {
+        matchesAlert = Boolean(row.dataset.inactiveRisk);
+      }
+
+      row.hidden = !(matchesSearch && matchesRank && matchesHouse && matchesActivity && matchesAlert);
     });
   };
-  rosterFilters.forEach((field) => field.addEventListener('input', applyRosterFilters));
+  rosterFilters.filter(Boolean).forEach((field) => field.addEventListener('input', applyRosterFilters));
 }
 
 document.querySelectorAll('.nav-notifications-trigger, .nav-account-trigger, .nav-guidelines-trigger').forEach((trigger) => {
@@ -269,6 +286,8 @@ if (viewUserPopup && closeViewUserPopup) {
   const viewHireDate = document.getElementById("viewHireDate");
   const viewOnboarding = document.getElementById("viewOnboarding");
   const viewHostTraining = document.getElementById("viewHostTraining");
+  const viewPromotionStatus = document.getElementById("viewPromotionStatus");
+  const viewInactivityStatus = document.getElementById("viewInactivityStatus");
   const viewUserTimeline = document.getElementById("viewUserTimeline");
 
   viewButtons.forEach((button) => {
@@ -286,12 +305,23 @@ if (viewUserPopup && closeViewUserPopup) {
         hireDate,
         avatarUrl,
         onboardingComplete,
-        hostTrainingComplete
-        , lastPromotion
+        hostTrainingComplete,
+        lastPromotion,
+        timeInGrade,
+        minDaysRequired,
+        promotionReady,
+        inactiveRisk,
+        inactivityReason,
+        daysSinceSeen,
+        consecutiveMissed
       } = button.dataset;
 
       if (viewUserTimeline) {
-        const events = [{ date: hireDate, text: 'Joined Drowsy Vocals' }, { date: lastPromotion, text: 'Last promotion' }, { date: '', text: `Current activity: ${activity || 'Not assigned'}` }].filter((event) => event.date || event.text);
+        const events = [
+          { date: hireDate, text: 'Joined Drowsy Vocals' },
+          { date: lastPromotion, text: 'Last promotion' },
+          { date: '', text: `Current activity: ${activity || 'Not assigned'}` }
+        ].filter((event) => event.date || event.text);
         viewUserTimeline.innerHTML = events.map((event) => `<li><strong>${escapeHtml(event.date || 'Current')}</strong> ${escapeHtml(event.text)}</li>`).join('');
       }
 
@@ -311,6 +341,25 @@ if (viewUserPopup && closeViewUserPopup) {
       viewHireDate.textContent = hireDate || "";
       viewOnboarding.textContent = onboardingComplete ? "Complete" : "Pending";
       viewHostTraining.textContent = hostTrainingComplete ? "Complete" : "Pending";
+
+      if (viewPromotionStatus) {
+        if (promotionReady) {
+          viewPromotionStatus.innerHTML = `<span style="color:#10b981;font-weight:bold;">🚀 Ready for promotion (${timeInGrade || 0} / ${minDaysRequired || 0} days in grade)</span>`;
+        } else if (minDaysRequired) {
+          viewPromotionStatus.textContent = `${timeInGrade || 0} / ${minDaysRequired} days in grade required`;
+        } else {
+          viewPromotionStatus.textContent = `${timeInGrade || 0} days in grade (No promotion requirement)`;
+        }
+      }
+
+      if (viewInactivityStatus) {
+        if (inactiveRisk) {
+          viewInactivityStatus.innerHTML = `<span style="color:#ef4444;font-weight:bold;">⚠️ Alert: ${escapeHtml(inactivityReason || 'Inactivity Warning')}</span>`;
+        } else {
+          const seenText = daysSinceSeen ? `Last seen ${daysSinceSeen}d ago` : 'Active / Recently seen';
+          viewInactivityStatus.textContent = `Good standing (${seenText})`;
+        }
+      }
 
       viewUserPopup.showModal();
     });

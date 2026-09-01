@@ -69,6 +69,12 @@
                     <div>
                         <p>Inactive Staff: <%= inactiveUsers %></p>
                     </div>
+                    <div class="roster-stat-promo">
+                        <p>Promo Ready: <strong><%= promotionReadyUsers %></strong> 🚀</p>
+                    </div>
+                    <div class="roster-stat-warning">
+                        <p>Inactive Alerts: <strong><%= inactivityRiskUsers %></strong> ⚠️</p>
+                    </div>
                 </div>
             </section>
             <section class="roster-content">
@@ -77,6 +83,11 @@
                     <select id="rosterRankFilter"><option value="">All ranks</option><% settings.ranks.forEach(function(rank) { %><option value="<%= rank.name %>"><%= rank.name %></option><% }); %></select>
                     <select id="rosterHouseFilter"><option value="">All houses</option><% settings.houses.forEach(function(house) { %><option value="<%= house.name %>"><%= house.name %></option><% }); %></select>
                     <select id="rosterActivityFilter"><option value="">All activity</option><% settings.activities.forEach(function(activity) { %><option value="<%= activity.name %>"><%= activity.name %></option><% }); %></select>
+                    <select id="rosterAlertFilter">
+                        <option value="">All alerts</option>
+                        <option value="promo">Promotion Ready 🚀 (<%= promotionReadyUsers %>)</option>
+                        <option value="inactive">Inactivity Warnings ⚠️ (<%= inactivityRiskUsers %>)</option>
+                    </select>
                 </div>
                 <form id="attendanceForm" action="/mark-attendance" method="POST">
                 <input type="hidden" name="week" value="<%= currentWeek %>">
@@ -129,18 +140,28 @@
                             <% } %>
                         </tr>
                         <% } else { %>
-                        <tr class="roster-user-row" data-rank="<%= user.accountType %>" data-house="<%= user.house %>" data-activity="<%= user.activity %>" data-search="<%= [user.displayName, user.discordUser, user.login.discordId].join(' ').toLowerCase() %>">
+                        <tr class="roster-user-row" data-rank="<%= user.accountType %>" data-house="<%= user.house %>" data-activity="<%= user.activity %>" data-promotion-ready="<%= user.isPromotionReady ? '1' : '' %>" data-inactive-risk="<%= user.isInactiveRisk ? '1' : '' %>" data-search="<%= [user.displayName, user.discordUser, user.login.discordId].join(' ').toLowerCase() %>">
                             <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender') { %>
                             <td><input type="checkbox" name="attendees" value="<%= user.login.discordId %>" <%= user.attendedThisWeek ? 'checked' : '' %>></td>
                             <% } %>
                             <td><%= user.accountType %></td>
-                            <td><%= user.displayName %></td>
+                            <td>
+                                <span><%= user.displayName %></span>
+                                <% if (user.isInactiveRisk) { %>
+                                <span class="badge badge-inactive-risk" title="<%= user.inactivityReason || 'Inactivity Warning' %>">⚠️ Inactive</span>
+                                <% } %>
+                            </td>
                             <td><%= user.discordUser %></td>
                             <td><%= user.login.discordId %></td>
                             <td><%= user.hireDate %></td>
                             <td><%= user.timeInService %></td>
                             <td><%= user.lastPromotion %></td>
-                            <td><%= user.timeInGrade %></td>
+                            <td>
+                                <span><%= user.timeInGrade %></span>
+                                <% if (user.isPromotionReady) { %>
+                                <span class="badge badge-promo" title="Promotion Ready: Reached <%= user.minDaysRequired %> days in grade (Current: <%= user.timeInGrade %> days)">🚀 Ready</span>
+                                <% } %>
+                            </td>
                             
                             <td class="shift-cell" style="background-color: <%= shiftColorMap[user.shift] || '' %>"><%= user.shift %></td>
                             <td class="house-cell" style="background-color: <%= houseColorMap[user.house] || '' %>"><%= user.house %></td>
@@ -167,6 +188,13 @@
                                     data-onboarding-complete="<%= user.onboardingComplete ? '1' : '' %>"
                                     data-host-training-complete="<%= user.hostTrainingComplete ? '1' : '' %>"
                                     data-last-promotion="<%= user.lastPromotion || '' %>"
+                                    data-time-in-grade="<%= user.timeInGrade %>"
+                                    data-min-days-required="<%= user.minDaysRequired || '' %>"
+                                    data-promotion-ready="<%= user.isPromotionReady ? '1' : '' %>"
+                                    data-inactive-risk="<%= user.isInactiveRisk ? '1' : '' %>"
+                                    data-inactivity-reason="<%= user.inactivityReason || '' %>"
+                                    data-days-since-seen="<%= user.daysSinceSeen !== null ? user.daysSinceSeen : '' %>"
+                                    data-consecutive-missed="<%= user.consecutiveMissedMeetings || '0' %>"
                                 >
                                     <span class="material-symbols-outlined">visibility</span>
                             
@@ -329,6 +357,14 @@
                     <div class="view-user-detail">
                         <span>Host Training</span>
                         <strong id="viewHostTraining"></strong>
+                    </div>
+                    <div class="view-user-detail">
+                        <span>Promotion Readiness</span>
+                        <strong id="viewPromotionStatus"></strong>
+                    </div>
+                    <div class="view-user-detail">
+                        <span>Activity Health</span>
+                        <strong id="viewInactivityStatus"></strong>
                     </div>
                 </div>
                 <div class="staff-timeline"><span>Profile timeline</span><ul id="viewUserTimeline"></ul></div>

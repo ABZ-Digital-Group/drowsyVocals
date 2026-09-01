@@ -1481,10 +1481,46 @@ dialog button {
     background-color: #242320;
     color: #B7B2A7;
     border-radius: 5px;
-    font-size: 1.2em;
+    font-size: 1.1em;
     padding: 10px 14px;
-    width: 15%;
+    min-width: 130px;
+    flex: 1;
     text-align: center;
+}
+.roster-stats .roster-stat-promo {
+    background-color: #064e3b;
+    color: #a7f3d0;
+    border: 1px solid #059669;
+}
+.roster-stats .roster-stat-warning {
+    background-color: #78350f;
+    color: #fde68a;
+    border: 1px solid #d97706;
+}
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.78em;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    margin-left: 6px;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+.badge-promo {
+    background-color: #10b98122;
+    color: #10b981;
+    border: 1px solid #10b98166;
+}
+.badge-inactive-risk {
+    background-color: #ef444422;
+    color: #ef4444;
+    border: 1px solid #ef444466;
 }
 
 /* MAINTENANCE MODE BANNER & PAGE */

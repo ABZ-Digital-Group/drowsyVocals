@@ -153,17 +153,18 @@ function testSendLatest() {
                     </div>
 
                     <div class="profile-detail-full">
-                        <span>Ranks</span>
-                        <p class="settings-hint">Name, sort order, and capacity (blank = unlimited slots).</p>
+                        <span>Ranks & Promotion Requirements</span>
+                        <p class="settings-hint">Name, sort order, capacity (blank = unlimited), and minimum days in grade required for promotion readiness badge.</p>
                         <ul class="settings-list">
                             <% settings.ranks.forEach(function(rank) { %>
                             <li>
                                 <form class="login-form-actions settings-inline-form" action="/settings/update-option" method="POST">
                                     <input type="hidden" name="category" value="ranks">
                                     <input type="hidden" name="originalName" value="<%= rank.name %>">
-                                    <input type="text" name="name" value="<%= rank.name %>" required>
-                                    <input type="number" name="order" value="<%= rank.order %>" required>
-                                    <input type="number" name="capacity" min="0" placeholder="Unlimited" value="<%= rank.capacity ?? '' %>">
+                                    <input type="text" name="name" value="<%= rank.name %>" title="Rank Name" required>
+                                    <input type="number" name="order" value="<%= rank.order %>" title="Sort Order" placeholder="Order" required style="width: 70px;">
+                                    <input type="number" name="capacity" min="0" placeholder="Unlimited" value="<%= rank.capacity ?? '' %>" title="Capacity" style="width: 90px;">
+                                    <input type="number" name="minDaysInGrade" min="0" placeholder="Min Days" value="<%= rank.minDaysInGrade ?? '' %>" title="Minimum days in grade for promotion alert" style="width: 100px;">
                                     <button type="submit">Save</button>
                                 </form>
                                 <form action="/settings/delete-option" method="POST">
@@ -182,7 +183,23 @@ function testSendLatest() {
                             <input type="number" id="newRankOrder" name="order" value="<%= settings.ranks.length %>" required>
                             <label for="newRankCapacity">Capacity:</label>
                             <input type="number" id="newRankCapacity" name="capacity" min="0" placeholder="Unlimited">
+                            <label for="newRankMinDays">Min Days in Grade (for promotion alert):</label>
+                            <input type="number" id="newRankMinDays" name="minDaysInGrade" min="0" placeholder="e.g. 30">
                             <button type="submit">Add Rank</button>
+                        </form>
+                    </div>
+
+                    <div class="profile-detail-full">
+                        <span>Staff Inactivity Alert Thresholds</span>
+                        <p class="settings-hint">Configure when staff members receive automatic inactivity warnings on the roster.</p>
+                        <form class="login-form-actions settings-add-form" action="/settings/alerts" method="POST">
+                            <label for="inactivityDaysThreshold">Days without login / activity:</label>
+                            <input type="number" id="inactivityDaysThreshold" name="inactivityDaysThreshold" min="1" max="365" value="<%= settings.alerts?.inactivityDaysThreshold ?? 14 %>" required>
+
+                            <label for="inactivityAttendanceThreshold">Consecutive missed weekly meetings:</label>
+                            <input type="number" id="inactivityAttendanceThreshold" name="inactivityAttendanceThreshold" min="1" max="52" value="<%= settings.alerts?.inactivityAttendanceThreshold ?? 2 %>" required>
+
+                            <button type="submit" style="margin-top: 10px;">Save Alert Thresholds</button>
                         </form>
                     </div>
 
