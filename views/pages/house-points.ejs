@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <%- include('../partials/head') %>
+        <title>House Points & Leaderboard - Drowsy Vocals</title>
+    </head>
+    <body>
+        <header>
+            <%- include('../partials/nav') %>
+        </header>
+        <main>
+            <section class="settings-page">
+                <!-- Header -->
+                <div class="settings-header">
+                    <div class="settings-header-top">
+                        <div>
+                            <p class="profile-eyebrow">Gamification & Competition</p>
+                            <h1 style="margin: 0; font-size: 2.4em; color: #242320;">House Points & Leaderboard</h1>
+                            <p class="profile-subtitle">Track team standings, award house points for events & milestones, and audit all score modifications.</p>
+                        </div>
+                    </div>
+
+                    <!-- Top Standings Ribbon -->
+                    <div class="settings-stats-bar">
+                        <% houseStandings.forEach(function(house, index) { %>
+                        <div class="settings-stat-item" style="border-left: 4px solid <%= house.color %>;">
+                            <span class="material-symbols-outlined settings-stat-icon" style="color: <%= house.color %>;">
+                                <%= index === 0 ? 'emoji_events' : index === 1 ? 'workspace_premium' : 'military_tech' %>
+                            </span>
+                            <div class="settings-stat-info">
+                                <span class="settings-stat-label">Rank #<%= index + 1 %> · <%= house.name %></span>
+                                <span class="settings-stat-val" style="color: #f3efe6;">
+                                    <%= house.totalPoints %> Pts <small style="font-size: 0.65em; color: #8e897e;">(<%= house.memberCount %> members)</small>
+                                </span>
+                            </div>
+                        </div>
+                        <% }); %>
+                    </div>
+                </div>
+
+                <!-- Flash Message Alerts -->
+                <% if (typeof success_msg !== 'undefined' && success_msg && success_msg.length) { %>
+                <div class="settings-alert is-success" style="margin-bottom: 24px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span class="material-symbols-outlined" style="background: transparent; color: #10b981;">check_circle</span>
+                        <span><%= success_msg %></span>
+                    </div>
+                    <button type="button" onclick="this.parentElement.remove()" style="background:none;border:none;color:inherit;cursor:pointer;font-weight:bold;">&times;</button>
+                </div>
+                <% } %>
+                <% if (typeof error_msg !== 'undefined' && error_msg && error_msg.length) { %>
+                <div class="settings-alert is-error" style="margin-bottom: 24px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span class="material-symbols-outlined" style="background: transparent; color: #ef4444;">error</span>
+                        <span><%= error_msg %></span>
+                    </div>
+                    <button type="button" onclick="this.parentElement.remove()" style="background:none;border:none;color:inherit;cursor:pointer;font-weight:bold;">&times;</button>
+                </div>
+                <% } %>
+
+                <div class="account-grid">
+                    <!-- Left Column: Individual & House Rankings -->
+                    <div class="account-column">
+                        <!-- House Leaderboard Table -->
+                        <div class="account-card">
+                            <div class="account-card-header">
+                                <h3 class="account-card-title">
+                                    <span class="material-symbols-outlined">emoji_events</span>
+                                    <span>House Standings & Trophies</span>
+                                </h3>
+                                <span class="account-badge">Live Tally</span>
+                            </div>
+
+                            <div style="display: flex; flex-direction: column; gap: 12px;">
+                                <% houseStandings.forEach(function(house, index) { %>
+                                <div style="background: #1a1917; border: 1px solid #383734; border-radius: 8px; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+                                    <div style="display: flex; align-items: center; gap: 14px;">
+                                        <div style="width: 38px; height: 38px; border-radius: 50%; background: <%= house.color %>22; border: 2px solid <%= house.color %>; color: <%= house.color %>; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.1em;">
+                                            #<%= index + 1 %>
+                                        </div>
+                                        <div>
+                                            <h4 style="margin: 0; font-size: 1.15em; color: #f3efe6; display: flex; align-items: center; gap: 8px;">
+                                                <span class="account-color-dot" style="background-color: <%= house.color %>;"></span>
+                                                <%= house.name %>
+                                                <% if (index === 0) { %><span style="font-size: 0.85em;">👑 Leading</span><% } %>
+                                            </h4>
+                                            <span style="font-size: 0.8em; color: #8e897e;"><%= house.memberCount %> active team members</span>
+                                        </div>
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <span style="font-size: 1.6em; font-weight: bold; color: #fbbf24;"><%= house.totalPoints %></span>
+                                        <span style="font-size: 0.85em; color: #8e897e; display: block;">Total House Points</span>
+                                    </div>
+                                </div>
+                                <% }); %>
+                            </div>
+                        </div>
+
+                        <!-- Top Individual Contributors -->
+                        <div class="account-card">
+                            <div class="account-card-header">
+                                <h3 class="account-card-title">
+                                    <span class="material-symbols-outlined">star</span>
+                                    <span>Top Individual Contributors</span>
+                                </h3>
+                                <span class="account-badge">Top 15 Staff</span>
+                            </div>
+
+                            <div class="settings-table-wrapper">
+                                <table class="settings-ranks-table">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 50px;">#</th>
+                                            <th>Staff Member</th>
+                                            <th>House</th>
+                                            <th style="text-align: right;">Points</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <% if (!topUsers || topUsers.length === 0) { %>
+                                        <tr>
+                                            <td colspan="4" style="text-align: center; color: #8e897e; padding: 20px;">No points recorded yet.</td>
+                                        </tr>
+                                        <% } else { %>
+                                        <% topUsers.forEach(function(member, idx) { %>
+                                        <tr>
+                                            <td style="font-weight: bold; color: <%= idx === 0 ? '#fbbf24' : idx === 1 ? '#d0cdc5' : idx === 2 ? '#cd7f32' : '#8e897e' %>;">
+                                                <%= idx + 1 %>
+                                            </td>
+                                            <td>
+                                                <div style="display: flex; align-items: center; gap: 8px;">
+                                                    <span style="font-weight: bold; color: #f3efe6;"><%= member.displayName || member.discordUser || member.login.discordId %></span>
+                                                    <small style="color: #8e897e;">(<%= member.accountType || 'Staff' %>)</small>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <% if (member.house) { %>
+                                                <span class="account-badge" style="font-size: 0.75em;">
+                                                    <span class="account-color-dot" style="background-color: <%= houseColorMap[member.house] || '#888' %>;"></span>
+                                                    <%= member.house %>
+                                                </span>
+                                                <% } else { %>
+                                                <span style="color: #666;">-</span>
+                                                <% } %>
+                                            </td>
+                                            <td style="text-align: right; font-weight: bold; color: #fbbf24; font-size: 1.1em;">
+                                                <%= member.housePoints || 0 %>
+                                            </td>
+                                        </tr>
+                                        <% }); %>
+                                        <% } %>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column: Award Points Tool & History Log -->
+                    <div class="account-column">
+                        <% if (isManager) { %>
+                        <!-- Award Points Form (Management Only) -->
+                        <div class="account-card">
+                            <div class="account-card-header">
+                                <h3 class="account-card-title">
+                                    <span class="material-symbols-outlined">add_circle</span>
+                                    <span>Award or Deduct Points</span>
+                                </h3>
+                                <span class="account-badge">Manager Tool</span>
+                            </div>
+
+                            <form class="account-form" action="/house-points/award" method="POST">
+                                <div class="settings-form-group" style="margin-bottom: 0;">
+                                    <label for="awardTarget">Select Staff Member</label>
+                                    <select id="awardTarget" name="discordId" class="settings-input" required>
+                                        <option value="">Choose a staff member...</option>
+                                        <% users.forEach(function(u) { %>
+                                        <option value="<%= u.login.discordId %>">
+                                            <%= u.displayName || u.discordUser || u.login.discordId %> <%= u.house ? `(${u.house})` : '(No House)' %> · <%= u.housePoints || 0 %> pts
+                                        </option>
+                                        <% }); %>
+                                    </select>
+                                </div>
+
+                                <div class="settings-form-group" style="margin-bottom: 0;">
+                                    <label for="pointAmount">Points to Add (or Subtract with -)</label>
+                                    <input type="number" id="pointAmount" name="amount" class="settings-input" placeholder="e.g. 50 or -10" required>
+                                    <span class="settings-hint">Enter a positive number to award, or a negative number to deduct.</span>
+                                </div>
+
+                                <div class="settings-form-group" style="margin-bottom: 0;">
+                                    <label for="awardReason">Reason / Activity</label>
+                                    <input type="text" id="awardReason" name="reason" class="settings-input" placeholder="e.g. Hosted Friday Karaoke, Staff Bingo win..." required maxlength="250">
+                                </div>
+
+                                <button type="submit" class="account-btn account-btn-primary">
+                                    <span class="material-symbols-outlined">stars</span>
+                                    <span>Submit Point Change</span>
+                                </button>
+                            </form>
+                        </div>
+                        <% } %>
+
+                        <!-- Recent Points Audit Log -->
+                        <div class="account-card">
+                            <div class="account-card-header">
+                                <h3 class="account-card-title">
+                                    <span class="material-symbols-outlined">history</span>
+                                    <span>Recent Points Activity Log</span>
+                                </h3>
+                                <span class="account-badge"><%= pointsLog.length %> Events</span>
+                            </div>
+
+                            <div style="display: flex; flex-direction: column; gap: 10px; max-height: 480px; overflow-y: auto;">
+                                <% if (!pointsLog || pointsLog.length === 0) { %>
+                                <div style="background: #1a1917; border: 1px solid #383734; border-radius: 6px; padding: 18px; text-align: center; color: #8e897e;">
+                                    No point activity logged yet.
+                                </div>
+                                <% } else { %>
+                                <% pointsLog.forEach(function(log) { %>
+                                <div style="background: #1a1917; border: 1px solid #383734; border-radius: 6px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                                        <strong style="color: #f3efe6; font-size: 0.95em;"><%= log.recipientName %></strong>
+                                        <span style="font-weight: bold; color: <%= log.amount >= 0 ? '#34d399' : '#f87171' %>;">
+                                            <%= log.amount >= 0 ? `+${log.amount}` : log.amount %> Pts
+                                        </span>
+                                    </div>
+                                    <p style="margin: 0; color: #d0cdc5; font-size: 0.85em;"><%= log.reason %></p>
+                                    <div style="display: flex; justify-content: space-between; font-size: 0.75em; color: #8e897e; margin-top: 2px;">
+                                        <span>Awarded by <%= log.actorName %></span>
+                                        <span><%= (log.createdAt || '').slice(0, 16).replace('T', ' ') %></span>
+                                    </div>
+                                </div>
+                                <% }); %>
+                                <% } %>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+        <div class="footer">
+            <p>&copy; 2026 Drowsy Vocals | All rights reserved.</p>
+        </div>
+    </body>
+</html>

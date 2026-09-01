@@ -90,6 +90,15 @@
                         <span class="material-symbols-outlined">tune</span>
                         <span>All Controls</span>
                     </button>
+                    <button type="button" class="settings-tab-btn" data-tab="stage-queue">
+                        <span class="material-symbols-outlined">podcasts</span>
+                        <span>Live Stage & Queue</span>
+                        <span class="settings-tab-badge"><%= (botLiveState.trackedStages || []).length %></span>
+                    </button>
+                    <button type="button" class="settings-tab-btn" data-tab="rolesync">
+                        <span class="material-symbols-outlined">sync</span>
+                        <span>Role & Nickname Sync</span>
+                    </button>
                     <button type="button" class="settings-tab-btn" data-tab="shystages">
                         <span class="material-symbols-outlined">mic</span>
                         <span>Shy Stages</span>
@@ -115,6 +124,187 @@
                 </nav>
 
                 <div class="settings-section-container">
+                    <!-- SECTION: LIVE STAGE QUEUE & HOST CONTROLLER -->
+                    <div class="settings-group" data-section="stage-queue">
+                        <div class="settings-group-header">
+                            <span class="material-symbols-outlined" style="background: #242320; color: #B7B2A7; padding: 4px; border-radius: 4px;">podcasts</span>
+                            <h2>Live Stage Queue & Host Web Controller</h2>
+                        </div>
+
+                        <% if (!botLiveState.trackedStages || botLiveState.trackedStages.length === 0) { %>
+                        <div class="settings-card">
+                            <div style="text-align: center; padding: 28px 16px; color: #8e897e;">
+                                <span class="material-symbols-outlined" style="font-size: 3em; color: #6f6a60;" aria-hidden="true">music_off</span>
+                                <h3 style="margin: 10px 0 4px; color: #f3efe6;">No Active Stage Sessions</h3>
+                                <p style="margin: 0; font-size: 0.9em;">Start a stage session in Discord with <code>!startqueue</code> or <code>!stagestart</code> to control performers, radio, and queue orders from the web.</p>
+                            </div>
+                        </div>
+                        <% } else { %>
+                        <% botLiveState.trackedStages.forEach(function(stage) { %>
+                        <div class="settings-card">
+                            <div class="settings-card-header">
+                                <div class="settings-card-title-wrap">
+                                    <h3 class="settings-card-title">
+                                        <span class="material-symbols-outlined">mic</span>
+                                        <span><%= stage.guildName %> · <%= stage.channelName %></span>
+                                    </h3>
+                                    <p class="settings-card-desc">Runtime: <%= stage.runtimeText %> · Songs Sung: <%= stage.songsSung %> · Peak Attendance: <%= stage.peakAttendance %></p>
+                                </div>
+                                <span class="settings-badge <%= stage.acceptingJoins ? 'badge-success' : 'badge-danger' %>">
+                                    <%= stage.acceptingJoins ? '🟢 Queue Open' : '🔴 Queue Closed' %>
+                                </span>
+                            </div>
+
+                            <!-- Current Singer Banner & Quick Host Actions -->
+                            <div style="background: #111; border: 1px solid #383734; border-radius: 8px; padding: 18px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+                                <div style="display: flex; align-items: center; gap: 14px;">
+                                    <div style="width: 54px; height: 54px; border-radius: 50%; background: #242320; border: 2px solid #fbbf24; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                                        <% if (stage.currentSpeakerMember && stage.currentSpeakerMember.avatarUrl) { %>
+                                        <img src="<%= stage.currentSpeakerMember.avatarUrl %>" alt="Singer" style="width: 100%; height: 100%; object-fit: cover;">
+                                        <% } else { %>
+                                        <span class="material-symbols-outlined" style="color: #fbbf24; background: transparent;">person</span>
+                                        <% } %>
+                                    </div>
+                                    <div>
+                                        <span style="font-size: 0.75em; text-transform: uppercase; letter-spacing: 0.08em; color: #8e897e; font-weight: bold;">CURRENTLY PERFORMING</span>
+                                        <h4 style="margin: 2px 0 0; font-size: 1.3em; color: #f3efe6;">
+                                            <%= stage.currentSpeakerMember ? stage.currentSpeakerMember.name : (stage.currentSpeaker ? `User ID ${stage.currentSpeaker}` : 'Open Mic / Intermission') %>
+                                        </h4>
+                                    </div>
+                                </div>
+
+                                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                                    <form action="/bot/stage/next" method="POST" style="margin: 0;">
+                                        <input type="hidden" name="guildId" value="<%= stage.guildId %>">
+                                        <button type="submit" class="settings-btn settings-btn-primary">
+                                            <span class="material-symbols-outlined">skip_next</span>
+                                            <span>Next Performer</span>
+                                        </button>
+                                    </form>
+
+                                    <form action="/bot/stage/radio" method="POST" style="margin: 0;">
+                                        <input type="hidden" name="guildId" value="<%= stage.guildId %>">
+                                        <button type="submit" class="settings-btn settings-btn-secondary">
+                                            <span class="material-symbols-outlined">radio</span>
+                                            <span>Toggle Radio</span>
+                                        </button>
+                                    </form>
+
+                                    <form action="/bot/stage/join-toggle" method="POST" style="margin: 0;">
+                                        <input type="hidden" name="guildId" value="<%= stage.guildId %>">
+                                        <input type="hidden" name="acceptingJoins" value="<%= stage.acceptingJoins ? 'false' : 'true' %>">
+                                        <button type="submit" class="settings-btn <%= stage.acceptingJoins ? 'settings-btn-danger' : 'settings-btn-primary' %>">
+                                            <span class="material-symbols-outlined"><%= stage.acceptingJoins ? 'lock' : 'lock_open' %></span>
+                                            <span><%= stage.acceptingJoins ? 'Close Queue' : 'Open Queue' %></span>
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+
+                            <!-- Performer Queue List -->
+                            <div>
+                                <span class="account-info-label" style="display: block; margin-bottom: 10px;">Queue Lineup (<%= (stage.queueMembers || []).length %> Waiting)</span>
+                                <% if (!stage.queueMembers || stage.queueMembers.length === 0) { %>
+                                <div style="background: #1a1917; border: 1px solid #383734; border-radius: 6px; padding: 18px; text-align: center; color: #8e897e;">
+                                    The stage queue is currently empty.
+                                </div>
+                                <% } else { %>
+                                <div style="display: flex; flex-direction: column; gap: 8px;">
+                                    <% stage.queueMembers.forEach(function(member, idx) { %>
+                                    <div style="background: #1a1917; border: 1px solid #383734; border-radius: 6px; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+                                        <div style="display: flex; align-items: center; gap: 12px;">
+                                            <span style="font-weight: bold; color: #fbbf24; font-size: 1.1em; width: 24px;">#<%= idx + 1 %></span>
+                                            <% if (member.avatarUrl) { %>
+                                            <img src="<%= member.avatarUrl %>" alt="" style="width: 32px; height: 32px; border-radius: 50%;">
+                                            <% } else { %>
+                                            <div style="width: 32px; height: 32px; border-radius: 50%; background: #242320; display: flex; align-items: center; justify-content: center; color: #8e897e; font-size: 0.8em; font-weight: bold;">
+                                                <%= member.name.charAt(0).toUpperCase() %>
+                                            </div>
+                                            <% } %>
+                                            <span style="font-weight: bold; color: #f3efe6;"><%= member.name %></span>
+                                        </div>
+
+                                        <form action="/bot/stage/remove-user" method="POST" onsubmit="return confirm('Remove <%= member.name %> from queue?');" style="margin: 0;">
+                                            <input type="hidden" name="guildId" value="<%= stage.guildId %>">
+                                            <input type="hidden" name="userId" value="<%= member.id %>">
+                                            <button type="submit" class="settings-btn settings-btn-danger settings-btn-sm" title="Remove from queue">
+                                                <span class="material-symbols-outlined">person_remove</span>
+                                                Remove
+                                            </button>
+                                        </form>
+                                    </div>
+                                    <% }); %>
+                                </div>
+                                <% } %>
+                            </div>
+                        </div>
+                        <% }); %>
+                        <% } %>
+                    </div>
+
+                    <!-- SECTION: DISCORD ROLE & NICKNAME SYNC -->
+                    <div class="settings-group" data-section="rolesync">
+                        <div class="settings-group-header">
+                            <span class="material-symbols-outlined" style="background: #242320; color: #B7B2A7; padding: 4px; border-radius: 4px;">sync</span>
+                            <h2>Automated Discord Role & Nickname Sync</h2>
+                        </div>
+
+                        <div class="settings-card">
+                            <div class="settings-card-header">
+                                <div class="settings-card-title-wrap">
+                                    <h3 class="settings-card-title">
+                                        <span class="material-symbols-outlined">badge</span>
+                                        <span>Sync Staff Roles with Discord Server</span>
+                                    </h3>
+                                    <p class="settings-card-desc">Automatically update Discord roles (Rank & House) and server nicknames to match the website database records.</p>
+                                </div>
+                            </div>
+
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                                <!-- Sync Individual Member Form -->
+                                <div style="background: #1a1917; border: 1px solid #383734; border-radius: 8px; padding: 18px;">
+                                    <h4 style="margin: 0 0 10px; color: #f3efe6; font-size: 1em;">Sync Single Staff Member</h4>
+                                    <form action="/bot/sync-member" method="POST" style="display: flex; flex-direction: column; gap: 12px;">
+                                        <div class="settings-form-group" style="margin-bottom: 0;">
+                                            <label for="syncMemberSelect">Select Member</label>
+                                            <select id="syncMemberSelect" name="discordId" class="settings-input" required>
+                                                <option value="">Choose staff member...</option>
+                                                <% users.forEach(function(u) { %>
+                                                <option value="<%= u.login.discordId %>">
+                                                    <%= u.displayName || u.discordUser || u.login.discordId %> · <%= u.accountType %> (<%= u.house || 'No House' %>)
+                                                </option>
+                                                <% }); %>
+                                            </select>
+                                        </div>
+
+                                        <button type="submit" class="settings-btn settings-btn-primary">
+                                            <span class="material-symbols-outlined">sync</span>
+                                            <span>Sync This User</span>
+                                        </button>
+                                    </form>
+                                </div>
+
+                                <!-- Bulk Sync All Members -->
+                                <div style="background: #1a1917; border: 1px solid #383734; border-radius: 8px; padding: 18px; display: flex; flex-direction: column; justify-content: space-between;">
+                                    <div>
+                                        <h4 style="margin: 0 0 6px; color: #f3efe6; font-size: 1em;">Full Server Bulk Sync</h4>
+                                        <p style="margin: 0; font-size: 0.85em; color: #8e897e; line-height: 1.5;">
+                                            Iterate through all <%= users.length %> registered staff members and synchronize their server roles and nicknames in Discord.
+                                        </p>
+                                    </div>
+
+                                    <form action="/bot/sync-member" method="POST" onsubmit="return confirm('Sync Discord roles and nicknames for all <%= users.length %> staff members?');" style="margin-top: 14px;">
+                                        <input type="hidden" name="discordId" value="ALL">
+                                        <button type="submit" class="settings-btn settings-btn-secondary" style="width: 100%;">
+                                            <span class="material-symbols-outlined">cloud_sync</span>
+                                            <span>Sync All <%= users.length %> Staff Members</span>
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- SECTION 1: SHY STAGES CONFIGURATION -->
                     <div class="settings-group" data-section="shystages">
                         <div class="settings-group-header">
