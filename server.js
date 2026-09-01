@@ -7,6 +7,7 @@ require('dotenv').config();
 const path = require('path');
 const fs = require('fs');
 const http = require('http');
+const https = require('https');
 
 // LOAD NPM PACKAGES
 const express = require('express');
@@ -237,6 +238,64 @@ async function writeAudit(req, action, detail) {
     }
 }
 
+// SEND NOTIFICATION TO CONFIGURED DISCORD WEBHOOK
+async function sendDiscordWebhook(embed, eventType = null) {
+    if (!isDatabaseReady || !db) return;
+    try {
+        const settings = await getSettings();
+        const webhookConfig = settings.webhooks || {};
+        const webhookUrl = (webhookConfig.url || '').trim();
+
+        if (!webhookUrl || !webhookUrl.startsWith('https://discord.com/api/webhooks/')) {
+            return;
+        }
+
+        if (eventType === 'loa' && webhookConfig.notifyLoa === false) return;
+        if (eventType === 'strikes' && webhookConfig.notifyStrikes === false) return;
+        if (eventType === 'feedback' && webhookConfig.notifyFeedback === false) return;
+
+        const payload = JSON.stringify({
+            username: 'Drowsy Vocals Management',
+            avatar_url: 'https://manage.drowsyvocals.com/assets/DrowsyLogoDark.png',
+            embeds: [
+                {
+                    color: embed.color || 0xB7B2A7,
+                    timestamp: new Date().toISOString(),
+                    footer: { text: 'Drowsy Vocals Staff Portal' },
+                    ...embed
+                }
+            ]
+        });
+
+        const parsedUrl = new URL(webhookUrl);
+        const reqOptions = {
+            hostname: parsedUrl.hostname,
+            port: parsedUrl.port || 443,
+            path: `${parsedUrl.pathname}${parsedUrl.search}`,
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Content-Length': Buffer.byteLength(payload)
+            }
+        };
+
+        const postReq = https.request(reqOptions, (res) => {
+            if (res.statusCode >= 400) {
+                console.error(`Discord webhook returned status ${res.statusCode}`);
+            }
+        });
+
+        postReq.on('error', (err) => {
+            console.error('Discord webhook request failed:', err.message);
+        });
+
+        postReq.write(payload);
+        postReq.end();
+    } catch (error) {
+        console.error('Error sending Discord webhook:', error.message);
+    }
+}
+
 app.use(async (req, res, next) => {
     res.locals.notifications = [];
     if (!isDatabaseReady || !db || !req.session.loggedin) return next();
@@ -340,6 +399,12 @@ const DEFAULT_SETTINGS = {
     maintenance: {
         enabled: false,
         message: 'The website is currently undergoing scheduled maintenance. Please check back soon.'
+    },
+    webhooks: {
+        url: '',
+        notifyLoa: true,
+        notifyStrikes: true,
+        notifyFeedback: true
     }
 };
 
@@ -683,6 +748,17 @@ app.post('/add-strike', requireDatabase, async (req, res) => {
             { $push: { strikes: strike } }
         );
 
+        sendDiscordWebhook({
+            title: '⚠️ Staff Strike Issued',
+            color: 0xEF4444,
+            fields: [
+                { name: 'Staff Member', value: `${user.displayName || user.discordUser || discordId} (<@${discordId}>)`, inline: true },
+                { name: 'Strike Count', value: `+${strikeCount}`, inline: true },
+                { name: 'Issued By', value: `<@${req.session.currentuser}>`, inline: true },
+                { name: 'Reason', value: trimmedReason }
+            ]
+        }, 'strikes');
+
         req.flash('success_msg', 'Strike issued successfully.');
         res.redirect('/roster');
     } catch (error) {
@@ -1007,6 +1083,67 @@ app.post('/settings/maintenance', requireDatabase, async (req, res) => {
     } catch (error) {
         console.error('Error updating maintenance mode:', error);
         req.flash('error_msg', 'Unable to update maintenance mode.');
+        res.redirect('/settings');
+    }
+});
+
+// UPDATE DISCORD WEBHOOK CONFIGURATION
+app.post('/settings/webhooks', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !hasGodAccess(req)) {
+        req.flash('error_msg', 'You are not authorized to manage Discord webhooks.');
+        return res.redirect('/settings');
+    }
+
+    const url = (req.body.url || '').toString().trim();
+    const notifyLoa = req.body.notifyLoa === 'true' || req.body.notifyLoa === 'on';
+    const notifyStrikes = req.body.notifyStrikes === 'true' || req.body.notifyStrikes === 'on';
+    const notifyFeedback = req.body.notifyFeedback === 'true' || req.body.notifyFeedback === 'on';
+
+    if (url && !url.startsWith('https://discord.com/api/webhooks/')) {
+        req.flash('error_msg', 'Discord webhook URL must start with https://discord.com/api/webhooks/');
+        return res.redirect('/settings');
+    }
+
+    try {
+        await db.collection('settings').updateOne(
+            { _id: 'appSettings' },
+            {
+                $set: {
+                    'webhooks.url': url,
+                    'webhooks.notifyLoa': notifyLoa,
+                    'webhooks.notifyStrikes': notifyStrikes,
+                    'webhooks.notifyFeedback': notifyFeedback,
+                    'webhooks.updatedAt': new Date().toISOString().slice(0, 19),
+                    'webhooks.updatedBy': req.session.currentuser
+                }
+            },
+            { upsert: true }
+        );
+
+        await writeAudit(
+            req,
+            'Updated Discord Webhooks',
+            url ? `Configured webhook: ${url.slice(0, 45)}...` : 'Cleared webhook'
+        );
+
+        if (url) {
+            sendDiscordWebhook({
+                title: '🔗 Discord Webhook Connected',
+                color: 0x5865F2,
+                description: 'Drowsy Vocals management notifications are now configured for this channel.',
+                fields: [
+                    { name: 'LOA Alerts', value: notifyLoa ? '✅ Enabled' : '❌ Disabled', inline: true },
+                    { name: 'Strike Alerts', value: notifyStrikes ? '✅ Enabled' : '❌ Disabled', inline: true },
+                    { name: 'Feedback Alerts', value: notifyFeedback ? '✅ Enabled' : '❌ Disabled', inline: true }
+                ]
+            });
+        }
+
+        req.flash('success_msg', 'Discord webhook configuration saved.');
+        res.redirect('/settings');
+    } catch (error) {
+        console.error('Error updating webhook settings:', error);
+        req.flash('error_msg', 'Unable to update webhook settings.');
         res.redirect('/settings');
     }
 });
@@ -1454,6 +1591,15 @@ app.post('/feedback', requireDatabase, async (req, res) => {
             submittedAt: new Date().toISOString().slice(0, 19)
         });
 
+        sendDiscordWebhook({
+            title: '📬 New Staff Feedback Submitted',
+            color: 0x3B82F6,
+            fields: [
+                { name: 'Submitted By', value: `${user.displayName || user.discordUser || user.login.discordId} (<@${user.login.discordId}>)`, inline: true },
+                { name: 'Preview', value: content.length > 500 ? `${content.slice(0, 497)}...` : content }
+            ]
+        }, 'feedback');
+
         req.flash('success_msg', 'Feedback submitted.');
         res.redirect('/feedback');
     } catch (error) {
@@ -1624,6 +1770,21 @@ app.post('/apply-loa', requireDatabase, async (req, res) => {
             { $push: { loaRequests: request } }
         );
 
+        const applicant = await db.collection('users').findOne(
+            { 'login.discordId': req.session.currentuser },
+            { projection: { displayName: 1, discordUser: 1 } }
+        );
+
+        sendDiscordWebhook({
+            title: '🏖️ New LOA Request Submitted',
+            color: 0xF59E0B,
+            fields: [
+                { name: 'Staff Member', value: `${applicant?.displayName || applicant?.discordUser || req.session.currentuser} (<@${req.session.currentuser}>)`, inline: true },
+                { name: 'Dates', value: `${startDate} to ${endDate}`, inline: true },
+                { name: 'Reason', value: trimmedReason }
+            ]
+        }, 'loa');
+
         req.flash('success_msg', 'LOA request submitted for review.');
         res.redirect('/loa');
     } catch (error) {
@@ -1666,6 +1827,23 @@ app.post('/review-loa', requireDatabase, async (req, res) => {
             updateDoc,
             { arrayFilters: [{ 'request.id': requestId }] }
         );
+
+        const targetUser = await db.collection('users').findOne(
+            { 'login.discordId': discordId },
+            { projection: { displayName: 1, discordUser: 1, loaRequests: 1 } }
+        );
+        const reqDetail = (targetUser?.loaRequests || []).find((r) => r.id === requestId);
+
+        sendDiscordWebhook({
+            title: decision === 'Approved' ? '✅ LOA Request Approved' : '❌ LOA Request Denied',
+            color: decision === 'Approved' ? 0x10B981 : 0xEF4444,
+            fields: [
+                { name: 'Staff Member', value: `${targetUser?.displayName || targetUser?.discordUser || discordId} (<@${discordId}>)`, inline: true },
+                { name: 'Reviewed By', value: `<@${req.session.currentuser}>`, inline: true },
+                { name: 'Status', value: decision, inline: true },
+                { name: 'Dates', value: reqDetail ? `${reqDetail.startDate} to ${reqDetail.endDate}` : 'N/A' }
+            ]
+        }, 'loa');
 
         await writeAudit(req, 'Reviewed LOA request', `${decision}: ${discordId}`);
         req.flash('success_msg', `LOA request ${decision.toLowerCase()}.`);

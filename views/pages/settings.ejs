@@ -30,6 +30,30 @@
                             <button type="submit" style="margin-top: 10px;">Save Maintenance Settings</button>
                         </form>
                     </div>
+
+                    <div class="profile-detail-full">
+                        <span>Discord Webhooks</span>
+                        <p class="settings-hint">Post real-time embeds to a Discord channel when management events occur.</p>
+                        <form class="login-form-actions settings-add-form" action="/settings/webhooks" method="POST">
+                            <label for="webhookUrl">Discord Webhook URL:</label>
+                            <input type="url" id="webhookUrl" name="url" placeholder="https://discord.com/api/webhooks/..." value="<%= settings.webhooks?.url || '' %>">
+                            <div class="maintenance-toggle-row" style="flex-wrap: wrap; gap: 16px; margin: 10px 0;">
+                                <label style="display: flex; align-items: center; gap: 6px; font-weight: normal; cursor: pointer;">
+                                    <input type="checkbox" name="notifyLoa" value="true" <%= settings.webhooks?.notifyLoa !== false ? 'checked' : '' %>>
+                                    <span>LOA Requests & Decisions</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 6px; font-weight: normal; cursor: pointer;">
+                                    <input type="checkbox" name="notifyStrikes" value="true" <%= settings.webhooks?.notifyStrikes !== false ? 'checked' : '' %>>
+                                    <span>Issued Strikes</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 6px; font-weight: normal; cursor: pointer;">
+                                    <input type="checkbox" name="notifyFeedback" value="true" <%= settings.webhooks?.notifyFeedback !== false ? 'checked' : '' %>>
+                                    <span>Submitted Feedback</span>
+                                </label>
+                            </div>
+                            <button type="submit">Save Webhook Settings</button>
+                        </form>
+                    </div>
                     <% } %>
 
                     <div class="profile-detail-full">
