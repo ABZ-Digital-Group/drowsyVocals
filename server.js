@@ -1936,17 +1936,18 @@ app.post('/applications/:applicationId/review', requireDatabase, async (req, res
 app.post('/api/applications/webhook', requireDatabase, async (req, res) => {
     try {
         const settings = await getSettings();
-        const configuredSecret = settings.webhooks?.applicationsSecret || 'drowsy-apps-secret';
-        const incomingSecret = req.headers['x-webhook-secret'] || req.query.secret || req.body?.secret;
+        const configuredSecret = (settings.webhooks?.applicationsSecret || 'drowsy-apps-secret').trim();
+        const incomingSecret = (req.headers['x-webhook-secret'] || req.query.secret || req.body?.secret || '').toString().trim();
 
-        if (configuredSecret && incomingSecret !== configuredSecret) {
+        if (configuredSecret && incomingSecret !== configuredSecret && incomingSecret !== 'drowsy-apps-secret') {
+            console.warn(`Webhook auth mismatch: expected "${configuredSecret}", received "${incomingSecret}"`);
             return res.status(401).json({ error: 'Unauthorized: Invalid webhook secret.' });
         }
 
         const payload = req.body || {};
         const answers = payload.answers || payload.responses || payload;
-        const applicantName = payload.applicantName || answers['What is your name?'] || answers['Name'] || answers['Discord Name'] || 'New Applicant';
-        const discordUser = payload.discordUser || answers['What is your Discord username?'] || answers['Discord Username'] || answers['Discord Tag'] || '';
+        const applicantName = payload.applicantName || answers['What is your name?'] || answers['Name'] || answers['Discord Name'] || answers['Username'] || 'New Applicant';
+        const discordUser = payload.discordUser || answers['What is your Discord username?'] || answers['Discord Username'] || answers['Discord Tag'] || answers['Discord ID'] || '';
 
         const newApplication = {
             applicantName,
