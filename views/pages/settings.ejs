@@ -2,72 +2,246 @@
 <html lang="en">
     <head>
         <%- include('../partials/head') %>
-        <title>Drowsy Settings</title>
+        <title>Settings - Drowsy Vocals</title>
     </head>
     <body>
         <header>
             <%- include('../partials/nav') %>
         </header>
         <main>
-            <section class="profile-page">
-                <div class="profile-heading">
-                    <p class="profile-eyebrow">Management</p>
-                    <h1>Settings</h1>
-                    <p class="profile-subtitle">Manage the rank, house, shift, and activity options used across the roster forms.</p>
-                </div>
-                <div class="profile-details">
-                    <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userIsDeveloper) { %>
-                    <div class="profile-detail-full">
-                        <span>Maintenance Mode</span>
-                        <p class="settings-hint">When active, only Realm Gods, Mr. Sandman, and Developers can access the site. All other users and visitors will see the maintenance screen.</p>
-                        <form class="login-form-actions settings-add-form" action="/settings/maintenance" method="POST">
-                            <div class="maintenance-toggle-row">
-                                <input type="checkbox" id="maintenanceEnabled" name="enabled" value="true" <%= settings.maintenance?.enabled ? 'checked' : '' %>>
-                                <label for="maintenanceEnabled">Enable Maintenance Mode</label>
-                            </div>
-                            <label for="maintenanceMessage">Public Notice Message:</label>
-                            <textarea id="maintenanceMessage" name="message" rows="3" style="width: 100%; border-radius: 4px; padding: 8px; background: #1a1917; color: #B7B2A7; border: 1px solid #444;"><%= settings.maintenance?.message || 'The website is currently undergoing scheduled maintenance. Please check back soon.' %></textarea>
-                            <button type="submit" style="margin-top: 10px;">Save Maintenance Settings</button>
-                        </form>
+            <section class="settings-page">
+                <!-- Page Header -->
+                <div class="settings-header">
+                    <div class="settings-header-top">
+                        <div>
+                            <p class="profile-eyebrow">Management Portal</p>
+                            <h1 style="margin: 0; font-size: 2.4em; color: #242320;">Settings & Preferences</h1>
+                            <p class="profile-subtitle">Configure system security, Discord webhooks, rank hierarchies, alert thresholds, and roster classification tags.</p>
+                        </div>
                     </div>
 
-                    <div class="profile-detail-full">
-                        <span>Discord Webhooks & Google Forms</span>
-                        <p class="settings-hint">Post real-time embeds to a Discord channel when events occur, and connect your Google Forms staff application.</p>
-                        <form class="login-form-actions settings-add-form" action="/settings/webhooks" method="POST">
-                            <label for="webhookUrl">Discord Webhook URL:</label>
-                            <input type="url" id="webhookUrl" name="url" placeholder="https://discord.com/api/webhooks/..." value="<%= settings.webhooks?.url || '' %>">
-
-                            <label for="applicationsSecret" style="margin-top:10px;">Google Form Webhook Secret Key:</label>
-                            <input type="text" id="applicationsSecret" name="applicationsSecret" value="<%= settings.webhooks?.applicationsSecret || 'drowsy-apps-secret' %>" required>
-
-                            <div class="maintenance-toggle-row" style="flex-wrap: wrap; gap: 16px; margin: 12px 0;">
-                                <label style="display: flex; align-items: center; gap: 6px; font-weight: normal; cursor: pointer;">
-                                    <input type="checkbox" name="notifyLoa" value="true" <%= settings.webhooks?.notifyLoa !== false ? 'checked' : '' %>>
-                                    <span>LOA Requests & Decisions</span>
-                                </label>
-                                <label style="display: flex; align-items: center; gap: 6px; font-weight: normal; cursor: pointer;">
-                                    <input type="checkbox" name="notifyStrikes" value="true" <%= settings.webhooks?.notifyStrikes !== false ? 'checked' : '' %>>
-                                    <span>Issued Strikes</span>
-                                </label>
-                                <label style="display: flex; align-items: center; gap: 6px; font-weight: normal; cursor: pointer;">
-                                    <input type="checkbox" name="notifyFeedback" value="true" <%= settings.webhooks?.notifyFeedback !== false ? 'checked' : '' %>>
-                                    <span>Submitted Feedback</span>
-                                </label>
-                                <label style="display: flex; align-items: center; gap: 6px; font-weight: normal; cursor: pointer;">
-                                    <input type="checkbox" name="notifyApplications" value="true" <%= settings.webhooks?.notifyApplications !== false ? 'checked' : '' %>>
-                                    <span>New Staff Applications</span>
-                                </label>
+                    <!-- Stat / Status Summary Bar -->
+                    <div class="settings-stats-bar">
+                        <div class="settings-stat-item">
+                            <span class="material-symbols-outlined settings-stat-icon">construction</span>
+                            <div class="settings-stat-info">
+                                <span class="settings-stat-label">Maintenance Mode</span>
+                                <span class="settings-stat-val" style="color: <%= settings.maintenance?.enabled ? '#ef4444' : '#10b981' %>;">
+                                    <%= settings.maintenance?.enabled ? 'Active (Restricted)' : 'Inactive (Public)' %>
+                                </span>
                             </div>
-                            <button type="submit">Save Webhook Settings</button>
-                        </form>
+                        </div>
+                        <div class="settings-stat-item">
+                            <span class="material-symbols-outlined settings-stat-icon">webhook</span>
+                            <div class="settings-stat-info">
+                                <span class="settings-stat-label">Discord Webhook</span>
+                                <span class="settings-stat-val" style="color: <%= settings.webhooks?.url ? '#3b82f6' : '#8e897e' %>;">
+                                    <%= settings.webhooks?.url ? 'Connected' : 'Not Configured' %>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="settings-stat-item">
+                            <span class="material-symbols-outlined settings-stat-icon">military_tech</span>
+                            <div class="settings-stat-info">
+                                <span class="settings-stat-label">Active Ranks</span>
+                                <span class="settings-stat-val"><%= settings.ranks ? settings.ranks.length : 0 %> Ranks</span>
+                            </div>
+                        </div>
+                        <div class="settings-stat-item">
+                            <span class="material-symbols-outlined settings-stat-icon">palette</span>
+                            <div class="settings-stat-info">
+                                <span class="settings-stat-label">Roster Tags</span>
+                                <span class="settings-stat-val"><%= (settings.houses?.length || 0) + (settings.shifts?.length || 0) + (settings.activities?.length || 0) %> Total</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-                        <details style="margin-top:15px;background:#1a1917;padding:12px;border-radius:6px;border:1px solid #333;">
-                            <summary style="cursor:pointer;font-weight:bold;color:#B7B2A7;">Google Form Setup Instructions (Click to expand)</summary>
-                            <div style="margin-top:10px;font-size:0.9em;line-height:1.6;color:#ccc;">
-                                <p>1. Open your Google Form &gt; Click the <strong>three dots (⋮)</strong> &gt; <strong>Script editor</strong> (or Extensions &gt; Apps Script in the linked Sheet).</p>
-                                <p>2. Paste the following script (works for both Form triggers and linked Google Sheet triggers, and includes a <code>testSendLatest()</code> button):</p>
-                                <pre style="background:#000;padding:10px;border-radius:4px;overflow-x:auto;color:#3ddc71;font-size:0.85em;">function onFormSubmit(e) {
+                <!-- Flash Message Alerts -->
+                <% if (typeof success_msg !== 'undefined' && success_msg && success_msg.length) { %>
+                <div class="settings-alert is-success">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span class="material-symbols-outlined" style="background: transparent; color: #10b981;">check_circle</span>
+                        <span><%= success_msg %></span>
+                    </div>
+                    <button type="button" onclick="this.parentElement.remove()" style="background:none;border:none;color:inherit;cursor:pointer;font-weight:bold;">&times;</button>
+                </div>
+                <% } %>
+                <% if (typeof error_msg !== 'undefined' && error_msg && error_msg.length) { %>
+                <div class="settings-alert is-error">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span class="material-symbols-outlined" style="background: transparent; color: #ef4444;">error</span>
+                        <span><%= error_msg %></span>
+                    </div>
+                    <button type="button" onclick="this.parentElement.remove()" style="background:none;border:none;color:inherit;cursor:pointer;font-weight:bold;">&times;</button>
+                </div>
+                <% } %>
+
+                <!-- Navigation Filter Tabs -->
+                <nav class="settings-tabs-nav" aria-label="Settings Categories">
+                    <button type="button" class="settings-tab-btn is-active" data-tab="all">
+                        <span class="material-symbols-outlined">tune</span>
+                        <span>All Settings</span>
+                    </button>
+                    <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userIsDeveloper) { %>
+                    <button type="button" class="settings-tab-btn" data-tab="system">
+                        <span class="material-symbols-outlined">shield</span>
+                        <span>System & Security</span>
+                        <span class="settings-tab-badge">God Only</span>
+                    </button>
+                    <% } %>
+                    <button type="button" class="settings-tab-btn" data-tab="ranks">
+                        <span class="material-symbols-outlined">military_tech</span>
+                        <span>Ranks & Hierarchy</span>
+                        <span class="settings-tab-badge"><%= settings.ranks ? settings.ranks.length : 0 %></span>
+                    </button>
+                    <button type="button" class="settings-tab-btn" data-tab="alerts">
+                        <span class="material-symbols-outlined">notification_important</span>
+                        <span>Alerts & Thresholds</span>
+                    </button>
+                    <button type="button" class="settings-tab-btn" data-tab="tags">
+                        <span class="material-symbols-outlined">category</span>
+                        <span>Roster Classifications</span>
+                    </button>
+                </nav>
+
+                <div class="settings-section-container">
+                    <!-- SECTION 1: SYSTEM & SECURITY -->
+                    <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userIsDeveloper) { %>
+                    <div class="settings-group" data-section="system">
+                        <div class="settings-group-header">
+                            <span class="material-symbols-outlined" style="background: #242320; color: #B7B2A7; padding: 4px; border-radius: 4px;">shield</span>
+                            <h2>System & Security Controls</h2>
+                        </div>
+
+                        <!-- Maintenance Mode Card -->
+                        <div class="settings-card">
+                            <div class="settings-card-header">
+                                <div class="settings-card-title-wrap">
+                                    <h3 class="settings-card-title">
+                                        <span class="material-symbols-outlined">construction</span>
+                                        Maintenance Mode
+                                    </h3>
+                                    <p class="settings-card-desc">When enabled, only Realm Gods, Mr. Sandman, and Developers can access the site. All other staff and visitors are locked out and shown your public notice.</p>
+                                </div>
+                                <div>
+                                    <% if (settings.maintenance?.enabled) { %>
+                                    <span class="settings-badge badge-danger">🔴 MAINTENANCE ACTIVE</span>
+                                    <% } else { %>
+                                    <span class="settings-badge badge-success">🟢 SITE LIVE</span>
+                                    <% } %>
+                                </div>
+                            </div>
+
+                            <form action="/settings/maintenance" method="POST" style="display: flex; flex-direction: column; gap: 16px;">
+                                <div class="settings-switch-row">
+                                    <input type="checkbox" id="maintenanceEnabled" name="enabled" value="true" class="settings-switch-checkbox" <%= settings.maintenance?.enabled ? 'checked' : '' %>>
+                                    <label for="maintenanceEnabled" class="settings-switch-label">
+                                        <span class="settings-switch-title">Enable Maintenance Lockdown</span>
+                                        <span class="settings-switch-desc">Instantly restrict non-admin access across all routes and API endpoints.</span>
+                                    </label>
+                                </div>
+
+                                <div class="settings-form-group" style="margin-bottom: 0;">
+                                    <label for="maintenanceMessage">Public Notice Message</label>
+                                    <textarea id="maintenanceMessage" name="message" class="settings-textarea" rows="3" placeholder="Explain the maintenance reason to visitors..."><%= settings.maintenance?.message || 'The website is currently undergoing scheduled maintenance. Please check back soon.' %></textarea>
+                                </div>
+
+                                <div style="display: flex; justify-content: flex-start;">
+                                    <button type="submit" class="settings-btn settings-btn-primary">
+                                        <span class="material-symbols-outlined">save</span>
+                                        Save Maintenance Settings
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- Discord Webhook & Google Forms Integration Card -->
+                        <div class="settings-card">
+                            <div class="settings-card-header">
+                                <div class="settings-card-title-wrap">
+                                    <h3 class="settings-card-title">
+                                        <span class="material-symbols-outlined">webhook</span>
+                                        Discord Webhooks & Google Forms Integration
+                                    </h3>
+                                    <p class="settings-card-desc">Broadcast real-time embed alerts to your Discord channels and bridge staff applications directly from Google Forms.</p>
+                                </div>
+                                <div>
+                                    <% if (settings.webhooks?.url) { %>
+                                    <span class="settings-badge badge-success">Discord Active</span>
+                                    <% } else { %>
+                                    <span class="settings-badge badge-neutral">No Webhook URL</span>
+                                    <% } %>
+                                </div>
+                            </div>
+
+                            <form action="/settings/webhooks" method="POST" style="display: flex; flex-direction: column; gap: 16px;">
+                                <div class="settings-form-group">
+                                    <label for="webhookUrl">Discord Webhook URL</label>
+                                    <input type="url" id="webhookUrl" name="url" class="settings-input" placeholder="https://discord.com/api/webhooks/..." value="<%= settings.webhooks?.url || '' %>">
+                                    <span class="settings-hint">Leave blank to disable Discord notifications.</span>
+                                </div>
+
+                                <div class="settings-form-group">
+                                    <label for="applicationsSecret">Google Form Webhook Secret Key</label>
+                                    <div style="display: flex; gap: 8px;">
+                                        <input type="text" id="applicationsSecret" name="applicationsSecret" class="settings-input" value="<%= settings.webhooks?.applicationsSecret || 'drowsy-apps-secret' %>" required>
+                                        <button type="button" class="settings-btn settings-btn-secondary" onclick="copyTextValue('applicationsSecret', this)">
+                                            <span class="material-symbols-outlined">content_copy</span>
+                                            <span>Copy Key</span>
+                                        </button>
+                                    </div>
+                                    <span class="settings-hint">This secret key must match the secret in your Google Apps Script payload.</span>
+                                </div>
+
+                                <div class="settings-form-group" style="margin-bottom: 0;">
+                                    <label>Automatic Notification Triggers</label>
+                                    <div class="settings-triggers-grid">
+                                        <label class="settings-trigger-item">
+                                            <input type="checkbox" name="notifyLoa" value="true" <%= settings.webhooks?.notifyLoa !== false ? 'checked' : '' %>>
+                                            <span class="settings-trigger-text">✈️ LOA Requests & Reviews</span>
+                                        </label>
+                                        <label class="settings-trigger-item">
+                                            <input type="checkbox" name="notifyStrikes" value="true" <%= settings.webhooks?.notifyStrikes !== false ? 'checked' : '' %>>
+                                            <span class="settings-trigger-text">⚠️ Issued Strikes</span>
+                                        </label>
+                                        <label class="settings-trigger-item">
+                                            <input type="checkbox" name="notifyFeedback" value="true" <%= settings.webhooks?.notifyFeedback !== false ? 'checked' : '' %>>
+                                            <span class="settings-trigger-text">💬 Submitted Feedback</span>
+                                        </label>
+                                        <label class="settings-trigger-item">
+                                            <input type="checkbox" name="notifyApplications" value="true" <%= settings.webhooks?.notifyApplications !== false ? 'checked' : '' %>>
+                                            <span class="settings-trigger-text">📝 New Staff Applications</span>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div style="display: flex; justify-content: flex-start;">
+                                    <button type="submit" class="settings-btn settings-btn-primary">
+                                        <span class="material-symbols-outlined">save</span>
+                                        Save Webhook Configuration
+                                    </button>
+                                </div>
+                            </form>
+
+                            <!-- Collapsible Google Apps Script Instructions -->
+                            <details class="settings-accordion">
+                                <summary>
+                                    <span class="material-symbols-outlined">code</span>
+                                    <span>View Google Apps Script Setup Instructions</span>
+                                </summary>
+                                <div class="settings-accordion-content">
+                                    <ol style="margin: 0 0 12px 20px; padding: 0;">
+                                        <li>Open your Google Form or linked Google Sheet &gt; Click <strong>Extensions</strong> &gt; <strong>Apps Script</strong>.</li>
+                                        <li>Paste the script below into the code editor:</li>
+                                    </ol>
+
+                                    <div class="settings-code-box">
+                                        <button type="button" class="settings-code-copy-btn" onclick="copyScriptCode(this)">
+                                            <span class="material-symbols-outlined">content_copy</span>
+                                            <span>Copy Script</span>
+                                        </button>
+                                        <pre id="appsScriptCode">function onFormSubmit(e) {
   var answers = {};
 
   if (e &amp;&amp; e.response) {
@@ -119,181 +293,453 @@
 function testSendLatest() {
   onFormSubmit(null);
 }</pre>
-                                <p>3. In the Apps Script sidebar, click the <strong>Triggers (alarm clock icon)</strong> &gt; <strong>Add Trigger</strong>.</p>
-                                <p>4. Set <em>Choose which function to run</em> to <code>onFormSubmit</code> and <em>Select event type</em> to <strong>On form submit</strong> &gt; Click <strong>Save</strong>.</p>
-                                <p>5. (Optional) You can test by selecting <code>testSendLatest</code> from the function dropdown in Apps Script and clicking <strong>Run</strong>.</p>
+                                    </div>
+
+                                    <ol start="3" style="margin: 12px 0 0 20px; padding: 0;">
+                                        <li>In the Apps Script sidebar, click the <strong>Triggers (alarm clock icon)</strong> &gt; <strong>Add Trigger</strong>.</li>
+                                        <li>Set <em>Choose which function to run</em> to <code>onFormSubmit</code> and <em>Select event type</em> to <strong>On form submit</strong> &gt; Click <strong>Save</strong>.</li>
+                                    </ol>
+                                </div>
+                            </details>
+                        </div>
+
+                        <!-- Developer Access Card -->
+                        <div class="settings-card">
+                            <div class="settings-card-header">
+                                <div class="settings-card-title-wrap">
+                                    <h3 class="settings-card-title">
+                                        <span class="material-symbols-outlined">terminal</span>
+                                        Developer Access Management
+                                    </h3>
+                                    <p class="settings-card-desc">Developer access is independent of staff rank and grants direct access to management dashboards, audit logs, and system controls.</p>
+                                </div>
+                                <div>
+                                    <span class="settings-badge badge-neutral"><%= developers ? developers.length : 0 %> Developer<%= (developers && developers.length === 1) ? '' : 's' %></span>
+                                </div>
                             </div>
-                        </details>
+
+                            <form action="/settings/developer-access" method="POST" style="display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end;">
+                                <div class="settings-form-group" style="flex: 1; min-width: 220px; margin-bottom: 0;">
+                                    <label for="developerDiscordId">Discord User ID</label>
+                                    <input type="text" id="developerDiscordId" name="discordId" class="settings-input" placeholder="e.g. 382910492817293847" required pattern="[0-9]{17,20}">
+                                    <input type="hidden" name="isDeveloper" value="true">
+                                </div>
+                                <button type="submit" class="settings-btn settings-btn-primary">
+                                    <span class="material-symbols-outlined">add_moderator</span>
+                                    Grant Developer Access
+                                </button>
+                            </form>
+
+                            <% if (developers && developers.length) { %>
+                            <div style="margin-top: 10px;">
+                                <label style="font-size: 0.85em; font-weight: bold; color: #8e897e; text-transform: uppercase;">Active Developers</label>
+                                <div class="settings-dev-grid">
+                                    <% developers.forEach(function(developer) { %>
+                                    <div class="settings-dev-card">
+                                        <div class="settings-dev-user">
+                                            <div class="settings-dev-avatar">
+                                                <%= (developer.displayName || developer.discordUser || 'D').charAt(0).toUpperCase() %>
+                                            </div>
+                                            <div class="settings-dev-names">
+                                                <span class="settings-dev-name"><%= developer.displayName || developer.discordUser || 'Developer' %></span>
+                                                <span class="settings-dev-id"><%= developer.login.discordId %></span>
+                                            </div>
+                                        </div>
+                                        <form action="/settings/developer-access" method="POST" onsubmit="return confirm('Revoke developer access for this user?');" style="margin:0;">
+                                            <input type="hidden" name="discordId" value="<%= developer.login.discordId %>">
+                                            <input type="hidden" name="isDeveloper" value="false">
+                                            <button type="submit" class="settings-btn settings-btn-danger settings-btn-sm" title="Revoke Developer Access">
+                                                <span class="material-symbols-outlined">person_remove</span>
+                                                Revoke
+                                            </button>
+                                        </form>
+                                    </div>
+                                    <% }); %>
+                                </div>
+                            </div>
+                            <% } %>
+                        </div>
                     </div>
                     <% } %>
 
-                    <div class="profile-detail-full">
-                        <span>Developer Access</span>
-                        <p class="settings-hint">Developer access is separate from account type and includes God-level site permissions.</p>
-                        <form class="login-form-actions settings-add-form" action="/settings/developer-access" method="POST">
-                            <label for="developerDiscordId">Discord ID:</label>
-                            <input type="text" id="developerDiscordId" name="discordId" required>
-                            <input type="hidden" name="isDeveloper" value="true">
-                            <button type="submit">Grant Access</button>
-                        </form>
-                        <% if (developers.length) { %>
-                        <ul class="settings-list">
-                            <% developers.forEach(function(developer) { %>
-                            <li>
-                                <span><%= developer.displayName || developer.discordUser || developer.login.discordId %> (<%= developer.login.discordId %>)</span>
-                                <form action="/settings/developer-access" method="POST">
-                                    <input type="hidden" name="discordId" value="<%= developer.login.discordId %>">
-                                    <input type="hidden" name="isDeveloper" value="false">
-                                    <button type="submit">Remove Access</button>
-                                </form>
-                            </li>
-                            <% }); %>
-                        </ul>
-                        <% } %>
-                    </div>
+                    <!-- SECTION 2: RANKS & HIERARCHY -->
+                    <div class="settings-group" data-section="ranks">
+                        <div class="settings-group-header">
+                            <span class="material-symbols-outlined" style="background: #242320; color: #B7B2A7; padding: 4px; border-radius: 4px;">military_tech</span>
+                            <h2>Ranks & Hierarchy</h2>
+                        </div>
 
-                    <div class="profile-detail-full">
-                        <span>Ranks & Promotion Requirements</span>
-                        <p class="settings-hint">Name, sort order, capacity (blank = unlimited), and minimum days in grade required for promotion readiness badge.</p>
-                        <ul class="settings-list">
-                            <% settings.ranks.forEach(function(rank) { %>
-                            <li>
-                                <form class="login-form-actions settings-inline-form" action="/settings/update-option" method="POST">
+                        <div class="settings-card">
+                            <div class="settings-card-header">
+                                <div class="settings-card-title-wrap">
+                                    <h3 class="settings-card-title">
+                                        <span class="material-symbols-outlined">format_list_numbered</span>
+                                        Configured Staff Ranks
+                                    </h3>
+                                    <p class="settings-card-desc">Control rank order (lower numbers appear higher on the roster), maximum member capacity, and days in grade needed to trigger a promotion readiness alert.</p>
+                                </div>
+                                <div>
+                                    <span class="settings-badge badge-neutral"><%= settings.ranks ? settings.ranks.length : 0 %> Ranks</span>
+                                </div>
+                            </div>
+
+                            <div class="settings-table-wrapper">
+                                <table class="settings-ranks-table">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 80px;">Order</th>
+                                            <th>Rank Name</th>
+                                            <th style="width: 140px;">Capacity</th>
+                                            <th style="width: 160px;">Min Days (Promo)</th>
+                                            <th style="width: 160px; text-align: right;">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <% if (!settings.ranks || settings.ranks.length === 0) { %>
+                                        <tr>
+                                            <td colspan="5" style="text-align: center; color: #8e897e; padding: 24px;">No ranks configured. Add your first rank below.</td>
+                                        </tr>
+                                        <% } else { %>
+                                        <% settings.ranks.forEach(function(rank) { %>
+                                        <tr>
+                                            <td colspan="5" style="padding: 0;">
+                                                <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 14px; gap: 8px; flex-wrap: wrap;">
+                                                    <form action="/settings/update-option" method="POST" style="display: flex; align-items: center; gap: 10px; flex: 1; flex-wrap: wrap;">
+                                                        <input type="hidden" name="category" value="ranks">
+                                                        <input type="hidden" name="originalName" value="<%= rank.name %>">
+                                                        
+                                                        <div style="width: 70px;">
+                                                            <input type="number" name="order" class="settings-input" value="<%= rank.order %>" title="Sort Order" placeholder="0" required>
+                                                        </div>
+
+                                                        <div style="flex: 2; min-width: 160px;">
+                                                            <input type="text" name="name" class="settings-input" value="<%= rank.name %>" title="Rank Name" placeholder="Rank Title" required>
+                                                        </div>
+
+                                                        <div style="width: 120px;">
+                                                            <input type="number" name="capacity" class="settings-input" min="0" placeholder="Unlimited" value="<%= rank.capacity ?? '' %>" title="Maximum Capacity">
+                                                        </div>
+
+                                                        <div style="width: 140px;">
+                                                            <input type="number" name="minDaysInGrade" class="settings-input" min="0" placeholder="e.g. 30" value="<%= rank.minDaysInGrade ?? '' %>" title="Minimum days in grade for promotion badge">
+                                                        </div>
+
+                                                        <button type="submit" class="settings-btn settings-btn-primary settings-btn-sm" title="Save changes to this rank">
+                                                            <span class="material-symbols-outlined">save</span>
+                                                            Save
+                                                        </button>
+                                                    </form>
+
+                                                    <form action="/settings/delete-option" method="POST" onsubmit="return confirm('Are you sure you want to delete the <%= rank.name %> rank?');" style="margin: 0;">
+                                                        <input type="hidden" name="category" value="ranks">
+                                                        <input type="hidden" name="name" value="<%= rank.name %>">
+                                                        <button type="submit" class="settings-btn settings-btn-danger settings-btn-sm" title="Delete Rank">
+                                                            <span class="material-symbols-outlined">delete</span>
+                                                            Delete
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        <% }); %>
+                                        <% } %>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Add New Rank Form -->
+                            <div style="background: #1a1917; border: 1px dashed #444; border-radius: 6px; padding: 18px;">
+                                <h4 style="margin: 0 0 12px; color: #f3efe6; font-size: 1em; display: flex; align-items: center; gap: 6px;">
+                                    <span class="material-symbols-outlined" style="background: transparent; color: #B7B2A7;">add_circle</span>
+                                    Add New Rank
+                                </h4>
+                                <form action="/settings/add-option" method="POST" style="display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end;">
                                     <input type="hidden" name="category" value="ranks">
-                                    <input type="hidden" name="originalName" value="<%= rank.name %>">
-                                    <input type="text" name="name" value="<%= rank.name %>" title="Rank Name" required>
-                                    <input type="number" name="order" value="<%= rank.order %>" title="Sort Order" placeholder="Order" required style="width: 70px;">
-                                    <input type="number" name="capacity" min="0" placeholder="Unlimited" value="<%= rank.capacity ?? '' %>" title="Capacity" style="width: 90px;">
-                                    <input type="number" name="minDaysInGrade" min="0" placeholder="Min Days" value="<%= rank.minDaysInGrade ?? '' %>" title="Minimum days in grade for promotion alert" style="width: 100px;">
-                                    <button type="submit">Save</button>
+                                    
+                                    <div class="settings-form-group" style="flex: 2; min-width: 160px; margin-bottom: 0;">
+                                        <label for="newRankName">Rank Name</label>
+                                        <input type="text" id="newRankName" name="name" class="settings-input" placeholder="e.g. Trainee Host" required>
+                                    </div>
+
+                                    <div class="settings-form-group" style="width: 100px; margin-bottom: 0;">
+                                        <label for="newRankOrder">Sort Order</label>
+                                        <input type="number" id="newRankOrder" name="order" class="settings-input" value="<%= settings.ranks ? settings.ranks.length : 0 %>" required>
+                                    </div>
+
+                                    <div class="settings-form-group" style="width: 120px; margin-bottom: 0;">
+                                        <label for="newRankCapacity">Capacity</label>
+                                        <input type="number" id="newRankCapacity" name="capacity" class="settings-input" min="0" placeholder="Unlimited">
+                                    </div>
+
+                                    <div class="settings-form-group" style="width: 140px; margin-bottom: 0;">
+                                        <label for="newRankMinDays">Min Days in Grade</label>
+                                        <input type="number" id="newRankMinDays" name="minDaysInGrade" class="settings-input" min="0" placeholder="e.g. 30">
+                                    </div>
+
+                                    <button type="submit" class="settings-btn settings-btn-primary">
+                                        <span class="material-symbols-outlined">add</span>
+                                        Add Rank
+                                    </button>
                                 </form>
-                                <form action="/settings/delete-option" method="POST">
-                                    <input type="hidden" name="category" value="ranks">
-                                    <input type="hidden" name="name" value="<%= rank.name %>">
-                                    <button type="submit">Delete</button>
-                                </form>
-                            </li>
-                            <% }); %>
-                        </ul>
-                        <form class="login-form-actions settings-add-form" action="/settings/add-option" method="POST">
-                            <input type="hidden" name="category" value="ranks">
-                            <label for="newRankName">New Rank:</label>
-                            <input type="text" id="newRankName" name="name" placeholder="Rank name" required>
-                            <label for="newRankOrder">Sort Order:</label>
-                            <input type="number" id="newRankOrder" name="order" value="<%= settings.ranks.length %>" required>
-                            <label for="newRankCapacity">Capacity:</label>
-                            <input type="number" id="newRankCapacity" name="capacity" min="0" placeholder="Unlimited">
-                            <label for="newRankMinDays">Min Days in Grade (for promotion alert):</label>
-                            <input type="number" id="newRankMinDays" name="minDaysInGrade" min="0" placeholder="e.g. 30">
-                            <button type="submit">Add Rank</button>
-                        </form>
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="profile-detail-full">
-                        <span>Staff Inactivity Alert Thresholds</span>
-                        <p class="settings-hint">Configure when staff members receive automatic inactivity warnings on the roster.</p>
-                        <form class="login-form-actions settings-add-form" action="/settings/alerts" method="POST">
-                            <label for="inactivityDaysThreshold">Days without login / activity:</label>
-                            <input type="number" id="inactivityDaysThreshold" name="inactivityDaysThreshold" min="1" max="365" value="<%= settings.alerts?.inactivityDaysThreshold ?? 14 %>" required>
+                    <!-- SECTION 3: ALERTS & THRESHOLDS -->
+                    <div class="settings-group" data-section="alerts">
+                        <div class="settings-group-header">
+                            <span class="material-symbols-outlined" style="background: #242320; color: #B7B2A7; padding: 4px; border-radius: 4px;">notification_important</span>
+                            <h2>Alerts & Inactivity Rules</h2>
+                        </div>
 
-                            <label for="inactivityAttendanceThreshold">Consecutive missed weekly meetings:</label>
-                            <input type="number" id="inactivityAttendanceThreshold" name="inactivityAttendanceThreshold" min="1" max="52" value="<%= settings.alerts?.inactivityAttendanceThreshold ?? 2 %>" required>
+                        <div class="settings-card">
+                            <div class="settings-card-header">
+                                <div class="settings-card-title-wrap">
+                                    <h3 class="settings-card-title">
+                                        <span class="material-symbols-outlined">warning</span>
+                                        Staff Inactivity Warning Rules
+                                    </h3>
+                                    <p class="settings-card-desc">Configure thresholds for automated inactivity warning icons on the staff roster, planner, and weekly reports.</p>
+                                </div>
+                            </div>
 
-                            <button type="submit" style="margin-top: 10px;">Save Alert Thresholds</button>
-                        </form>
+                            <form action="/settings/alerts" method="POST" style="display: flex; flex-direction: column; gap: 20px;">
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+                                    <div style="background: #1a1917; padding: 18px; border-radius: 6px; border: 1px solid #383734;">
+                                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                                            <span class="material-symbols-outlined" style="background: #242320; color: #f59e0b; padding: 6px; border-radius: 4px;">schedule</span>
+                                            <label for="inactivityDaysThreshold" style="margin:0; font-size: 1em; color: #f3efe6; font-weight: bold;">Login Inactivity Threshold</label>
+                                        </div>
+                                        <p style="font-size: 0.85em; color: #8e897e; margin: 0 0 12px;">Flag staff members as inactive if they haven't logged in or performed any activity in this number of days.</p>
+                                        <div style="display: flex; align-items: center; gap: 8px;">
+                                            <input type="number" id="inactivityDaysThreshold" name="inactivityDaysThreshold" class="settings-input" min="1" max="365" value="<%= settings.alerts?.inactivityDaysThreshold ?? 14 %>" required style="width: 120px;">
+                                            <span style="font-weight: bold; color: #d0cdc5;">Days</span>
+                                        </div>
+                                    </div>
+
+                                    <div style="background: #1a1917; padding: 18px; border-radius: 6px; border: 1px solid #383734;">
+                                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                                            <span class="material-symbols-outlined" style="background: #242320; color: #ef4444; padding: 6px; border-radius: 4px;">event_busy</span>
+                                            <label for="inactivityAttendanceThreshold" style="margin:0; font-size: 1em; color: #f3efe6; font-weight: bold;">Consecutive Missed Meetings</label>
+                                        </div>
+                                        <p style="font-size: 0.85em; color: #8e897e; margin: 0 0 12px;">Flag staff members when they have missed this number of consecutive weekly meetings without an approved LOA.</p>
+                                        <div style="display: flex; align-items: center; gap: 8px;">
+                                            <input type="number" id="inactivityAttendanceThreshold" name="inactivityAttendanceThreshold" class="settings-input" min="1" max="52" value="<%= settings.alerts?.inactivityAttendanceThreshold ?? 2 %>" required style="width: 120px;">
+                                            <span style="font-weight: bold; color: #d0cdc5;">Meetings</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div style="display: flex; justify-content: flex-start;">
+                                    <button type="submit" class="settings-btn settings-btn-primary">
+                                        <span class="material-symbols-outlined">save</span>
+                                        Save Alert Thresholds
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
 
-                    <div class="profile-detail-full">
-                        <span>Houses</span>
-                        <p class="settings-hint">Name and roster row color.</p>
-                        <ul class="settings-list">
-                            <% settings.houses.forEach(function(house) { %>
-                            <li>
-                                <form class="login-form-actions settings-inline-form" action="/settings/update-option" method="POST">
-                                    <input type="hidden" name="category" value="houses">
-                                    <input type="hidden" name="originalName" value="<%= house.name %>">
-                                    <input type="text" name="name" value="<%= house.name %>" required>
-                                    <input type="color" name="color" value="<%= house.color %>">
-                                    <button type="submit">Save</button>
-                                </form>
-                                <form action="/settings/delete-option" method="POST">
-                                    <input type="hidden" name="category" value="houses">
-                                    <input type="hidden" name="name" value="<%= house.name %>">
-                                    <button type="submit">Delete</button>
-                                </form>
-                            </li>
-                            <% }); %>
-                        </ul>
-                        <form class="login-form-actions settings-add-form" action="/settings/add-option" method="POST">
-                            <input type="hidden" name="category" value="houses">
-                            <label for="newHouseName">New House:</label>
-                            <input type="text" id="newHouseName" name="name" placeholder="House name" required>
-                            <label for="newHouseColor">Color:</label>
-                            <input type="color" id="newHouseColor" name="color" value="#242320">
-                            <button type="submit">Add House</button>
-                        </form>
-                    </div>
+                    <!-- SECTION 4: ROSTER CLASSIFICATIONS (TAGS) -->
+                    <div class="settings-group" data-section="tags">
+                        <div class="settings-group-header">
+                            <span class="material-symbols-outlined" style="background: #242320; color: #B7B2A7; padding: 4px; border-radius: 4px;">category</span>
+                            <h2>Roster Classifications</h2>
+                        </div>
 
-                    <div class="profile-detail-full">
-                        <span>Shifts</span>
-                        <p class="settings-hint">Name and roster row color.</p>
-                        <ul class="settings-list">
-                            <% settings.shifts.forEach(function(shift) { %>
-                            <li>
-                                <form class="login-form-actions settings-inline-form" action="/settings/update-option" method="POST">
-                                    <input type="hidden" name="category" value="shifts">
-                                    <input type="hidden" name="originalName" value="<%= shift.name %>">
-                                    <input type="text" name="name" value="<%= shift.name %>" required>
-                                    <input type="color" name="color" value="<%= shift.color %>">
-                                    <button type="submit">Save</button>
-                                </form>
-                                <form action="/settings/delete-option" method="POST">
-                                    <input type="hidden" name="category" value="shifts">
-                                    <input type="hidden" name="name" value="<%= shift.name %>">
-                                    <button type="submit">Delete</button>
-                                </form>
-                            </li>
-                            <% }); %>
-                        </ul>
-                        <form class="login-form-actions settings-add-form" action="/settings/add-option" method="POST">
-                            <input type="hidden" name="category" value="shifts">
-                            <label for="newShiftName">New Shift:</label>
-                            <input type="text" id="newShiftName" name="name" placeholder="Shift name" required>
-                            <label for="newShiftColor">Color:</label>
-                            <input type="color" id="newShiftColor" name="color" value="#242320">
-                            <button type="submit">Add Shift</button>
-                        </form>
-                    </div>
+                        <div class="settings-tag-grid">
+                            <!-- Houses Card -->
+                            <div class="settings-tag-card">
+                                <div class="settings-card-header">
+                                    <div class="settings-card-title-wrap">
+                                        <h3 class="settings-card-title">
+                                            <span class="material-symbols-outlined">holiday_village</span>
+                                            Houses
+                                        </h3>
+                                        <p class="settings-card-desc">Group staff into house teams with distinct badge colors.</p>
+                                    </div>
+                                    <span class="settings-badge badge-neutral"><%= settings.houses ? settings.houses.length : 0 %></span>
+                                </div>
 
-                    <div class="profile-detail-full">
-                        <span>Activities</span>
-                        <p class="settings-hint">Name and roster row color.</p>
-                        <ul class="settings-list">
-                            <% settings.activities.forEach(function(activity) { %>
-                            <li>
-                                <form class="login-form-actions settings-inline-form" action="/settings/update-option" method="POST">
-                                    <input type="hidden" name="category" value="activities">
-                                    <input type="hidden" name="originalName" value="<%= activity.name %>">
-                                    <input type="text" name="name" value="<%= activity.name %>" required>
-                                    <input type="color" name="color" value="<%= activity.color %>">
-                                    <button type="submit">Save</button>
-                                </form>
-                                <form action="/settings/delete-option" method="POST">
-                                    <input type="hidden" name="category" value="activities">
-                                    <input type="hidden" name="name" value="<%= activity.name %>">
-                                    <button type="submit">Delete</button>
-                                </form>
-                            </li>
-                            <% }); %>
-                        </ul>
-                        <form class="login-form-actions settings-add-form" action="/settings/add-option" method="POST">
-                            <input type="hidden" name="category" value="activities">
-                            <label for="newActivityName">New Activity:</label>
-                            <input type="text" id="newActivityName" name="name" placeholder="Activity name" required>
-                            <label for="newActivityColor">Color:</label>
-                            <input type="color" id="newActivityColor" name="color" value="#242320">
-                            <button type="submit">Add Activity</button>
-                        </form>
+                                <div class="settings-tag-list">
+                                    <% if (!settings.houses || settings.houses.length === 0) { %>
+                                    <p style="color: #8e897e; font-size: 0.85em; text-align: center; padding: 12px;">No houses configured.</p>
+                                    <% } else { %>
+                                    <% settings.houses.forEach(function(house) { %>
+                                    <div class="settings-tag-item">
+                                        <form action="/settings/update-option" method="POST" style="display: flex; align-items: center; gap: 8px; flex: 1;">
+                                            <input type="hidden" name="category" value="houses">
+                                            <input type="hidden" name="originalName" value="<%= house.name %>">
+                                            
+                                            <label class="settings-color-wrapper" title="Change Color">
+                                                <span class="settings-color-preview" style="background-color: <%= house.color %>;"></span>
+                                                <input type="color" name="color" value="<%= house.color %>" class="settings-color-input" onchange="this.previousElementSibling.style.backgroundColor = this.value">
+                                            </label>
+
+                                            <input type="text" name="name" class="settings-input" value="<%= house.name %>" required>
+
+                                            <button type="submit" class="settings-btn settings-btn-secondary settings-btn-sm" title="Save House">
+                                                <span class="material-symbols-outlined">save</span>
+                                            </button>
+                                        </form>
+
+                                        <form action="/settings/delete-option" method="POST" onsubmit="return confirm('Delete house <%= house.name %>?');" style="margin:0;">
+                                            <input type="hidden" name="category" value="houses">
+                                            <input type="hidden" name="name" value="<%= house.name %>">
+                                            <button type="submit" class="settings-btn settings-btn-danger settings-btn-sm" title="Delete House">
+                                                <span class="material-symbols-outlined">delete</span>
+                                            </button>
+                                        </form>
+                                    </div>
+                                    <% }); %>
+                                    <% } %>
+                                </div>
+
+                                <!-- Add House Form -->
+                                <div style="background: #1a1917; border: 1px dashed #444; border-radius: 6px; padding: 12px; margin-top: auto;">
+                                    <form action="/settings/add-option" method="POST" style="display: flex; align-items: center; gap: 8px;">
+                                        <input type="hidden" name="category" value="houses">
+                                        <label class="settings-color-wrapper" title="Pick Color">
+                                            <span class="settings-color-preview" style="background-color: #242320;"></span>
+                                            <input type="color" id="newHouseColor" name="color" value="#242320" class="settings-color-input" onchange="this.previousElementSibling.style.backgroundColor = this.value">
+                                        </label>
+                                        <input type="text" name="name" class="settings-input" placeholder="New House name" required>
+                                        <button type="submit" class="settings-btn settings-btn-primary settings-btn-sm">
+                                            <span class="material-symbols-outlined">add</span>
+                                            Add
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+
+                            <!-- Shifts Card -->
+                            <div class="settings-tag-card">
+                                <div class="settings-card-header">
+                                    <div class="settings-card-title-wrap">
+                                        <h3 class="settings-card-title">
+                                            <span class="material-symbols-outlined">alarm</span>
+                                            Shifts
+                                        </h3>
+                                        <p class="settings-card-desc">Assign staff time slots and scheduling tags.</p>
+                                    </div>
+                                    <span class="settings-badge badge-neutral"><%= settings.shifts ? settings.shifts.length : 0 %></span>
+                                </div>
+
+                                <div class="settings-tag-list">
+                                    <% if (!settings.shifts || settings.shifts.length === 0) { %>
+                                    <p style="color: #8e897e; font-size: 0.85em; text-align: center; padding: 12px;">No shifts configured.</p>
+                                    <% } else { %>
+                                    <% settings.shifts.forEach(function(shift) { %>
+                                    <div class="settings-tag-item">
+                                        <form action="/settings/update-option" method="POST" style="display: flex; align-items: center; gap: 8px; flex: 1;">
+                                            <input type="hidden" name="category" value="shifts">
+                                            <input type="hidden" name="originalName" value="<%= shift.name %>">
+                                            
+                                            <label class="settings-color-wrapper" title="Change Color">
+                                                <span class="settings-color-preview" style="background-color: <%= shift.color %>;"></span>
+                                                <input type="color" name="color" value="<%= shift.color %>" class="settings-color-input" onchange="this.previousElementSibling.style.backgroundColor = this.value">
+                                            </label>
+
+                                            <input type="text" name="name" class="settings-input" value="<%= shift.name %>" required>
+
+                                            <button type="submit" class="settings-btn settings-btn-secondary settings-btn-sm" title="Save Shift">
+                                                <span class="material-symbols-outlined">save</span>
+                                            </button>
+                                        </form>
+
+                                        <form action="/settings/delete-option" method="POST" onsubmit="return confirm('Delete shift <%= shift.name %>?');" style="margin:0;">
+                                            <input type="hidden" name="category" value="shifts">
+                                            <input type="hidden" name="name" value="<%= shift.name %>">
+                                            <button type="submit" class="settings-btn settings-btn-danger settings-btn-sm" title="Delete Shift">
+                                                <span class="material-symbols-outlined">delete</span>
+                                            </button>
+                                        </form>
+                                    </div>
+                                    <% }); %>
+                                    <% } %>
+                                </div>
+
+                                <!-- Add Shift Form -->
+                                <div style="background: #1a1917; border: 1px dashed #444; border-radius: 6px; padding: 12px; margin-top: auto;">
+                                    <form action="/settings/add-option" method="POST" style="display: flex; align-items: center; gap: 8px;">
+                                        <input type="hidden" name="category" value="shifts">
+                                        <label class="settings-color-wrapper" title="Pick Color">
+                                            <span class="settings-color-preview" style="background-color: #242320;"></span>
+                                            <input type="color" id="newShiftColor" name="color" value="#242320" class="settings-color-input" onchange="this.previousElementSibling.style.backgroundColor = this.value">
+                                        </label>
+                                        <input type="text" name="name" class="settings-input" placeholder="New Shift name" required>
+                                        <button type="submit" class="settings-btn settings-btn-primary settings-btn-sm">
+                                            <span class="material-symbols-outlined">add</span>
+                                            Add
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+
+                            <!-- Activities Card -->
+                            <div class="settings-tag-card">
+                                <div class="settings-card-header">
+                                    <div class="settings-card-title-wrap">
+                                        <h3 class="settings-card-title">
+                                            <span class="material-symbols-outlined">bolt</span>
+                                            Activities
+                                        </h3>
+                                        <p class="settings-card-desc">Track member statuses (e.g. Active, Semi-Active, LOA).</p>
+                                    </div>
+                                    <span class="settings-badge badge-neutral"><%= settings.activities ? settings.activities.length : 0 %></span>
+                                </div>
+
+                                <div class="settings-tag-list">
+                                    <% if (!settings.activities || settings.activities.length === 0) { %>
+                                    <p style="color: #8e897e; font-size: 0.85em; text-align: center; padding: 12px;">No activities configured.</p>
+                                    <% } else { %>
+                                    <% settings.activities.forEach(function(activity) { %>
+                                    <div class="settings-tag-item">
+                                        <form action="/settings/update-option" method="POST" style="display: flex; align-items: center; gap: 8px; flex: 1;">
+                                            <input type="hidden" name="category" value="activities">
+                                            <input type="hidden" name="originalName" value="<%= activity.name %>">
+                                            
+                                            <label class="settings-color-wrapper" title="Change Color">
+                                                <span class="settings-color-preview" style="background-color: <%= activity.color %>;"></span>
+                                                <input type="color" name="color" value="<%= activity.color %>" class="settings-color-input" onchange="this.previousElementSibling.style.backgroundColor = this.value">
+                                            </label>
+
+                                            <input type="text" name="name" class="settings-input" value="<%= activity.name %>" required>
+
+                                            <button type="submit" class="settings-btn settings-btn-secondary settings-btn-sm" title="Save Activity">
+                                                <span class="material-symbols-outlined">save</span>
+                                            </button>
+                                        </form>
+
+                                        <form action="/settings/delete-option" method="POST" onsubmit="return confirm('Delete activity <%= activity.name %>?');" style="margin:0;">
+                                            <input type="hidden" name="category" value="activities">
+                                            <input type="hidden" name="name" value="<%= activity.name %>">
+                                            <button type="submit" class="settings-btn settings-btn-danger settings-btn-sm" title="Delete Activity">
+                                                <span class="material-symbols-outlined">delete</span>
+                                            </button>
+                                        </form>
+                                    </div>
+                                    <% }); %>
+                                    <% } %>
+                                </div>
+
+                                <!-- Add Activity Form -->
+                                <div style="background: #1a1917; border: 1px dashed #444; border-radius: 6px; padding: 12px; margin-top: auto;">
+                                    <form action="/settings/add-option" method="POST" style="display: flex; align-items: center; gap: 8px;">
+                                        <input type="hidden" name="category" value="activities">
+                                        <label class="settings-color-wrapper" title="Pick Color">
+                                            <span class="settings-color-preview" style="background-color: #242320;"></span>
+                                            <input type="color" id="newActivityColor" name="color" value="#242320" class="settings-color-input" onchange="this.previousElementSibling.style.backgroundColor = this.value">
+                                        </label>
+                                        <input type="text" name="name" class="settings-input" placeholder="New Activity name" required>
+                                        <button type="submit" class="settings-btn settings-btn-primary settings-btn-sm">
+                                            <span class="material-symbols-outlined">add</span>
+                                            Add
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -301,5 +747,65 @@ function testSendLatest() {
         <div class="footer">
             <p>&copy; 2026 Drowsy Vocals | All rights reserved.</p>
         </div>
+
+        <script>
+            // Client-side Tab Switcher
+            document.querySelectorAll('.settings-tab-btn').forEach(button => {
+                button.addEventListener('click', () => {
+                    const tab = button.getAttribute('data-tab');
+                    
+                    // Update tab buttons
+                    document.querySelectorAll('.settings-tab-btn').forEach(btn => btn.classList.remove('is-active'));
+                    button.classList.add('is-active');
+
+                    // Filter sections
+                    document.querySelectorAll('.settings-group').forEach(group => {
+                        if (tab === 'all' || group.getAttribute('data-section') === tab) {
+                            group.style.display = 'flex';
+                        } else {
+                            group.style.display = 'none';
+                        }
+                    });
+
+                    // Update URL hash without scrolling
+                    history.replaceState(null, null, '#' + tab);
+                });
+            });
+
+            // Handle URL Hash on page load
+            if (window.location.hash) {
+                const targetTab = window.location.hash.substring(1);
+                const matchingBtn = document.querySelector(`.settings-tab-btn[data-tab="${targetTab}"]`);
+                if (matchingBtn) {
+                    matchingBtn.click();
+                }
+            }
+
+            // Copy text helper
+            function copyTextValue(elementId, buttonEl) {
+                const input = document.getElementById(elementId);
+                if (!input) return;
+                navigator.clipboard.writeText(input.value).then(() => {
+                    const originalHtml = buttonEl.innerHTML;
+                    buttonEl.innerHTML = '<span class="material-symbols-outlined">check</span><span>Copied!</span>';
+                    setTimeout(() => {
+                        buttonEl.innerHTML = originalHtml;
+                    }, 2000);
+                });
+            }
+
+            // Copy script code helper
+            function copyScriptCode(buttonEl) {
+                const codeEl = document.getElementById('appsScriptCode');
+                if (!codeEl) return;
+                navigator.clipboard.writeText(codeEl.innerText).then(() => {
+                    const originalHtml = buttonEl.innerHTML;
+                    buttonEl.innerHTML = '<span class="material-symbols-outlined">check</span><span>Copied!</span>';
+                    setTimeout(() => {
+                        buttonEl.innerHTML = originalHtml;
+                    }, 2000);
+                });
+            }
+        </script>
     </body>
 </html>
