@@ -268,6 +268,8 @@ const GOD_ROLES = ['Mr. Sandman', 'Realm God'];
 const hasManagementAccess = (req) => MANAGEMENT_ROLES.includes(req.session.accountType) || Boolean(req.session.isDeveloper);
 const hasGodAccess = (req) => GOD_ROLES.includes(req.session.accountType) || Boolean(req.session.isDeveloper);
 const hasFeedbackManagementAccess = (req) => hasGodAccess(req);
+const rankOrder = ['Mr. Sandman', 'Realm God', 'Drowsy Defender', 'Dreamy Defender', 'Dreamland Guard', 'Nighty Knights', 'Tired Esquire'];
+const getRankChangeType = (oldRank, newRank) => rankOrder.indexOf(newRank) < rankOrder.indexOf(oldRank) ? 'promotion' : 'demotion';
 
 async function writeAudit(req, action, detail) {
     if (!db || !req.session.currentuser) return;
@@ -362,6 +364,12 @@ async function sendDiscordWebhook(embed, eventType = null) {
             return;
         } else if (eventType === 'applications' && webhookConfig.notifyApplications === false) {
             return;
+        } else if (eventType === 'pdLogs') {
+            if (webhookConfig.notifyPdLogs === false) return;
+            targetUrl = '';
+            if (webhookConfig.pdLogsUrl && webhookConfig.pdLogsUrl.trim().startsWith('https://discord.com/api/webhooks/')) {
+                targetUrl = webhookConfig.pdLogsUrl.trim();
+            }
         }
 
         if (!targetUrl || !targetUrl.startsWith('https://discord.com/api/webhooks/')) {
@@ -629,12 +637,14 @@ const DEFAULT_SETTINGS = {
         url: '',
         housePointsUrl: '',
         eventsUrl: '',
+        pdLogsUrl: '',
         notifyLoa: true,
         notifyStrikes: true,
         notifyFeedback: true,
         notifyApplications: true,
         notifyEvents: true,
         notifyHousePoints: true,
+        notifyPdLogs: true,
         applicationsSecret: 'drowsy-apps-secret'
     },
     alerts: {
@@ -1153,6 +1163,11 @@ app.post('/add-user', requireDatabase, async (req, res) => {
 
         await db.collection('users').insertOne(newUser);
         await writeAudit(req, 'Added Staff Member', `${cleanDisplayName} (${cleanDiscordId}) - ${cleanAccountType}`);
+        sendPdLogsWebhook('Staff Added', 0x22C55E, [
+            { name: 'Staff Member', value: `${cleanDisplayName} (<@${cleanDiscordId}>)`, inline: true },
+            { name: 'Rank', value: cleanAccountType || 'Unassigned', inline: true },
+            { name: 'Added By', value: `<@${req.session.currentuser}>`, inline: true }
+        ]);
         req.flash('success_msg', `Added ${cleanDisplayName} to the roster.`);
         res.redirect('/roster');
     } catch (error) {
@@ -1280,6 +1295,18 @@ app.post('/update-user', requireDatabase, async (req, res) => {
         }
         const auditDetails = `${cleanDisplayName} (${cleanOriginalId} -> ${cleanDiscordId})${dateChanges.length ? `; ${dateChanges.join('; ')}` : ''}`;
         await writeAudit(req, 'Updated Staff Member', auditDetails);
+        if (isPromotion) {
+            sendPdLogsWebhook(
+                getRankChangeType(existingUser.accountType, cleanAccountType) === 'promotion' ? 'Staff Promoted' : 'Staff Demoted',
+                getRankChangeType(existingUser.accountType, cleanAccountType) === 'promotion' ? 0x3B82F6 : 0xF97316,
+                [
+                    { name: 'Staff Member', value: `${cleanDisplayName} (<@${cleanDiscordId}>)`, inline: true },
+                    { name: 'Previous Rank', value: existingUser.accountType || 'Unassigned', inline: true },
+                    { name: 'New Rank', value: cleanAccountType || 'Unassigned', inline: true },
+                    { name: 'Changed By', value: `<@${req.session.currentuser}>`, inline: true }
+                ]
+            );
+        }
         req.flash('success_msg', `Updated profile for ${cleanDisplayName}.`);
         res.redirect('/roster');
     } catch (error) {
@@ -1342,6 +1369,13 @@ app.post('/promote-user', requireDatabase, async (req, res) => {
         }
 
         await writeAudit(req, rankActionType === 'Demote' ? 'Demoted User' : 'Promoted User', `${user.displayName || cleanDiscordId}: ${user.accountType} -> ${cleanAccountType}`);
+        const isPromotion = rankActionType !== 'Demote';
+        sendPdLogsWebhook(isPromotion ? 'Staff Promoted' : 'Staff Demoted', isPromotion ? 0x3B82F6 : 0xF97316, [
+            { name: 'Staff Member', value: `${user.displayName || user.discordUser || cleanDiscordId} (<@${cleanDiscordId}>)`, inline: true },
+            { name: 'Previous Rank', value: user.accountType || 'Unassigned', inline: true },
+            { name: 'New Rank', value: cleanAccountType, inline: true },
+            { name: 'Changed By', value: `<@${req.session.currentuser}>`, inline: true }
+        ]);
         req.flash('success_msg', `${user.displayName || cleanDiscordId} is now ${cleanAccountType}.`);
         res.redirect('/roster');
     } catch (error) {
@@ -1898,6 +1932,7 @@ app.post('/settings/webhooks', requireDatabase, async (req, res) => {
     const url = (req.body.url || '').toString().trim();
     const housePointsUrl = (req.body.housePointsUrl || '').toString().trim();
     const eventsUrl = (req.body.eventsUrl || '').toString().trim();
+    const pdLogsUrl = (req.body.pdLogsUrl || '').toString().trim();
     const applicationsSecret = (req.body.applicationsSecret || '').toString().trim() || 'drowsy-apps-secret';
     const notifyLoa = req.body.notifyLoa === 'true' || req.body.notifyLoa === 'on';
     const notifyStrikes = req.body.notifyStrikes === 'true' || req.body.notifyStrikes === 'on';
@@ -1905,10 +1940,11 @@ app.post('/settings/webhooks', requireDatabase, async (req, res) => {
     const notifyApplications = req.body.notifyApplications === 'true' || req.body.notifyApplications === 'on';
     const notifyHousePoints = req.body.notifyHousePoints === 'true' || req.body.notifyHousePoints === 'on';
     const notifyEvents = req.body.notifyEvents === 'true' || req.body.notifyEvents === 'on';
+    const notifyPdLogs = req.body.notifyPdLogs === 'true' || req.body.notifyPdLogs === 'on';
 
     const isValidWebhook = (u) => !u || u.startsWith('https://discord.com/api/webhooks/');
 
-    if (!isValidWebhook(url) || !isValidWebhook(housePointsUrl) || !isValidWebhook(eventsUrl)) {
+    if (!isValidWebhook(url) || !isValidWebhook(housePointsUrl) || !isValidWebhook(eventsUrl) || !isValidWebhook(pdLogsUrl)) {
         req.flash('error_msg', 'Discord webhook URLs must start with https://discord.com/api/webhooks/');
         return res.redirect('/settings');
     }
@@ -1921,6 +1957,7 @@ app.post('/settings/webhooks', requireDatabase, async (req, res) => {
                     'webhooks.url': url,
                     'webhooks.housePointsUrl': housePointsUrl,
                     'webhooks.eventsUrl': eventsUrl,
+                    'webhooks.pdLogsUrl': pdLogsUrl,
                     'webhooks.applicationsSecret': applicationsSecret,
                     'webhooks.notifyLoa': notifyLoa,
                     'webhooks.notifyStrikes': notifyStrikes,
@@ -1928,6 +1965,7 @@ app.post('/settings/webhooks', requireDatabase, async (req, res) => {
                     'webhooks.notifyApplications': notifyApplications,
                     'webhooks.notifyHousePoints': notifyHousePoints,
                     'webhooks.notifyEvents': notifyEvents,
+                    'webhooks.notifyPdLogs': notifyPdLogs,
                     'webhooks.updatedAt': new Date().toISOString().slice(0, 19),
                     'webhooks.updatedBy': req.session.currentuser
                 }
@@ -1938,7 +1976,7 @@ app.post('/settings/webhooks', requireDatabase, async (req, res) => {
         await writeAudit(
             req,
             'Updated Discord Webhooks',
-            `Channels configured: General=${Boolean(url)}, HousePoints=${Boolean(housePointsUrl)}, Events=${Boolean(eventsUrl)}`
+            `Channels configured: General=${Boolean(url)}, HousePoints=${Boolean(housePointsUrl)}, Events=${Boolean(eventsUrl)}, PD Logs=${Boolean(pdLogsUrl)}`
         );
 
         // Send connection test embeds to configured channels
@@ -1974,6 +2012,17 @@ app.post('/settings/webhooks', requireDatabase, async (req, res) => {
                 description: 'Community event schedules, karaoke announcements, and stage updates will be broadcast to this channel.',
                 fields: [
                     { name: 'Event Schedule Alerts', value: notifyEvents ? '✅ Enabled' : '❌ Disabled', inline: true }
+                ]
+            });
+        }
+
+        if (pdLogsUrl && pdLogsUrl !== url && pdLogsUrl !== housePointsUrl && pdLogsUrl !== eventsUrl) {
+            postWebhookPayload(pdLogsUrl, {
+                title: '🛡️ PD Logs Webhook Connected',
+                color: 0x22C55E,
+                description: 'Staff additions, promotions, demotions, and departures will be broadcast to this channel.',
+                fields: [
+                    { name: 'Staff Change Alerts', value: notifyPdLogs ? 'Enabled' : 'Disabled', inline: true }
                 ]
             });
         }
@@ -2203,6 +2252,11 @@ app.post('/deleteUser', requireDatabase, async (req, res) => {
 
         await db.collection('users').deleteOne({ 'login.discordId': cleanDiscordId });
         await writeAudit(req, 'Deleted User', `${targetUser.displayName || targetUser.discordUser || cleanDiscordId} (${cleanDiscordId})`);
+        sendPdLogsWebhook('Staff Departure', 0xEF4444, [
+            { name: 'Staff Member', value: `${targetUser.displayName || targetUser.discordUser || cleanDiscordId} (<@${cleanDiscordId}>)`, inline: true },
+            { name: 'Final Rank', value: targetUser.accountType || 'Unassigned', inline: true },
+            { name: 'Removed By', value: `<@${req.session.currentuser}>`, inline: true }
+        ]);
 
         req.flash('success_msg', `Deleted user ${targetUser.displayName || cleanDiscordId}.`);
         res.redirect('/roster');
@@ -2560,6 +2614,10 @@ async function sendBotApiPost(pathname, bodyParams = {}) {
         console.error(`Bot API error on ${pathname}:`, e.message);
     }
     return null;
+}
+
+function sendPdLogsWebhook(title, color, fields) {
+    sendDiscordWebhook({ title, color, fields }, 'pdLogs');
 }
 
 // ADVANCE TO NEXT SINGER

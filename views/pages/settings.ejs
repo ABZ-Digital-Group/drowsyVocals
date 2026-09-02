@@ -168,7 +168,7 @@
                                     <p class="settings-card-desc">Broadcast real-time embed alerts to your Discord channels. You can route House Points and Event Schedules to dedicated channels, while sending management notifications to your general/staff channel.</p>
                                 </div>
                                 <div>
-                                    <% const totalActiveWebhooks = [settings.webhooks?.url, settings.webhooks?.housePointsUrl, settings.webhooks?.eventsUrl].filter(Boolean).length; %>
+                                    <% const totalActiveWebhooks = [settings.webhooks?.url, settings.webhooks?.housePointsUrl, settings.webhooks?.eventsUrl, settings.webhooks?.pdLogsUrl].filter(Boolean).length; %>
                                     <% if (totalActiveWebhooks > 0) { %>
                                     <span class="settings-badge badge-success"><%= totalActiveWebhooks %> Channel<%= totalActiveWebhooks === 1 ? '' : 's' %> Connected</span>
                                     <% } else { %>
@@ -194,6 +194,12 @@
                                     <label for="eventsWebhookUrl">📅 Event Schedule Channel Webhook URL (Optional)</label>
                                     <input type="url" id="eventsWebhookUrl" name="eventsUrl" class="settings-input" placeholder="https://discord.com/api/webhooks/..." value="<%= settings.webhooks?.eventsUrl || '' %>">
                                     <span class="settings-hint">Sends newly scheduled community events, karaoke sessions, and schedule updates directly to your dedicated #events channel.</span>
+                                </div>
+
+                                <div class="settings-form-group">
+                                    <label for="pdLogsWebhookUrl">🛡️ PD Logs Webhook URL (Optional)</label>
+                                    <input type="url" id="pdLogsWebhookUrl" name="pdLogsUrl" class="settings-input" placeholder="https://discord.com/api/webhooks/..." value="<%= settings.webhooks?.pdLogsUrl || '' %>">
+                                    <span class="settings-hint">Sends staff additions, promotions, demotions, and departures to your dedicated PD logs channel.</span>
                                 </div>
 
                                 <div class="settings-form-group">
@@ -234,6 +240,10 @@
                                         <label class="settings-trigger-item">
                                             <input type="checkbox" name="notifyEvents" value="true" <%= settings.webhooks?.notifyEvents !== false ? 'checked' : '' %>>
                                             <span class="settings-trigger-text">📅 Event Announcements & Edits</span>
+                                        </label>
+                                        <label class="settings-trigger-item">
+                                            <input type="checkbox" name="notifyPdLogs" value="true" <%= settings.webhooks?.notifyPdLogs !== false ? 'checked' : '' %>>
+                                            <span class="settings-trigger-text">🛡️ Staff Changes & Departures</span>
                                         </label>
                                     </div>
                                 </div>
