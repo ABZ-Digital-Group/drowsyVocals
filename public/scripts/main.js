@@ -47,17 +47,22 @@ if (rosterFilters.slice(0, 4).every(Boolean)) {
       row.hidden = !(matchesSearch && matchesRank && matchesHouse && matchesActivity && matchesAlert);
     });
 
+    document.querySelectorAll('.vacant-row').forEach((row) => {
+      const matchesRank = !rank || (row.dataset.rank || '').toLowerCase() === rank;
+      row.hidden = !matchesRank;
+    });
+
     // Also hide rank headers if all rows under that rank are hidden
     document.querySelectorAll('.rank-group-header').forEach((header) => {
       const rankGroup = (header.dataset.rankGroup || '').toLowerCase();
       if (!rankGroup) return;
-      const hasVisible = Array.from(document.querySelectorAll(`.roster-user-row[data-rank="${rankGroup}"]`)).some((r) => !r.hidden);
+      const hasVisible = Array.from(document.querySelectorAll(`.roster-user-row[data-rank="${rankGroup}"], .vacant-row[data-rank="${rankGroup}"]`)).some((r) => !r.hidden);
       header.hidden = !hasVisible;
     });
   };
   rosterFilters.filter(Boolean).forEach((field) => {
     field.addEventListener('input', applyRosterFilters);
-    field.addEventListener('change', applyBingoFilters ? applyRosterFilters : applyRosterFilters);
+    field.addEventListener('change', applyRosterFilters);
   });
 }
 

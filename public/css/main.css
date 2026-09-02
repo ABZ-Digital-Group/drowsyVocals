@@ -604,6 +604,11 @@ tbody tr:not(.rank-group-header):not(.bingo-rank-header):hover {
     flex-direction: row;
     justify-content: space-between;
 }
+
+.roster-content {
+    width: 100%;
+    overflow-x: auto;
+}
     
 .roster-content button:not(.action-button) {
     padding: 2px;
