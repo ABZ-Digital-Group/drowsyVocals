@@ -2626,9 +2626,11 @@ app.post('/bot/sync-member', requireDatabase, async (req, res) => {
 
         let syncedCount = 0;
         let errors = [];
+        const botEnv = parseBotEnv(BOT_ENV_FILE);
 
         for (const user of targets) {
             const resp = await sendBotApiPost('/admin/api/sync-member', {
+            guildId: botEnv.GUILD_ID,
                 discordId: user.login.discordId,
                 displayName: user.displayName,
                 rank: user.accountType,
@@ -2646,7 +2648,9 @@ app.post('/bot/sync-member', requireDatabase, async (req, res) => {
         if (syncedCount > 0) {
             req.flash('success_msg', `Synchronized Discord roles and nicknames for ${syncedCount} member(s).${errors.length ? ` (${errors.length} failed)` : ''}`);
         } else {
-            req.flash('error_msg', `Sync failed. Ensure DrowsyBot is online and has "Manage Roles" and "Manage Nicknames" permissions.`);
+            req.flash('error_msg', errors.length
+                ? `Sync failed: ${errors.slice(0, 3).join(' | ')}`
+                : 'Sync failed. DrowsyBot is not reachable from the management portal.');
         }
     } catch (e) {
         console.error('Error during role sync:', e);
