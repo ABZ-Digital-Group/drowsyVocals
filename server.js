@@ -1086,6 +1086,7 @@ app.post('/add-user', requireDatabase, async (req, res) => {
         discordUser,
         accountType,
         hireDate,
+        lastPromotion,
         password,
         house,
         shift,
@@ -1212,9 +1213,23 @@ app.post('/update-user', requireDatabase, async (req, res) => {
         }
 
         const isPromotion = existingUser.accountType !== cleanAccountType;
-        const nextLastPromotion = isPromotion
-            ? new Date().toISOString().slice(0, 10)
-            : (existingUser.lastPromotion || hireDate || null);
+        const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+        const cleanHireDate = (hireDate || '').toString().trim();
+        const cleanLastPromotion = (lastPromotion || '').toString().trim();
+        const isValidDate = (dateValue) => {
+            if (!dateValue) return true;
+            if (!datePattern.test(dateValue)) return false;
+            const parsedDate = new Date(`${dateValue}T00:00:00Z`);
+            return !Number.isNaN(parsedDate.valueOf())
+                && parsedDate.toISOString().slice(0, 10) === dateValue;
+        };
+        if (!isValidDate(cleanHireDate) || !isValidDate(cleanLastPromotion)) {
+            req.flash('error_msg', 'Join and promotion/demotion dates must be valid dates.');
+            return res.redirect('/roster');
+        }
+
+        const nextLastPromotion = cleanLastPromotion
+            || (isPromotion ? new Date().toISOString().slice(0, 10) : (existingUser.lastPromotion || cleanHireDate || null));
 
         const updateDoc = {
             $set: {
@@ -1222,7 +1237,7 @@ app.post('/update-user', requireDatabase, async (req, res) => {
                 displayName: cleanDisplayName,
                 discordUser: (discordUser || '').toString().trim(),
                 accountType: cleanAccountType,
-                hireDate: hireDate || existingUser.hireDate,
+                hireDate: cleanHireDate || existingUser.hireDate,
                 lastPromotion: nextLastPromotion,
                 house: (house || '').toString(),
                 shift: (shift || '').toString(),
@@ -1249,7 +1264,15 @@ app.post('/update-user', requireDatabase, async (req, res) => {
             updateDoc
         );
 
-        await writeAudit(req, 'Updated Staff Member', `${cleanDisplayName} (${cleanOriginalId} -> ${cleanDiscordId})`);
+        const dateChanges = [];
+        if (cleanHireDate && cleanHireDate !== existingUser.hireDate) {
+            dateChanges.push(`join date ${existingUser.hireDate || 'unset'} -> ${cleanHireDate}`);
+        }
+        if (cleanLastPromotion && cleanLastPromotion !== existingUser.lastPromotion) {
+            dateChanges.push(`promotion/demotion date ${existingUser.lastPromotion || 'unset'} -> ${cleanLastPromotion}`);
+        }
+        const auditDetails = `${cleanDisplayName} (${cleanOriginalId} -> ${cleanDiscordId})${dateChanges.length ? `; ${dateChanges.join('; ')}` : ''}`;
+        await writeAudit(req, 'Updated Staff Member', auditDetails);
         req.flash('success_msg', `Updated profile for ${cleanDisplayName}.`);
         res.redirect('/roster');
     } catch (error) {

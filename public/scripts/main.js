@@ -238,6 +238,7 @@ if (editUserPopup && closeEditUserPopup) {
   const editDiscordUser = document.getElementById("editDiscordUser");
   const editAccountType = document.getElementById("editAccountType");
   const editHireDate = document.getElementById("editHireDate");
+  const editLastPromotion = document.getElementById("editLastPromotion");
   const editHouse = document.getElementById("editHouse");
   const editHousePoints = document.getElementById("editHousePoints");
   const editActivity = document.getElementById("editActivity");
@@ -255,6 +256,7 @@ if (editUserPopup && closeEditUserPopup) {
         discordUser,
         accountType,
         hireDate,
+        lastPromotion,
         house,
         housePoints,
         activity,
@@ -270,6 +272,7 @@ if (editUserPopup && closeEditUserPopup) {
       editDiscordUser.value = discordUser || "";
       editAccountType.value = accountType || "Tired Esquire";
       editHireDate.value = hireDate || "";
+      editLastPromotion.value = lastPromotion || hireDate || "";
       editHouse.value = house || "Stubo United";
       editHousePoints.value = housePoints || 0;
       editActivity.value = activity || "Active";
