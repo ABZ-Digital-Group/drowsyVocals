@@ -100,12 +100,12 @@
                                 <div style="background: #1a1917; border: 1px solid #383734; border-left: 4px solid <%= event.category === 'Karaoke' ? '#60a5fa' : event.category === 'Staff Meeting' ? '#fbbf24' : '#a78bfa' %>; border-radius: 6px; padding: 18px; display: flex; flex-direction: column; gap: 10px;">
                                     <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px;">
                                         <div>
-                                            <div style="display: flex; align-items: center; gap: 8px;">
+                                            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                                                 <span class="settings-badge" style="background:#242320;border:1px solid #444;font-size:0.75em;"><%= event.category || 'Event' %></span>
                                                 <h4 style="margin: 0; font-size: 1.2em; color: #f3efe6;"><%= event.title %></h4>
                                             </div>
                                             <span style="font-size: 0.8em; color: #8e897e; margin-top: 4px; display: block;">
-                                                📍 <%= event.location || 'Discord Stage' %> · Hosted by <%= event.createdBy %>
+                                                📍 <%= event.location || 'Discord Stage' %>
                                             </span>
                                         </div>
 
@@ -120,12 +120,62 @@
                                         </div>
                                     </div>
 
+                                    <!-- Event Staff / Leadership Line -->
+                                    <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 2px;">
+                                        <%
+                                            const hostUser = (event.host && userMap && userMap[event.host]) ? userMap[event.host] : null;
+                                            const coHostUser = (event.coHost && userMap && userMap[event.coHost]) ? userMap[event.coHost] : null;
+                                            const adminUser = (event.admin && userMap && userMap[event.admin]) ? userMap[event.admin] : null;
+                                            const creatorUser = (event.createdBy && userMap && userMap[event.createdBy]) ? userMap[event.createdBy] : null;
+                                        %>
+
+                                        <% if (hostUser || event.host) { %>
+                                        <span class="settings-badge" style="background:#242320; border:1px solid #383734; font-size:0.75em; display: inline-flex; align-items: center; gap: 4px; color: #f3efe6;">
+                                            <span class="material-symbols-outlined" style="font-size: 1.1em; color: #60a5fa; background: transparent; padding: 0;">mic</span>
+                                            <strong>Host:</strong> <%= hostUser ? (hostUser.displayName || hostUser.discordUser) : event.host %>
+                                        </span>
+                                        <% } else { %>
+                                        <span class="settings-badge" style="background:#242320; border:1px solid #383734; font-size:0.75em; display: inline-flex; align-items: center; gap: 4px; color: #8e897e;">
+                                            <span class="material-symbols-outlined" style="font-size: 1.1em; color: #8e897e; background: transparent; padding: 0;">person</span>
+                                            <strong>Organizer:</strong> <%= creatorUser ? (creatorUser.displayName || creatorUser.discordUser) : event.createdBy %>
+                                        </span>
+                                        <% } %>
+
+                                        <% if (coHostUser || event.coHost) { %>
+                                        <span class="settings-badge" style="background:#242320; border:1px solid #383734; font-size:0.75em; display: inline-flex; align-items: center; gap: 4px; color: #f3efe6;">
+                                            <span class="material-symbols-outlined" style="font-size: 1.1em; color: #34d399; background: transparent; padding: 0;">group</span>
+                                            <strong>Co-Host:</strong> <%= coHostUser ? (coHostUser.displayName || coHostUser.discordUser) : event.coHost %>
+                                        </span>
+                                        <% } %>
+
+                                        <% if (adminUser || event.admin) { %>
+                                        <span class="settings-badge" style="background:#242320; border:1px solid #383734; font-size:0.75em; display: inline-flex; align-items: center; gap: 4px; color: #f3efe6;">
+                                            <span class="material-symbols-outlined" style="font-size: 1.1em; color: #fbbf24; background: transparent; padding: 0;">shield_person</span>
+                                            <strong>Admin:</strong> <%= adminUser ? (adminUser.displayName || adminUser.discordUser) : event.admin %>
+                                        </span>
+                                        <% } %>
+                                    </div>
+
                                     <% if (event.description) { %>
                                     <p style="margin: 0; color: #d0cdc5; font-size: 0.9em; line-height: 1.5; white-space: pre-wrap;"><%= event.description %></p>
                                     <% } %>
 
                                     <% if (isManager) { %>
-                                    <div style="display: flex; justify-content: flex-end; border-top: 1px solid #282724; padding-top: 8px;">
+                                    <div style="display: flex; justify-content: flex-end; align-items: center; gap: 8px; border-top: 1px solid #282724; padding-top: 10px; margin-top: 4px;">
+                                        <button type="button" class="settings-btn settings-btn-secondary settings-btn-sm editEventBtn"
+                                            data-event-id="<%= event.id || event._id %>"
+                                            data-event-title="<%= event.title %>"
+                                            data-event-category="<%= event.category || 'Karaoke' %>"
+                                            data-event-location="<%= event.location || 'Discord Stage' %>"
+                                            data-event-host="<%= event.host || '' %>"
+                                            data-event-co-host="<%= event.coHost || '' %>"
+                                            data-event-admin="<%= event.admin || '' %>"
+                                            data-event-start-iso="<%= event.scheduledStartTime %>"
+                                            data-event-end-iso="<%= event.scheduledEndTime || '' %>"
+                                            data-event-desc="<%= event.description || '' %>">
+                                            <span class="material-symbols-outlined">edit</span>
+                                            <span>Edit</span>
+                                        </button>
                                         <form action="/events/<%= event.id || event._id %>/delete" method="POST" onsubmit="return confirm('Remove event <%= event.title %>?');" style="margin: 0;">
                                             <button type="submit" class="settings-btn settings-btn-danger settings-btn-sm">
                                                 <span class="material-symbols-outlined">delete</span>
@@ -226,6 +276,36 @@
                                     </div>
                                 </div>
 
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px;">
+                                    <div class="settings-form-group" style="margin-bottom: 0;">
+                                        <label for="eventHost">🎤 Host</label>
+                                        <select id="eventHost" name="host" class="settings-input">
+                                            <option value="">-- Select Host (Optional) --</option>
+                                            <% (users || []).forEach(function(u) { %>
+                                            <option value="<%= u.login.discordId %>"><%= u.displayName || u.discordUser %> (<%= u.accountType %>)</option>
+                                            <% }); %>
+                                        </select>
+                                    </div>
+                                    <div class="settings-form-group" style="margin-bottom: 0;">
+                                        <label for="eventCoHost">👥 Co-Host</label>
+                                        <select id="eventCoHost" name="coHost" class="settings-input">
+                                            <option value="">-- None / Optional --</option>
+                                            <% (users || []).forEach(function(u) { %>
+                                            <option value="<%= u.login.discordId %>"><%= u.displayName || u.discordUser %> (<%= u.accountType %>)</option>
+                                            <% }); %>
+                                        </select>
+                                    </div>
+                                    <div class="settings-form-group" style="margin-bottom: 0;">
+                                        <label for="eventAdmin">🛡️ Admin on Duty</label>
+                                        <select id="eventAdmin" name="admin" class="settings-input">
+                                            <option value="">-- None / Optional --</option>
+                                            <% (users || []).forEach(function(u) { %>
+                                            <option value="<%= u.login.discordId %>"><%= u.displayName || u.discordUser %> (<%= u.accountType %>)</option>
+                                            <% }); %>
+                                        </select>
+                                    </div>
+                                </div>
+
                                 <p style="margin: 4px 0 0; font-size: 0.8em; color: #8e897e; display: flex; align-items: center; gap: 6px;">
                                     <span class="material-symbols-outlined" style="font-size: 1.1em; color: #60a5fa; background: transparent; padding: 0;">schedule</span>
                                     <span>Times you select above are in your local timezone (<strong class="form-user-tz" style="color: #d0cdc5;">Local</strong>) and automatically converted for all viewers worldwide.</span>
@@ -259,6 +339,103 @@
                 </div>
             </section>
         </main>
+        <% if (isManager) { %>
+        <dialog id="editEventPopup" class="dialog-wide">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #242320; padding-bottom: 12px; margin-bottom: 16px;">
+                <h3 style="margin: 0; font-size: 1.25em; display: flex; align-items: center; gap: 8px;">
+                    <span class="material-symbols-outlined" style="background: transparent; color: #242320;">edit_calendar</span>
+                    <span>Edit Scheduled Event</span>
+                </h3>
+                <button type="button" id="closeEditEventCross" style="background:none;border:none;color:inherit;cursor:pointer;font-size:1.4em;font-weight:bold;line-height:1;">&times;</button>
+            </div>
+
+            <form id="editEventForm" action="" method="POST">
+                <input type="hidden" id="editEventStartIso" name="startIso">
+                <input type="hidden" id="editEventEndIso" name="endIso">
+                <input type="hidden" id="editEventClientTimezone" name="clientTimezone">
+
+                <label for="editEventTitle">Event Title</label>
+                <input type="text" id="editEventTitle" name="title" required>
+
+                <label for="editEventCategory">Category</label>
+                <select id="editEventCategory" name="category" required>
+                    <option value="Karaoke">🎤 Karaoke / Singing</option>
+                    <option value="Staff Meeting">👥 Weekly Staff Meeting</option>
+                    <option value="Game Night">🎮 Community Game Night</option>
+                    <option value="Training">🎓 Staff Workshop & Training</option>
+                    <option value="Special Event">✨ Special Celebration / Gala</option>
+                </select>
+
+                <label for="editEventLocation">Voice Channel / Location</label>
+                <input type="text" id="editEventLocation" name="location" required>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div>
+                        <label for="editEventStartDate">Start Date</label>
+                        <input type="date" id="editEventStartDate" name="startDate" required>
+                    </div>
+                    <div>
+                        <label for="editEventStartTime">Start Time</label>
+                        <input type="time" id="editEventStartTime" name="startTime" required>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div>
+                        <label for="editEventEndDate">End Date (Optional)</label>
+                        <input type="date" id="editEventEndDate" name="endDate">
+                    </div>
+                    <div>
+                        <label for="editEventEndTime">End Time (Optional)</label>
+                        <input type="time" id="editEventEndTime" name="endTime">
+                    </div>
+                </div>
+
+                <p style="margin: 6px 0 0; font-size: 0.8em; color: #4c483f; display: flex; align-items: center; gap: 6px;">
+                    <span class="material-symbols-outlined" style="font-size: 1.1em; color: #242320; background: transparent; padding: 0;">schedule</span>
+                    <span>Times above are displayed in your local timezone (<strong class="form-user-tz">Local</strong>).</span>
+                </p>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px;">
+                    <div>
+                        <label for="editEventHost">🎤 Host</label>
+                        <select id="editEventHost" name="host">
+                            <option value="">-- None / Unassigned --</option>
+                            <% (users || []).forEach(function(u) { %>
+                            <option value="<%= u.login.discordId %>"><%= u.displayName || u.discordUser %> (<%= u.accountType %>)</option>
+                            <% }); %>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="editEventCoHost">👥 Co-Host</label>
+                        <select id="editEventCoHost" name="coHost">
+                            <option value="">-- None / Optional --</option>
+                            <% (users || []).forEach(function(u) { %>
+                            <option value="<%= u.login.discordId %>"><%= u.displayName || u.discordUser %> (<%= u.accountType %>)</option>
+                            <% }); %>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="editEventAdmin">🛡️ Admin on Duty</label>
+                        <select id="editEventAdmin" name="admin">
+                            <option value="">-- None / Optional --</option>
+                            <% (users || []).forEach(function(u) { %>
+                            <option value="<%= u.login.discordId %>"><%= u.displayName || u.discordUser %> (<%= u.accountType %>)</option>
+                            <% }); %>
+                        </select>
+                    </div>
+                </div>
+
+                <label for="editEventDesc">Description / Rules</label>
+                <textarea id="editEventDesc" name="description" rows="3"></textarea>
+
+                <div class="dialog-buttons">
+                    <button type="submit">Save Changes</button>
+                    <button type="button" id="closeEditEventPopup">Cancel</button>
+                </div>
+            </form>
+        </dialog>
+        <% } %>
         <div class="footer">
             <p>&copy; 2026 Drowsy Vocals | All rights reserved.</p>
         </div>

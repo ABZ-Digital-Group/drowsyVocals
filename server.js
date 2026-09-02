@@ -2913,21 +2913,29 @@ app.get('/events', requireDatabase, async (req, res) => {
     if (!req.session.loggedin) return res.redirect('/');
 
     try {
-        const events = await db.collection('scheduledEvents')
-            .find()
-            .sort({ scheduledStartTime: 1 })
-            .toArray();
+        const [events, users] = await Promise.all([
+            db.collection('scheduledEvents').find().sort({ scheduledStartTime: 1 }).toArray(),
+            db.collection('users').find({}, { projection: { displayName: 1, discordUser: 1, 'login.discordId': 1, accountType: 1, avatarUrl: 1 } }).sort({ displayName: 1 }).toArray()
+        ]);
 
         const upcomingEvents = events.filter(e => new Date(e.scheduledEndTime || e.scheduledStartTime) >= new Date());
         const pastEvents = events.filter(e => new Date(e.scheduledEndTime || e.scheduledStartTime) < new Date()).reverse();
 
         const isManager = hasManagementAccess(req);
+        const userMap = {};
+        users.forEach((u) => {
+            if (u.login?.discordId) {
+                userMap[u.login.discordId] = u;
+            }
+        });
 
         res.render('pages/events', {
             page: 'events',
             upcomingEvents,
             pastEvents,
-            isManager
+            isManager,
+            users,
+            userMap
         });
     } catch (error) {
         console.error('Error loading events:', error);
@@ -2953,12 +2961,18 @@ app.post('/events/create', requireDatabase, async (req, res) => {
         endIso,
         clientTimezone,
         location,
-        category
+        category,
+        host,
+        coHost,
+        admin
     } = req.body;
 
     const cleanTitle = (title || '').toString().trim();
     const cleanDesc = (description || '').toString().trim();
     const cleanLocation = (location || 'Discord Stage').toString().trim();
+    const cleanHost = (host || '').toString().trim() || null;
+    const cleanCoHost = (coHost || '').toString().trim() || null;
+    const cleanAdmin = (admin || '').toString().trim() || null;
 
     if (!cleanTitle || (!startIso && (!startDate || !startTime))) {
         req.flash('error_msg', 'Event title, start date, and start time are required.');
@@ -2989,6 +3003,9 @@ app.post('/events/create', requireDatabase, async (req, res) => {
             description: cleanDesc,
             category: (category || 'Karaoke').toString(),
             location: cleanLocation,
+            host: cleanHost,
+            coHost: cleanCoHost,
+            admin: cleanAdmin,
             scheduledStartTime,
             scheduledEndTime,
             timezone: (clientTimezone || '').toString().slice(0, 100) || 'UTC',
@@ -2997,19 +3014,35 @@ app.post('/events/create', requireDatabase, async (req, res) => {
         };
 
         await db.collection('scheduledEvents').insertOne(newEvent);
-        await writeAudit(req, 'Scheduled Event', `${cleanTitle} on ${startDate} at ${startTime}`);
+        await writeAudit(req, 'Scheduled Event', `${cleanTitle} on ${startDate || scheduledStartTime}`);
+
+        // Build Discord Webhook fields
+        const webhookFields = [
+            { name: 'Category', value: newEvent.category, inline: true },
+            { name: 'Location', value: cleanLocation, inline: true },
+            { name: 'Start Time', value: `<t:${Math.floor(new Date(scheduledStartTime).getTime() / 1000)}:F>`, inline: false }
+        ];
+
+        if (cleanHost) {
+            webhookFields.push({ name: '🎤 Host', value: cleanHost.match(/^\d+$/) ? `<@${cleanHost}>` : cleanHost, inline: true });
+        }
+        if (cleanCoHost) {
+            webhookFields.push({ name: '👥 Co-Host', value: cleanCoHost.match(/^\d+$/) ? `<@${cleanCoHost}>` : cleanCoHost, inline: true });
+        }
+        if (cleanAdmin) {
+            webhookFields.push({ name: '🛡️ Admin on Duty', value: cleanAdmin.match(/^\d+$/) ? `<@${cleanAdmin}>` : cleanAdmin, inline: true });
+        }
+
+        webhookFields.push(
+            { name: 'Description', value: cleanDesc || 'No additional details provided.' },
+            { name: 'Created By', value: `<@${req.session.currentuser}>`, inline: true }
+        );
 
         // Broadcast to Discord Webhook
         sendDiscordWebhook({
             title: `📅 New Event Scheduled: ${cleanTitle}`,
             color: 0x8B5CF6,
-            fields: [
-                { name: 'Category', value: newEvent.category, inline: true },
-                { name: 'Location', value: cleanLocation, inline: true },
-                { name: 'Start Time', value: `<t:${Math.floor(new Date(scheduledStartTime).getTime() / 1000)}:F>`, inline: false },
-                { name: 'Description', value: cleanDesc || 'No additional details provided.' },
-                { name: 'Host / Organizer', value: `<@${req.session.currentuser}>` }
-            ]
+            fields: webhookFields
         }, 'events');
 
         req.flash('success_msg', `Event "${cleanTitle}" scheduled successfully.`);
@@ -3019,6 +3052,103 @@ app.post('/events/create', requireDatabase, async (req, res) => {
         req.flash('error_msg', 'Failed to schedule event.');
         res.redirect('/events');
     }
+});
+
+// UPDATE SCHEDULED EVENT (MANAGEMENT ONLY)
+app.post('/events/:eventId/update', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !hasManagementAccess(req)) {
+        req.flash('error_msg', 'Unauthorized.');
+        return res.redirect('/events');
+    }
+
+    const { eventId } = req.params;
+    const {
+        title,
+        description,
+        startDate,
+        startTime,
+        endDate,
+        endTime,
+        startIso,
+        endIso,
+        clientTimezone,
+        location,
+        category,
+        host,
+        coHost,
+        admin
+    } = req.body;
+
+    const cleanTitle = (title || '').toString().trim();
+    const cleanDesc = (description || '').toString().trim();
+    const cleanLocation = (location || 'Discord Stage').toString().trim();
+    const cleanHost = (host || '').toString().trim() || null;
+    const cleanCoHost = (coHost || '').toString().trim() || null;
+    const cleanAdmin = (admin || '').toString().trim() || null;
+
+    if (!cleanTitle || (!startIso && (!startDate || !startTime))) {
+        req.flash('error_msg', 'Event title, start date, and start time are required.');
+        return res.redirect('/events');
+    }
+
+    let scheduledStartTime;
+    if (startIso && !isNaN(new Date(startIso).getTime())) {
+        scheduledStartTime = new Date(startIso).toISOString();
+    } else if (startDate && startTime) {
+        scheduledStartTime = new Date(`${startDate}T${startTime}`).toISOString();
+    } else {
+        req.flash('error_msg', 'Invalid event start time.');
+        return res.redirect('/events');
+    }
+
+    let scheduledEndTime = null;
+    if (endIso && !isNaN(new Date(endIso).getTime())) {
+        scheduledEndTime = new Date(endIso).toISOString();
+    } else if (endDate && endTime) {
+        scheduledEndTime = new Date(`${endDate}T${endTime}`).toISOString();
+    }
+
+    try {
+        const updateDoc = {
+            title: cleanTitle,
+            description: cleanDesc,
+            category: (category || 'Karaoke').toString(),
+            location: cleanLocation,
+            host: cleanHost,
+            coHost: cleanCoHost,
+            admin: cleanAdmin,
+            scheduledStartTime,
+            scheduledEndTime,
+            timezone: (clientTimezone || '').toString().slice(0, 100) || 'UTC',
+            updatedBy: req.session.currentuser,
+            updatedAt: new Date().toISOString()
+        };
+
+        const query = {
+            $or: [
+                { id: eventId },
+                { _id: ObjectId.isValid(eventId) ? new ObjectId(eventId) : null }
+            ]
+        };
+
+        const result = await db.collection('scheduledEvents').findOneAndUpdate(
+            query,
+            { $set: updateDoc },
+            { returnDocument: 'after' }
+        );
+
+        if (result) {
+            await writeAudit(req, 'Updated Scheduled Event', `${cleanTitle} (${eventId})`);
+            req.flash('success_msg', `Event "${cleanTitle}" updated successfully.`);
+        } else {
+            req.flash('error_msg', 'Event not found.');
+        }
+    } catch (e) {
+        console.error('Error updating event:', e);
+        req.flash('error_msg', 'Failed to update event.');
+    }
+
+    res.redirect('/events');
 });
 
 // DELETE SCHEDULED EVENT (MANAGEMENT ONLY)

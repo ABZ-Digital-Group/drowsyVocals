@@ -818,6 +818,117 @@ const initEventsLocalization = () => {
       if (tzInput) tzInput.value = userTimezone;
     });
   }
+
+  // Handle Event Editing Popup
+  const editEventPopup = document.getElementById('editEventPopup');
+  const closeEditEventPopup = document.getElementById('closeEditEventPopup');
+  const closeEditEventCross = document.getElementById('closeEditEventCross');
+  const editEventForm = document.getElementById('editEventForm');
+
+  if (editEventPopup && editEventForm) {
+    const pad = (n) => String(n).padStart(2, '0');
+
+    document.querySelectorAll('.editEventBtn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const {
+          eventId,
+          eventTitle,
+          eventCategory,
+          eventLocation,
+          eventHost,
+          eventCoHost,
+          eventAdmin,
+          eventStartIso,
+          eventEndIso,
+          eventDesc
+        } = btn.dataset;
+
+        editEventForm.action = `/events/${encodeURIComponent(eventId)}/update`;
+
+        const titleInput = document.getElementById('editEventTitle');
+        const catSelect = document.getElementById('editEventCategory');
+        const locInput = document.getElementById('editEventLocation');
+        const hostSelect = document.getElementById('editEventHost');
+        const coHostSelect = document.getElementById('editEventCoHost');
+        const adminSelect = document.getElementById('editEventAdmin');
+        const descTextarea = document.getElementById('editEventDesc');
+        const startDateInput = document.getElementById('editEventStartDate');
+        const startTimeInput = document.getElementById('editEventStartTime');
+        const endDateInput = document.getElementById('editEventEndDate');
+        const endTimeInput = document.getElementById('editEventEndTime');
+
+        if (titleInput) titleInput.value = eventTitle || '';
+        if (catSelect) catSelect.value = eventCategory || 'Karaoke';
+        if (locInput) locInput.value = eventLocation || 'Discord Stage';
+        if (hostSelect) hostSelect.value = eventHost || '';
+        if (coHostSelect) coHostSelect.value = eventCoHost || '';
+        if (adminSelect) adminSelect.value = eventAdmin || '';
+        if (descTextarea) descTextarea.value = eventDesc || '';
+
+        if (eventStartIso) {
+          const sDate = new Date(eventStartIso);
+          if (!isNaN(sDate.getTime())) {
+            const y = sDate.getFullYear();
+            const m = pad(sDate.getMonth() + 1);
+            const d = pad(sDate.getDate());
+            const hh = pad(sDate.getHours());
+            const mm = pad(sDate.getMinutes());
+            if (startDateInput) startDateInput.value = `${y}-${m}-${d}`;
+            if (startTimeInput) startTimeInput.value = `${hh}:${mm}`;
+          }
+        }
+
+        if (eventEndIso) {
+          const eDate = new Date(eventEndIso);
+          if (!isNaN(eDate.getTime())) {
+            const y = eDate.getFullYear();
+            const m = pad(eDate.getMonth() + 1);
+            const d = pad(eDate.getDate());
+            const hh = pad(eDate.getHours());
+            const mm = pad(eDate.getMinutes());
+            if (endDateInput) endDateInput.value = `${y}-${m}-${d}`;
+            if (endTimeInput) endTimeInput.value = `${hh}:${mm}`;
+          }
+        } else {
+          if (endDateInput) endDateInput.value = '';
+          if (endTimeInput) endTimeInput.value = '';
+        }
+
+        editEventPopup.returnValue = '';
+        editEventPopup.showModal();
+      });
+    });
+
+    closeEditEventPopup?.addEventListener('click', () => editEventPopup.close());
+    closeEditEventCross?.addEventListener('click', () => editEventPopup.close());
+
+    editEventForm.addEventListener('submit', () => {
+      const startDateVal = document.getElementById('editEventStartDate')?.value;
+      const startTimeVal = document.getElementById('editEventStartTime')?.value;
+      const endDateVal = document.getElementById('editEventEndDate')?.value;
+      const endTimeVal = document.getElementById('editEventEndTime')?.value;
+
+      const parseInputToIso = (dStr, tStr) => {
+        if (!dStr || !tStr) return null;
+        const [y, m, d] = dStr.split('-').map(Number);
+        const [h, min] = tStr.split(':').map(Number);
+        if (!y || !m || !d || isNaN(h) || isNaN(min)) return null;
+        const local = new Date(y, m - 1, d, h, min, 0, 0);
+        return isNaN(local.getTime()) ? null : local.toISOString();
+      };
+
+      const startIso = parseInputToIso(startDateVal, startTimeVal);
+      const endIso = parseInputToIso(endDateVal, endTimeVal);
+
+      const startIsoInput = document.getElementById('editEventStartIso');
+      const endIsoInput = document.getElementById('editEventEndIso');
+      const tzInput = document.getElementById('editEventClientTimezone');
+
+      if (startIsoInput && startIso) startIsoInput.value = startIso;
+      if (endIsoInput && endIso) endIsoInput.value = endIso;
+      if (tzInput) tzInput.value = userTimezone;
+    });
+  }
 };
 
 initEventsLocalization();
