@@ -3199,6 +3199,11 @@ dialog {
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
 }
 
+dialog.dialog-wide {
+    width: 580px;
+    max-width: 95vw;
+}
+
 dialog::backdrop {
     background-color: rgba(36, 35, 32, 0.6);
 }
