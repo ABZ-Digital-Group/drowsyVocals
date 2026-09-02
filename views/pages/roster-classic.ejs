@@ -146,10 +146,19 @@
                             <% } %>
                             <td><%= user.accountType %></td>
                             <td>
-                                <span><%= user.displayName %></span>
-                                <% if (user.isInactiveRisk) { %>
-                                <span class="badge badge-inactive-risk" title="<%= user.inactivityReason || 'Inactivity Warning' %>">⚠️ Inactive</span>
-                                <% } %>
+                                <div style="display: flex; align-items: center; gap: 8px; justify-content: flex-start; text-align: left;">
+                                    <%- include('../partials/avatar', {
+                                        avatarUrl: user.avatarUrl,
+                                        displayName: user.displayName || user.discordUser || user.login.discordId,
+                                        discordId: user.login.discordId,
+                                        size: 32,
+                                        online: user.isOnline
+                                    }) %>
+                                    <span><%= user.displayName %></span>
+                                    <% if (user.isInactiveRisk) { %>
+                                    <span class="badge badge-inactive-risk" title="<%= user.inactivityReason || 'Inactivity Warning' %>">⚠️ Inactive</span>
+                                    <% } %>
+                                </div>
                             </td>
                             <td><%= user.discordUser %></td>
                             <td><%= user.login.discordId %></td>
