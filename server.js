@@ -1368,8 +1368,8 @@ app.post('/promote-user', requireDatabase, async (req, res) => {
             req.session.accountType = cleanAccountType;
         }
 
-        await writeAudit(req, rankActionType === 'Demote' ? 'Demoted User' : 'Promoted User', `${user.displayName || cleanDiscordId}: ${user.accountType} -> ${cleanAccountType}`);
-        const isPromotion = rankActionType !== 'Demote';
+        const isPromotion = getRankChangeType(user.accountType, cleanAccountType) === 'promotion';
+        await writeAudit(req, isPromotion ? 'Promoted User' : 'Demoted User', `${user.displayName || cleanDiscordId}: ${user.accountType} -> ${cleanAccountType}`);
         sendPdLogsWebhook(isPromotion ? 'Staff Promoted' : 'Staff Demoted', isPromotion ? 0x3B82F6 : 0xF97316, [
             { name: 'Staff Member', value: `${user.displayName || user.discordUser || cleanDiscordId} (<@${cleanDiscordId}>)`, inline: true },
             { name: 'Previous Rank', value: user.accountType || 'Unassigned', inline: true },
@@ -3462,7 +3462,88 @@ app.get('/audit-log', requireDatabase, async (req, res) => {
 // EVENT SCHEDULER & DISCORD EVENT MANAGEMENT
 // ==========================================================================
 
+app.get('/pop-up', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin) return res.redirect('/');
+    try {
+        const events = await db.collection('popupEvents').find().sort({ scheduledStartTime: 1 }).toArray();
+        const now = new Date();
+        res.render('pages/popUp', {
+            page: 'pop-up',
+            upcomingEvents: events.filter((event) => new Date(event.scheduledEndTime || event.scheduledStartTime) >= now),
+            pastEvents: events.filter((event) => new Date(event.scheduledEndTime || event.scheduledStartTime) < now).reverse(),
+            isManager: hasManagementAccess(req)
+        });
+    } catch (error) {
+        console.error('Error loading pop-up events:', error);
+        res.status(500).send('Error loading pop-up events.');
+    }
+});
+
 // VIEW EVENTS SCHEDULE
+app.post('/pop-up/create', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !hasManagementAccess(req)) return res.redirect('/pop-up');
+    const title = (req.body.title || '').toString().trim();
+    const location = (req.body.location || 'Discord').toString().trim();
+    const description = (req.body.description || '').toString().trim();
+    const start = new Date((req.body.startIso || '').toString());
+    const endIso = (req.body.endIso || '').toString();
+    const end = endIso ? new Date(endIso) : null;
+    if (!title || Number.isNaN(start.getTime()) || (endIso && Number.isNaN(end.getTime()))) {
+        req.flash('error_msg', 'A title and valid start time are required.');
+        return res.redirect('/pop-up');
+    }
+    try {
+        const event = { id: crypto.randomUUID(), title, location, description, scheduledStartTime: start.toISOString(), scheduledEndTime: end ? end.toISOString() : null, createdBy: req.session.currentuser, createdAt: new Date().toISOString() };
+        await db.collection('popupEvents').insertOne(event);
+        await writeAudit(req, 'Scheduled Pop-up Event', `${title} (${event.scheduledStartTime})`);
+        sendDiscordWebhook({ title: `✨ Pop-up Event: ${title}`, color: 0xF59E0B, fields: [{ name: 'Location', value: location, inline: true }, { name: 'Starts', value: `<t:${Math.floor(start.getTime() / 1000)}:F>`, inline: true }, { name: 'Details', value: description || 'No additional details provided.' }, { name: 'Created By', value: `<@${req.session.currentuser}>`, inline: true }] }, 'events');
+        req.flash('success_msg', `Pop-up event "${title}" scheduled successfully.`);
+    } catch (error) {
+        console.error('Error creating pop-up event:', error);
+        req.flash('error_msg', 'Failed to schedule pop-up event.');
+    }
+    res.redirect('/pop-up');
+});
+
+app.post('/pop-up/:eventId/update', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !hasManagementAccess(req)) return res.redirect('/pop-up');
+    const title = (req.body.title || '').toString().trim();
+    const location = (req.body.location || 'Discord').toString().trim();
+    const description = (req.body.description || '').toString().trim();
+    const start = new Date((req.body.startIso || '').toString());
+    const endIso = (req.body.endIso || '').toString();
+    const end = endIso ? new Date(endIso) : null;
+    if (!title || Number.isNaN(start.getTime()) || (endIso && Number.isNaN(end.getTime()))) return res.redirect('/pop-up');
+    try {
+        const query = { $or: [{ id: req.params.eventId }, { _id: ObjectId.isValid(req.params.eventId) ? new ObjectId(req.params.eventId) : null }] };
+        const result = await db.collection('popupEvents').findOneAndUpdate(query, { $set: { title, location, description, scheduledStartTime: start.toISOString(), scheduledEndTime: end ? end.toISOString() : null, updatedBy: req.session.currentuser, updatedAt: new Date().toISOString() } }, { returnDocument: 'after' });
+        if (result) {
+            await writeAudit(req, 'Updated Pop-up Event', `${title} (${req.params.eventId})`);
+            req.flash('success_msg', `Pop-up event "${title}" updated successfully.`);
+        }
+    } catch (error) {
+        console.error('Error updating pop-up event:', error);
+        req.flash('error_msg', 'Failed to update pop-up event.');
+    }
+    res.redirect('/pop-up');
+});
+
+app.post('/pop-up/:eventId/delete', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !hasManagementAccess(req)) return res.redirect('/pop-up');
+    try {
+        const query = { $or: [{ id: req.params.eventId }, { _id: ObjectId.isValid(req.params.eventId) ? new ObjectId(req.params.eventId) : null }] };
+        const deleted = await db.collection('popupEvents').findOneAndDelete(query);
+        if (deleted) {
+            await writeAudit(req, 'Deleted Pop-up Event', deleted.title || req.params.eventId);
+            req.flash('success_msg', 'Pop-up event removed.');
+        }
+    } catch (error) {
+        console.error('Error deleting pop-up event:', error);
+        req.flash('error_msg', 'Failed to delete pop-up event.');
+    }
+    res.redirect('/pop-up');
+});
+
 app.get('/events', requireDatabase, async (req, res) => {
     if (!req.session.loggedin) return res.redirect('/');
 
