@@ -136,13 +136,14 @@ const escapeHtml = (str) => (str || "").toString().replace(/[&<>"']/g, (c) => ({
 }[c]));
 
 const renderAvatarHtml = (user, size, online) => {
-  const initial = escapeHtml((user.displayName || "?").trim().charAt(0).toUpperCase() || "?");
-  const fallbackHtml = `<span class="avatar-initials" style="width:${size}px;height:${size}px;font-size:${Math.floor(size / 2.2)}px;">${initial}</span>`;
-  const inner = user.avatarUrl
-    ? `<img class="avatar-img" src="${escapeHtml(user.avatarUrl)}" alt="${escapeHtml(user.displayName)}" style="width:${size}px;height:${size}px;" onerror="this.outerHTML='${escapeHtml(fallbackHtml)}';">`
-    : fallbackHtml;
+  const initial = escapeHtml((user.displayName || user.discordUser || user.discordId || "?").trim().charAt(0).toUpperCase() || "?");
+  const fontSize = Math.floor(size / 2.2);
+  const initialsHtml = `<span class="avatar-initials" style="${user.avatarUrl ? 'display:none;' : ''}width:${size}px;height:${size}px;font-size:${fontSize}px;">${initial}</span>`;
+  const imgHtml = user.avatarUrl
+    ? `<img class="avatar-img" src="${escapeHtml(user.avatarUrl)}" alt="${escapeHtml(user.displayName)}" style="width:${size}px;height:${size}px;" onerror="this.style.display='none';if(this.nextElementSibling)this.nextElementSibling.style.display='flex';">`
+    : '';
 
-  return `<span class="avatar-wrapper${online ? " is-online" : ""}" data-discord-id="${escapeHtml(user.discordId)}" style="width:${size}px;height:${size}px;" title="${escapeHtml(user.displayName)}">${inner}<span class="avatar-online-dot"></span></span>`;
+  return `<span class="avatar-wrapper${online ? " is-online" : ""}" data-discord-id="${escapeHtml(user.discordId)}" style="width:${size}px;height:${size}px;" title="${escapeHtml(user.displayName)}">${imgHtml}${initialsHtml}<span class="avatar-online-dot"></span></span>`;
 };
 
 // GLOBAL PRESENCE HEARTBEAT (KEEPS ACTIVE USERS ONLINE ACROSS ALL PAGES)

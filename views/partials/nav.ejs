@@ -68,7 +68,8 @@
         <li class="nav-account-menu">
             <button class="nav-account-trigger" type="button" aria-expanded="false" aria-controls="accountMenu">
                 <% if (navUser && navUser.avatarUrl) { %>
-                <img src="<%= navUser.avatarUrl %>" alt="" class="nav-account-avatar">
+                <img src="<%= navUser.avatarUrl %>" alt="" class="nav-account-avatar" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='grid';">
+                <span class="nav-account-avatar nav-account-initial" style="display: none;"><%= navUser ? navUser.displayName.charAt(0).toUpperCase() : '?' %></span>
                 <% } else { %>
                 <span class="nav-account-avatar nav-account-initial"><%= navUser ? navUser.displayName.charAt(0).toUpperCase() : '?' %></span>
                 <% } %>
