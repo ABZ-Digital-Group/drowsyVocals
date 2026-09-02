@@ -429,6 +429,7 @@
                             </span>
                         </a>
 
+                        <% if (canViewFeedback) { %>
                         <a href="/feedback" class="dashboard-ops-widget">
                             <div class="dashboard-ops-widget-left">
                                 <span class="material-symbols-outlined dashboard-ops-widget-icon" style="color:#34d399;">rate_review</span>
@@ -441,6 +442,7 @@
                                 <%= typeof newFeedbackTotal !== 'undefined' ? newFeedbackTotal : 0 %>
                             </span>
                         </a>
+                        <% } %>
 
                         <a href="/audit-log" class="dashboard-ops-widget">
                             <div class="dashboard-ops-widget-left">
