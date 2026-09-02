@@ -8,7 +8,7 @@
         <header>
             <%- include('../partials/nav') %>
         </header>
-        <main class="roster-page-wrap">
+        <main>
             <!-- Header & Toolbar -->
             <div class="settings-header">
                 <div class="settings-header-top">
@@ -574,34 +574,6 @@
         </form>
         <script>
             window.APP_RANKS = <%- JSON.stringify(settings.ranks.map(function(rank) { return rank.name; })) %>;
-
-            // View Mode Switcher (Modern vs Classic View)
-            function setRosterView(mode) {
-                const modernEl = document.getElementById('rosterModernView');
-                const classicEl = document.getElementById('rosterClassicView');
-                const modernBtn = document.getElementById('viewModeModern');
-                const classicBtn = document.getElementById('viewModeClassic');
-
-                if (mode === 'classic') {
-                    if (modernEl) modernEl.style.display = 'none';
-                    if (classicEl) classicEl.style.display = 'block';
-                    if (modernBtn) modernBtn.classList.remove('is-active');
-                    if (classicBtn) classicBtn.classList.add('is-active');
-                    localStorage.setItem('drowsy_roster_view', 'classic');
-                } else {
-                    if (modernEl) modernEl.style.display = 'block';
-                    if (classicEl) classicEl.style.display = 'none';
-                    if (modernBtn) modernBtn.classList.add('is-active');
-                    if (classicBtn) classicBtn.classList.remove('is-active');
-                    localStorage.setItem('drowsy_roster_view', 'modern');
-                }
-            }
-
-            // Restore saved view preference
-            const savedRosterView = localStorage.getItem('drowsy_roster_view');
-            if (savedRosterView === 'classic') {
-                setRosterView('classic');
-            }
 
             function deleteUser(discordId) {
                 if(confirm('Are you sure you want to delete this user?')) {
