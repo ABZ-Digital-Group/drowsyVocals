@@ -2647,6 +2647,10 @@ app.post('/bot/sync-member', requireDatabase, async (req, res) => {
                 syncedCount++;
             } else if (resp?.error) {
                 errors.push(`${user.displayName || user.login.discordId}: ${resp.error}`);
+            } else if (resp?.results?.errors?.length) {
+                errors.push(`${user.displayName || user.login.discordId}: ${resp.results.errors.join(' | ')}`);
+            } else if (resp) {
+                errors.push(`${user.displayName || user.login.discordId}: Discord sync returned no successful changes.`);
             }
         }
 
