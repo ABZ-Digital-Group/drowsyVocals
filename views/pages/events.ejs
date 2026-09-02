@@ -80,6 +80,14 @@
                                 <span class="account-badge"><%= upcomingEvents.length %> Upcoming</span>
                             </div>
 
+                            <div class="events-tz-bar" style="background: #1a1917; border: 1px solid #383734; border-radius: 6px; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; font-size: 0.85em; color: #8e897e;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span class="material-symbols-outlined" style="font-size: 1.2em; color: #60a5fa; background: transparent; padding: 0;">schedule</span>
+                                    <span>All event times shown in your local timezone: <strong id="eventsUserTimezone" style="color: #f3efe6;">Local Time</strong></span>
+                                </div>
+                                <span id="eventsUserOffset" style="font-size: 0.85em; color: #fbbf24; font-weight: bold;"></span>
+                            </div>
+
                             <% if (!upcomingEvents || upcomingEvents.length === 0) { %>
                             <div style="background: #1a1917; border: 1px solid #383734; border-radius: 6px; padding: 36px 16px; text-align: center; color: #8e897e;">
                                 <span class="material-symbols-outlined" style="font-size: 2.8em; color: #6f6a60;" aria-hidden="true">event_busy</span>
@@ -101,13 +109,14 @@
                                             </span>
                                         </div>
 
-                                        <div style="text-align: right;">
-                                            <span style="font-size: 1em; font-weight: bold; color: #fbbf24; display: block;">
+                                        <div class="event-time-display" data-event-start="<%= event.scheduledStartTime %>" data-event-end="<%= event.scheduledEndTime || '' %>" style="text-align: right;">
+                                            <span class="event-time-primary" style="font-size: 1em; font-weight: bold; color: #fbbf24; display: block;">
                                                 <%= new Date(event.scheduledStartTime).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) %>
                                             </span>
-                                            <% if (event.scheduledEndTime) { %>
-                                            <small style="color: #8e897e;">until <%= new Date(event.scheduledEndTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) %></small>
-                                            <% } %>
+                                            <small class="event-time-secondary" style="color: #8e897e; display: block;">
+                                                <% if (event.scheduledEndTime) { %>until <%= new Date(event.scheduledEndTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) %><% } %>
+                                            </small>
+                                            <span class="event-time-relative" style="display: inline-block; font-size: 0.72em; padding: 2px 6px; border-radius: 4px; margin-top: 4px; font-weight: bold;"></span>
                                         </div>
                                     </div>
 
@@ -144,7 +153,9 @@
                                     <div style="background: #111; padding: 10px 14px; border-radius: 4px; border: 1px solid #333; display: flex; justify-content: space-between; align-items: center;">
                                         <div>
                                             <strong style="color: #d0cdc5;"><%= event.title %></strong>
-                                            <span style="font-size: 0.75em; color: #8e897e; display: block;"><%= (event.scheduledStartTime || '').slice(0, 10) %> · <%= event.category %></span>
+                                            <span class="past-event-time" data-event-start="<%= event.scheduledStartTime %>" style="font-size: 0.75em; color: #8e897e; display: block;">
+                                                <%= (event.scheduledStartTime || '').slice(0, 10) %> · <%= event.category %>
+                                            </span>
                                         </div>
                                         <span class="settings-badge badge-neutral" style="font-size: 0.75em;">Concluded</span>
                                     </div>
@@ -167,7 +178,11 @@
                                 <span class="account-badge">Manager Tool</span>
                             </div>
 
-                            <form class="account-form" action="/events/create" method="POST">
+                            <form class="account-form" id="createEventForm" action="/events/create" method="POST">
+                                <input type="hidden" id="eventStartIso" name="startIso">
+                                <input type="hidden" id="eventEndIso" name="endIso">
+                                <input type="hidden" id="eventClientTimezone" name="clientTimezone">
+
                                 <div class="settings-form-group" style="margin-bottom: 0;">
                                     <label for="eventTitle">Event Title</label>
                                     <input type="text" id="eventTitle" name="title" class="settings-input" placeholder="e.g. Friday Night Karaoke Special" required>
@@ -210,6 +225,11 @@
                                         <input type="time" id="eventEndTime" name="endTime" class="settings-input">
                                     </div>
                                 </div>
+
+                                <p style="margin: 4px 0 0; font-size: 0.8em; color: #8e897e; display: flex; align-items: center; gap: 6px;">
+                                    <span class="material-symbols-outlined" style="font-size: 1.1em; color: #60a5fa; background: transparent; padding: 0;">schedule</span>
+                                    <span>Times you select above are in your local timezone (<strong class="form-user-tz" style="color: #d0cdc5;">Local</strong>) and automatically converted for all viewers worldwide.</span>
+                                </p>
 
                                 <div class="settings-form-group" style="margin-bottom: 0;">
                                     <label for="eventDesc">Description / Rules</label>

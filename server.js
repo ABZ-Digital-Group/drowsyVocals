@@ -148,7 +148,7 @@ function broadcastDataUpdate(collection) {
 function startLiveUpdates() {
     if (!db || liveChangeStreams.length) return;
 
-    const watchedCollections = ['users', 'settings', 'rosterPlans'];
+    const watchedCollections = ['users', 'settings', 'rosterPlans', 'scheduledEvents'];
     liveChangeStreams = watchedCollections.map((collection) => {
         const pipeline = collection === 'users'
             ? [{ $match: { 'updateDescription.updatedFields.lastSeen': { $exists: false } } }]
@@ -2949,6 +2949,9 @@ app.post('/events/create', requireDatabase, async (req, res) => {
         startTime,
         endDate,
         endTime,
+        startIso,
+        endIso,
+        clientTimezone,
         location,
         category
     } = req.body;
@@ -2957,13 +2960,27 @@ app.post('/events/create', requireDatabase, async (req, res) => {
     const cleanDesc = (description || '').toString().trim();
     const cleanLocation = (location || 'Discord Stage').toString().trim();
 
-    if (!cleanTitle || !startDate || !startTime) {
+    if (!cleanTitle || (!startIso && (!startDate || !startTime))) {
         req.flash('error_msg', 'Event title, start date, and start time are required.');
         return res.redirect('/events');
     }
 
-    const scheduledStartTime = new Date(`${startDate}T${startTime}`).toISOString();
-    const scheduledEndTime = (endDate && endTime) ? new Date(`${endDate}T${endTime}`).toISOString() : null;
+    let scheduledStartTime;
+    if (startIso && !isNaN(new Date(startIso).getTime())) {
+        scheduledStartTime = new Date(startIso).toISOString();
+    } else if (startDate && startTime) {
+        scheduledStartTime = new Date(`${startDate}T${startTime}`).toISOString();
+    } else {
+        req.flash('error_msg', 'Invalid event start time.');
+        return res.redirect('/events');
+    }
+
+    let scheduledEndTime = null;
+    if (endIso && !isNaN(new Date(endIso).getTime())) {
+        scheduledEndTime = new Date(endIso).toISOString();
+    } else if (endDate && endTime) {
+        scheduledEndTime = new Date(`${endDate}T${endTime}`).toISOString();
+    }
 
     try {
         const newEvent = {
@@ -2974,6 +2991,7 @@ app.post('/events/create', requireDatabase, async (req, res) => {
             location: cleanLocation,
             scheduledStartTime,
             scheduledEndTime,
+            timezone: (clientTimezone || '').toString().slice(0, 100) || 'UTC',
             createdBy: req.session.currentuser,
             createdAt: new Date().toISOString()
         };
