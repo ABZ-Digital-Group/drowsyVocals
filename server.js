@@ -267,6 +267,7 @@ const MANAGEMENT_ROLES = ['Mr. Sandman', 'Realm God', 'Drowsy Defender', 'Dreamy
 const GOD_ROLES = ['Mr. Sandman', 'Realm God'];
 const hasManagementAccess = (req) => MANAGEMENT_ROLES.includes(req.session.accountType) || Boolean(req.session.isDeveloper);
 const hasGodAccess = (req) => GOD_ROLES.includes(req.session.accountType) || Boolean(req.session.isDeveloper);
+const hasFeedbackManagementAccess = (req) => hasGodAccess(req);
 
 async function writeAudit(req, action, detail) {
     if (!db || !req.session.currentuser) return;
@@ -378,13 +379,19 @@ app.use(async (req, res, next) => {
     if (!isDatabaseReady || !db || !req.session.loggedin) return next();
     try {
         if (hasManagementAccess(req)) {
-            const [pendingLoa, newFeedback, pendingApps] = await Promise.all([
+            const managementQueries = [
                 db.collection('users').countDocuments({ 'loaRequests.status': 'Pending' }),
-                db.collection('feedback').countDocuments({ status: { $in: ['New', null] } }),
                 db.collection('applications').countDocuments({ status: 'Pending' })
-            ]);
+            ];
+            if (hasFeedbackManagementAccess(req)) {
+                managementQueries.splice(1, 0, db.collection('feedback').countDocuments({ status: { $in: ['New', null] } }));
+            }
+            const results = await Promise.all(managementQueries);
+            const pendingLoa = results[0];
+            const newFeedback = hasFeedbackManagementAccess(req) ? results[1] : 0;
+            const pendingApps = hasFeedbackManagementAccess(req) ? results[2] : results[1];
             if (pendingLoa) res.locals.notifications.push({ href: '/loa', text: `${pendingLoa} pending LOA request${pendingLoa === 1 ? '' : 's'}` });
-            if (newFeedback) res.locals.notifications.push({ href: '/feedback', text: `${newFeedback} feedback item${newFeedback === 1 ? '' : 's'} to review` });
+            if (hasFeedbackManagementAccess(req) && newFeedback) res.locals.notifications.push({ href: '/feedback', text: `${newFeedback} feedback item${newFeedback === 1 ? '' : 's'} to review` });
             if (pendingApps) res.locals.notifications.push({ href: '/applications', text: `${pendingApps} pending application${pendingApps === 1 ? '' : 's'}` });
         }
     } catch (error) {
@@ -3069,6 +3076,7 @@ app.get('/dashboard', requireDatabase, async (req, res) => {
             pendingLoaTotal,
             pendingAppsTotal,
             newFeedbackTotal,
+            canViewFeedback: hasFeedbackManagementAccess(req),
             isManager,
             announcements: announcementsWithNames,
             settings,
@@ -3243,12 +3251,12 @@ app.get('/feedback', requireDatabase, async (req, res) => {
     if (!req.session.loggedin) return res.redirect('/');
 
     try {
-        const feedbackEntries = hasManagementAccess(req)
+        const feedbackEntries = hasFeedbackManagementAccess(req)
             ? await db.collection('feedback').find().sort({ submittedAt: -1 }).limit(100).toArray()
             : [];
         res.render('pages/feedback', {
             page: 'feedback',
-            canViewFeedback: hasManagementAccess(req),
+            canViewFeedback: hasFeedbackManagementAccess(req),
             feedbackEntries
         });
     } catch (error) {
@@ -3336,7 +3344,7 @@ app.post('/announcements/:announcementId/delete', requireDatabase, async (req, r
 
 app.post('/feedback/:feedbackId/update', requireDatabase, async (req, res) => {
     if (!req.session.loggedin) return res.redirect('/');
-    if (!hasManagementAccess(req)) return res.status(403).send('You do not have permission to update feedback.');
+    if (!hasFeedbackManagementAccess(req)) return res.status(403).send('You do not have permission to update feedback.');
     const { feedbackId } = req.params;
     const status = (req.body.status || '').toString();
     const managerNote = (req.body.managerNote || '').toString().trim();
@@ -3355,7 +3363,7 @@ app.post('/feedback/:feedbackId/update', requireDatabase, async (req, res) => {
 // DELETE FEEDBACK (MANAGEMENT ONLY)
 app.post('/feedback/:feedbackId/delete', requireDatabase, async (req, res) => {
     if (!req.session.loggedin) return res.redirect('/');
-    if (!hasManagementAccess(req)) return res.status(403).send('You do not have permission to delete feedback.');
+    if (!hasFeedbackManagementAccess(req)) return res.status(403).send('You do not have permission to delete feedback.');
 
     const { feedbackId } = req.params;
     if (!ObjectId.isValid(feedbackId)) return res.redirect('/feedback');
