@@ -287,25 +287,11 @@ async function writeAudit(req, action, detail) {
     }
 }
 
-// SEND NOTIFICATION TO CONFIGURED DISCORD WEBHOOK
-async function sendDiscordWebhook(embed, eventType = null) {
-    if (!isDatabaseReady || !db) return;
+// POST PAYLOAD TO A SPECIFIC DISCORD WEBHOOK URL
+function postWebhookPayload(webhookUrl, embed) {
+    if (!webhookUrl || !webhookUrl.startsWith('https://discord.com/api/webhooks/')) return;
+
     try {
-        const settings = await getSettings();
-        const webhookConfig = settings.webhooks || {};
-        const webhookUrl = (webhookConfig.url || '').trim();
-
-        if (!webhookUrl || !webhookUrl.startsWith('https://discord.com/api/webhooks/')) {
-            return;
-        }
-
-        if (eventType === 'loa' && webhookConfig.notifyLoa === false) return;
-        if (eventType === 'strikes' && webhookConfig.notifyStrikes === false) return;
-        if (eventType === 'feedback' && webhookConfig.notifyFeedback === false) return;
-        if (eventType === 'applications' && webhookConfig.notifyApplications === false) return;
-        if (eventType === 'appeals' && webhookConfig.notifyStrikes === false) return;
-        if (eventType === 'events' && webhookConfig.notifyFeedback === false) return;
-
         const payload = JSON.stringify({
             username: 'Drowsy Vocals Management',
             avatar_url: 'https://manage.drowsyvocals.com/assets/DrowsyLogoDark.png',
@@ -343,6 +329,45 @@ async function sendDiscordWebhook(embed, eventType = null) {
 
         postReq.write(payload);
         postReq.end();
+    } catch (err) {
+        console.error('Error posting to Discord webhook:', err.message);
+    }
+}
+
+// SEND NOTIFICATION TO CONFIGURED DISCORD WEBHOOK (ROUTES TO SPECIFIC CHANNEL WEBHOOK IF CONFIGURED)
+async function sendDiscordWebhook(embed, eventType = null) {
+    if (!isDatabaseReady || !db) return;
+    try {
+        const settings = await getSettings();
+        const webhookConfig = settings.webhooks || {};
+
+        let targetUrl = (webhookConfig.url || '').trim();
+
+        if (eventType === 'housePoints') {
+            if (webhookConfig.notifyHousePoints === false) return;
+            if (webhookConfig.housePointsUrl && webhookConfig.housePointsUrl.trim().startsWith('https://discord.com/api/webhooks/')) {
+                targetUrl = webhookConfig.housePointsUrl.trim();
+            }
+        } else if (eventType === 'events') {
+            if (webhookConfig.notifyEvents === false) return;
+            if (webhookConfig.eventsUrl && webhookConfig.eventsUrl.trim().startsWith('https://discord.com/api/webhooks/')) {
+                targetUrl = webhookConfig.eventsUrl.trim();
+            }
+        } else if (eventType === 'loa' && webhookConfig.notifyLoa === false) {
+            return;
+        } else if ((eventType === 'strikes' || eventType === 'appeals') && webhookConfig.notifyStrikes === false) {
+            return;
+        } else if (eventType === 'feedback' && webhookConfig.notifyFeedback === false) {
+            return;
+        } else if (eventType === 'applications' && webhookConfig.notifyApplications === false) {
+            return;
+        }
+
+        if (!targetUrl || !targetUrl.startsWith('https://discord.com/api/webhooks/')) {
+            return;
+        }
+
+        postWebhookPayload(targetUrl, embed);
     } catch (error) {
         console.error('Error sending Discord webhook:', error.message);
     }
@@ -595,10 +620,14 @@ const DEFAULT_SETTINGS = {
     },
     webhooks: {
         url: '',
+        housePointsUrl: '',
+        eventsUrl: '',
         notifyLoa: true,
         notifyStrikes: true,
         notifyFeedback: true,
         notifyApplications: true,
+        notifyEvents: true,
+        notifyHousePoints: true,
         applicationsSecret: 'drowsy-apps-secret'
     },
     alerts: {
@@ -1558,14 +1587,20 @@ app.post('/settings/webhooks', requireDatabase, async (req, res) => {
     }
 
     const url = (req.body.url || '').toString().trim();
+    const housePointsUrl = (req.body.housePointsUrl || '').toString().trim();
+    const eventsUrl = (req.body.eventsUrl || '').toString().trim();
     const applicationsSecret = (req.body.applicationsSecret || '').toString().trim() || 'drowsy-apps-secret';
     const notifyLoa = req.body.notifyLoa === 'true' || req.body.notifyLoa === 'on';
     const notifyStrikes = req.body.notifyStrikes === 'true' || req.body.notifyStrikes === 'on';
     const notifyFeedback = req.body.notifyFeedback === 'true' || req.body.notifyFeedback === 'on';
     const notifyApplications = req.body.notifyApplications === 'true' || req.body.notifyApplications === 'on';
+    const notifyHousePoints = req.body.notifyHousePoints === 'true' || req.body.notifyHousePoints === 'on';
+    const notifyEvents = req.body.notifyEvents === 'true' || req.body.notifyEvents === 'on';
 
-    if (url && !url.startsWith('https://discord.com/api/webhooks/')) {
-        req.flash('error_msg', 'Discord webhook URL must start with https://discord.com/api/webhooks/');
+    const isValidWebhook = (u) => !u || u.startsWith('https://discord.com/api/webhooks/');
+
+    if (!isValidWebhook(url) || !isValidWebhook(housePointsUrl) || !isValidWebhook(eventsUrl)) {
+        req.flash('error_msg', 'Discord webhook URLs must start with https://discord.com/api/webhooks/');
         return res.redirect('/settings');
     }
 
@@ -1575,11 +1610,15 @@ app.post('/settings/webhooks', requireDatabase, async (req, res) => {
             {
                 $set: {
                     'webhooks.url': url,
+                    'webhooks.housePointsUrl': housePointsUrl,
+                    'webhooks.eventsUrl': eventsUrl,
                     'webhooks.applicationsSecret': applicationsSecret,
                     'webhooks.notifyLoa': notifyLoa,
                     'webhooks.notifyStrikes': notifyStrikes,
                     'webhooks.notifyFeedback': notifyFeedback,
                     'webhooks.notifyApplications': notifyApplications,
+                    'webhooks.notifyHousePoints': notifyHousePoints,
+                    'webhooks.notifyEvents': notifyEvents,
                     'webhooks.updatedAt': new Date().toISOString().slice(0, 19),
                     'webhooks.updatedBy': req.session.currentuser
                 }
@@ -1590,14 +1629,15 @@ app.post('/settings/webhooks', requireDatabase, async (req, res) => {
         await writeAudit(
             req,
             'Updated Discord Webhooks',
-            url ? `Configured webhook: ${url.slice(0, 45)}...` : 'Cleared webhook'
+            `Channels configured: General=${Boolean(url)}, HousePoints=${Boolean(housePointsUrl)}, Events=${Boolean(eventsUrl)}`
         );
 
+        // Send connection test embeds to configured channels
         if (url) {
-            sendDiscordWebhook({
-                title: '🔗 Discord Webhook Connected',
+            postWebhookPayload(url, {
+                title: '🔗 General Discord Webhook Connected',
                 color: 0x5865F2,
-                description: 'Drowsy Vocals management notifications are now configured for this channel.',
+                description: 'Drowsy Vocals management alerts are now connected to this channel.',
                 fields: [
                     { name: 'LOA Alerts', value: notifyLoa ? '✅ Enabled' : '❌ Disabled', inline: true },
                     { name: 'Strike Alerts', value: notifyStrikes ? '✅ Enabled' : '❌ Disabled', inline: true },
@@ -1607,7 +1647,29 @@ app.post('/settings/webhooks', requireDatabase, async (req, res) => {
             });
         }
 
-        req.flash('success_msg', 'Discord webhook & Google Form configuration saved.');
+        if (housePointsUrl && housePointsUrl !== url) {
+            postWebhookPayload(housePointsUrl, {
+                title: '🏆 House Points Channel Webhook Connected',
+                color: 0xFBBF24,
+                description: 'House point awards, deductions, and standings will be broadcast to this channel.',
+                fields: [
+                    { name: 'House Points Alerts', value: notifyHousePoints ? '✅ Enabled' : '❌ Disabled', inline: true }
+                ]
+            });
+        }
+
+        if (eventsUrl && eventsUrl !== url && eventsUrl !== housePointsUrl) {
+            postWebhookPayload(eventsUrl, {
+                title: '📅 Events Schedule Channel Webhook Connected',
+                color: 0x8B5CF6,
+                description: 'Community event schedules, karaoke announcements, and stage updates will be broadcast to this channel.',
+                fields: [
+                    { name: 'Event Schedule Alerts', value: notifyEvents ? '✅ Enabled' : '❌ Disabled', inline: true }
+                ]
+            });
+        }
+
+        req.flash('success_msg', 'Discord webhooks & channel routing saved successfully.');
         res.redirect('/settings');
     } catch (error) {
         console.error('Error updating webhook settings:', error);
@@ -2504,7 +2566,7 @@ app.post('/house-points/award', requireDatabase, async (req, res) => {
                 { name: 'Reason', value: cleanReason },
                 { name: 'Awarded By', value: `<@${req.session.currentuser}>` }
             ]
-        }, 'feedback');
+        }, 'housePoints');
 
         broadcastDataUpdate('users');
         req.flash('success_msg', `Recorded point change of ${cleanAmount >= 0 ? '+' : ''}${cleanAmount} pts for ${logEntry.recipientName}.`);
@@ -3139,6 +3201,35 @@ app.post('/events/:eventId/update', requireDatabase, async (req, res) => {
 
         if (result) {
             await writeAudit(req, 'Updated Scheduled Event', `${cleanTitle} (${eventId})`);
+
+            // Broadcast update to Discord Webhook
+            const updateWebhookFields = [
+                { name: 'Category', value: updateDoc.category, inline: true },
+                { name: 'Location', value: cleanLocation, inline: true },
+                { name: 'Start Time', value: `<t:${Math.floor(new Date(scheduledStartTime).getTime() / 1000)}:F>`, inline: false }
+            ];
+
+            if (cleanHost) {
+                updateWebhookFields.push({ name: '🎤 Host', value: cleanHost.match(/^\d+$/) ? `<@${cleanHost}>` : cleanHost, inline: true });
+            }
+            if (cleanCoHost) {
+                updateWebhookFields.push({ name: '👥 Co-Host', value: cleanCoHost.match(/^\d+$/) ? `<@${cleanCoHost}>` : cleanCoHost, inline: true });
+            }
+            if (cleanAdmin) {
+                updateWebhookFields.push({ name: '🛡️ Admin on Duty', value: cleanAdmin.match(/^\d+$/) ? `<@${cleanAdmin}>` : cleanAdmin, inline: true });
+            }
+
+            updateWebhookFields.push(
+                { name: 'Description', value: cleanDesc || 'No additional details provided.' },
+                { name: 'Updated By', value: `<@${req.session.currentuser}>`, inline: true }
+            );
+
+            sendDiscordWebhook({
+                title: `✏️ Event Updated: ${cleanTitle}`,
+                color: 0x3B82F6,
+                fields: updateWebhookFields
+            }, 'events');
+
             req.flash('success_msg', `Event "${cleanTitle}" updated successfully.`);
         } else {
             req.flash('error_msg', 'Event not found.');

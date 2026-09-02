@@ -34,9 +34,10 @@
                         <div class="settings-stat-item">
                             <span class="material-symbols-outlined settings-stat-icon">webhook</span>
                             <div class="settings-stat-info">
-                                <span class="settings-stat-label">Discord Webhook</span>
-                                <span class="settings-stat-val" style="color: <%= settings.webhooks?.url ? '#3b82f6' : '#8e897e' %>;">
-                                    <%= settings.webhooks?.url ? 'Connected' : 'Not Configured' %>
+                                <span class="settings-stat-label">Discord Webhooks</span>
+                                <% const activeHooks = [settings.webhooks?.url, settings.webhooks?.housePointsUrl, settings.webhooks?.eventsUrl].filter(Boolean).length; %>
+                                <span class="settings-stat-val" style="color: <%= activeHooks ? '#3b82f6' : '#8e897e' %>;">
+                                    <%= activeHooks ? `${activeHooks} Channel${activeHooks === 1 ? '' : 's'} Active` : 'Not Configured' %>
                                 </span>
                             </div>
                         </div>
@@ -162,24 +163,37 @@
                                 <div class="settings-card-title-wrap">
                                     <h3 class="settings-card-title">
                                         <span class="material-symbols-outlined">webhook</span>
-                                        Discord Webhooks & Google Forms Integration
+                                        Discord Webhooks & Channel Routing
                                     </h3>
-                                    <p class="settings-card-desc">Broadcast real-time embed alerts to your Discord channels and bridge staff applications directly from Google Forms.</p>
+                                    <p class="settings-card-desc">Broadcast real-time embed alerts to your Discord channels. You can route House Points and Event Schedules to dedicated channels, while sending management notifications to your general/staff channel.</p>
                                 </div>
                                 <div>
-                                    <% if (settings.webhooks?.url) { %>
-                                    <span class="settings-badge badge-success">Discord Active</span>
+                                    <% const totalActiveWebhooks = [settings.webhooks?.url, settings.webhooks?.housePointsUrl, settings.webhooks?.eventsUrl].filter(Boolean).length; %>
+                                    <% if (totalActiveWebhooks > 0) { %>
+                                    <span class="settings-badge badge-success"><%= totalActiveWebhooks %> Channel<%= totalActiveWebhooks === 1 ? '' : 's' %> Connected</span>
                                     <% } else { %>
-                                    <span class="settings-badge badge-neutral">No Webhook URL</span>
+                                    <span class="settings-badge badge-neutral">No Webhook URLs</span>
                                     <% } %>
                                 </div>
                             </div>
 
                             <form action="/settings/webhooks" method="POST" style="display: flex; flex-direction: column; gap: 16px;">
                                 <div class="settings-form-group">
-                                    <label for="webhookUrl">Discord Webhook URL</label>
+                                    <label for="webhookUrl">General Management Webhook URL</label>
                                     <input type="url" id="webhookUrl" name="url" class="settings-input" placeholder="https://discord.com/api/webhooks/..." value="<%= settings.webhooks?.url || '' %>">
-                                    <span class="settings-hint">Leave blank to disable Discord notifications.</span>
+                                    <span class="settings-hint">Primary channel for management alerts (LOA, strikes, feedback, applicant forms). Also serves as fallback if specific channel URLs below are blank.</span>
+                                </div>
+
+                                <div class="settings-form-group">
+                                    <label for="housePointsWebhookUrl">🏆 House Points Channel Webhook URL (Optional)</label>
+                                    <input type="url" id="housePointsWebhookUrl" name="housePointsUrl" class="settings-input" placeholder="https://discord.com/api/webhooks/..." value="<%= settings.webhooks?.housePointsUrl || '' %>">
+                                    <span class="settings-hint">Sends house point awards, deductions, and standings directly to your dedicated #house-points channel.</span>
+                                </div>
+
+                                <div class="settings-form-group">
+                                    <label for="eventsWebhookUrl">📅 Event Schedule Channel Webhook URL (Optional)</label>
+                                    <input type="url" id="eventsWebhookUrl" name="eventsUrl" class="settings-input" placeholder="https://discord.com/api/webhooks/..." value="<%= settings.webhooks?.eventsUrl || '' %>">
+                                    <span class="settings-hint">Sends newly scheduled community events, karaoke sessions, and schedule updates directly to your dedicated #events channel.</span>
                                 </div>
 
                                 <div class="settings-form-group">
@@ -191,7 +205,7 @@
                                             <span>Copy Key</span>
                                         </button>
                                     </div>
-                                    <span class="settings-hint">This secret key must match the secret in your Google Apps Script payload.</span>
+                                    <span class="settings-hint">This secret key must match the secret in your Google Apps Script payload for incoming staff applications.</span>
                                 </div>
 
                                 <div class="settings-form-group" style="margin-bottom: 0;">
@@ -203,7 +217,7 @@
                                         </label>
                                         <label class="settings-trigger-item">
                                             <input type="checkbox" name="notifyStrikes" value="true" <%= settings.webhooks?.notifyStrikes !== false ? 'checked' : '' %>>
-                                            <span class="settings-trigger-text">⚠️ Issued Strikes</span>
+                                            <span class="settings-trigger-text">⚠️ Issued Strikes & Appeals</span>
                                         </label>
                                         <label class="settings-trigger-item">
                                             <input type="checkbox" name="notifyFeedback" value="true" <%= settings.webhooks?.notifyFeedback !== false ? 'checked' : '' %>>
@@ -212,6 +226,14 @@
                                         <label class="settings-trigger-item">
                                             <input type="checkbox" name="notifyApplications" value="true" <%= settings.webhooks?.notifyApplications !== false ? 'checked' : '' %>>
                                             <span class="settings-trigger-text">📝 New Staff Applications</span>
+                                        </label>
+                                        <label class="settings-trigger-item">
+                                            <input type="checkbox" name="notifyHousePoints" value="true" <%= settings.webhooks?.notifyHousePoints !== false ? 'checked' : '' %>>
+                                            <span class="settings-trigger-text">🏆 House Point Awards & Logs</span>
+                                        </label>
+                                        <label class="settings-trigger-item">
+                                            <input type="checkbox" name="notifyEvents" value="true" <%= settings.webhooks?.notifyEvents !== false ? 'checked' : '' %>>
+                                            <span class="settings-trigger-text">📅 Event Announcements & Edits</span>
                                         </label>
                                     </div>
                                 </div>
