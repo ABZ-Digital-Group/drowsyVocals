@@ -253,6 +253,7 @@
                                         data-discord-user="<%= user.discordUser || '' %>"
                                         data-account-type="<%= user.accountType || '' %>"
                                         data-hire-date="<%= user.hireDate || '' %>"
+                                        data-last-promotion="<%= user.lastPromotion || '' %>"
                                         data-house="<%= user.house || '' %>"
                                         data-house-points="<%= user.housePoints || '' %>"
                                         data-shift="<%= user.shift || '' %>"
@@ -541,6 +542,10 @@
 
                     <label for="editHireDate">Hire Date:</label>
                     <input type="date" id="editHireDate" name="hireDate" required>
+                    <br>
+
+                    <label for="editLastPromotion">Promotion / Demotion Date:</label>
+                    <input type="date" id="editLastPromotion" name="lastPromotion" required>
                     <br>
 
                     <label for="editPassword">Password (optional):</label>
