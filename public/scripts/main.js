@@ -113,7 +113,7 @@ const triggerOrScheduleReload = () => {
   window.location.reload();
 };
 
-if (window.io && ["/roster", "/bingo", "/roster-planner", "/settings", "/reports", "/loa", "/feedback", "/dashboard", "/staff-guidelines", "/higher-guidelines"].includes(window.location.pathname)) {
+if (window.io && ["/roster", "/events", "/bingo", "/roster-planner", "/settings", "/reports", "/loa", "/feedback", "/dashboard", "/staff-guidelines", "/higher-guidelines"].includes(window.location.pathname)) {
   const liveSocket = window.io();
   liveSocket.on("data-updated", () => triggerOrScheduleReload());
 
@@ -671,3 +671,153 @@ document.querySelectorAll(".nav-guidelines-trigger").forEach((trigger) => {
     trigger.setAttribute("aria-expanded", String(isOpen));
   });
 });
+
+// EVENTS SCHEDULE TIMEZONE & LOCALIZATION
+const initEventsLocalization = () => {
+  const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  
+  // Display user's timezone in header badge and form hint
+  const tzEl = document.getElementById('eventsUserTimezone');
+  if (tzEl) tzEl.textContent = userTimezone;
+
+  const offsetEl = document.getElementById('eventsUserOffset');
+  if (offsetEl) {
+    try {
+      const now = new Date();
+      const shortTz = new Intl.DateTimeFormat('en-US', { timeZoneName: 'short' }).formatToParts(now).find(p => p.type === 'timeZoneName')?.value || '';
+      offsetEl.textContent = shortTz ? `(${shortTz})` : '';
+    } catch (_) {}
+  }
+
+  document.querySelectorAll('.form-user-tz').forEach((el) => {
+    el.textContent = userTimezone;
+  });
+
+  // Localize upcoming event times
+  document.querySelectorAll('.event-time-display').forEach((el) => {
+    const startIso = el.dataset.eventStart;
+    const endIso = el.dataset.eventEnd;
+    if (!startIso) return;
+
+    const startDate = new Date(startIso);
+    if (isNaN(startDate.getTime())) return;
+
+    const endDate = endIso ? new Date(endIso) : null;
+    const now = new Date();
+
+    const primaryEl = el.querySelector('.event-time-primary');
+    const secondaryEl = el.querySelector('.event-time-secondary');
+    const relativeEl = el.querySelector('.event-time-relative');
+
+    // Localized formatted date and time in user's locale
+    const startStr = startDate.toLocaleString(undefined, {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit'
+    });
+
+    if (primaryEl) {
+      primaryEl.textContent = startStr;
+    }
+
+    if (secondaryEl) {
+      if (endDate && !isNaN(endDate.getTime())) {
+        const sameDay = startDate.toDateString() === endDate.toDateString();
+        const endStr = sameDay
+          ? endDate.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
+          : endDate.toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+        secondaryEl.textContent = `until ${endStr}`;
+      } else {
+        secondaryEl.textContent = '';
+      }
+    }
+
+    if (relativeEl) {
+      const diffMs = startDate.getTime() - now.getTime();
+      const isPast = endDate ? (now.getTime() > endDate.getTime()) : (diffMs < -7200000);
+      const isLive = now.getTime() >= startDate.getTime() && (endDate ? now.getTime() <= endDate.getTime() : diffMs >= -7200000);
+
+      if (isLive) {
+        relativeEl.textContent = '🔴 Live Now';
+        relativeEl.style.backgroundColor = 'rgba(239, 68, 68, 0.2)';
+        relativeEl.style.color = '#ef4444';
+        relativeEl.style.border = '1px solid rgba(239, 68, 68, 0.5)';
+      } else if (isPast) {
+        relativeEl.textContent = 'Concluded';
+        relativeEl.style.backgroundColor = 'rgba(100, 100, 100, 0.2)';
+        relativeEl.style.color = '#8e897e';
+        relativeEl.style.border = '1px solid rgba(100, 100, 100, 0.4)';
+      } else {
+        const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+        let badgeText = '';
+        if (diffHours < 1) {
+          const diffMins = Math.max(1, Math.floor(diffMs / (1000 * 60)));
+          badgeText = `Starts in ${diffMins}m`;
+        } else if (diffHours < 24) {
+          badgeText = `Starts in ${diffHours}h`;
+        } else {
+          badgeText = `In ${diffDays} day${diffDays === 1 ? '' : 's'}`;
+        }
+        relativeEl.textContent = `⏳ ${badgeText}`;
+        relativeEl.style.backgroundColor = 'rgba(251, 191, 36, 0.15)';
+        relativeEl.style.color = '#fbbf24';
+        relativeEl.style.border = '1px solid rgba(251, 191, 36, 0.4)';
+      }
+    }
+  });
+
+  // Localize past archive times
+  document.querySelectorAll('.past-event-time').forEach((el) => {
+    const startIso = el.dataset.eventStart;
+    if (!startIso) return;
+    const startDate = new Date(startIso);
+    if (!isNaN(startDate.getTime())) {
+      const dateStr = startDate.toLocaleDateString(undefined, {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      });
+      const timeStr = startDate.toLocaleTimeString(undefined, {
+        hour: 'numeric',
+        minute: '2-digit'
+      });
+      el.textContent = `${dateStr} at ${timeStr}`;
+    }
+  });
+
+  // Handle Event Creation Form: compute UTC ISO strings based on local browser date/time inputs
+  const createEventForm = document.getElementById('createEventForm');
+  if (createEventForm) {
+    createEventForm.addEventListener('submit', () => {
+      const startDateVal = document.getElementById('eventStartDate')?.value;
+      const startTimeVal = document.getElementById('eventStartTime')?.value;
+      const endDateVal = document.getElementById('eventEndDate')?.value;
+      const endTimeVal = document.getElementById('eventEndTime')?.value;
+
+      const parseInputToIso = (dStr, tStr) => {
+        if (!dStr || !tStr) return null;
+        const [y, m, d] = dStr.split('-').map(Number);
+        const [h, min] = tStr.split(':').map(Number);
+        if (!y || !m || !d || isNaN(h) || isNaN(min)) return null;
+        const local = new Date(y, m - 1, d, h, min, 0, 0);
+        return isNaN(local.getTime()) ? null : local.toISOString();
+      };
+
+      const startIso = parseInputToIso(startDateVal, startTimeVal);
+      const endIso = parseInputToIso(endDateVal, endTimeVal);
+
+      const startIsoInput = document.getElementById('eventStartIso');
+      const endIsoInput = document.getElementById('eventEndIso');
+      const tzInput = document.getElementById('eventClientTimezone');
+
+      if (startIsoInput && startIso) startIsoInput.value = startIso;
+      if (endIsoInput && endIso) endIsoInput.value = endIso;
+      if (tzInput) tzInput.value = userTimezone;
+    });
+  }
+};
+
+initEventsLocalization();
