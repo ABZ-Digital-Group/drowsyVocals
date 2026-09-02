@@ -130,6 +130,80 @@
                 <div class="account-grid">
                     <!-- Left Column: Details & Performance -->
                     <div class="account-column">
+                        <!-- Badges & Milestones Showcase Card -->
+                        <div class="account-card" id="badges">
+                            <div class="account-card-header">
+                                <h3 class="account-card-title">
+                                    <span class="material-symbols-outlined" style="color: #fbbf24;">military_tech</span>
+                                    <span>Badges & Milestones</span>
+                                </h3>
+                                <span class="account-badge" style="background: #f59e0b22; color: #fbbf24; border-color: #f59e0b44;">
+                                    <%= (typeof badges !== 'undefined' ? badges.length : 0) %> Earned
+                                </span>
+                            </div>
+
+                            <!-- Unlocked Badges Grid -->
+                            <div>
+                                <span class="account-info-label" style="display: block; margin-bottom: 10px;">Earned Achievements & Commendations</span>
+                                <% if (!badges || !badges.length) { %>
+                                <div style="background: #1a1917; border: 1px solid #383734; border-radius: 6px; padding: 18px; text-align: center; color: #8e897e; font-size: 0.9em;">
+                                    No badges unlocked yet. Attend meetings and participate in community events to earn badges!
+                                </div>
+                                <% } else { %>
+                                <div class="badges-showcase-grid">
+                                    <% badges.forEach(function(b) { %>
+                                    <div class="badge-showcase-item badge-tier-<%= b.tier || 'common' %>" title="<%= b.description %>">
+                                        <div class="badge-showcase-icon"><%= b.icon || '🏅' %></div>
+                                        <div class="badge-showcase-content">
+                                            <div class="badge-showcase-header">
+                                                <strong class="badge-showcase-name"><%= b.name %></strong>
+                                                <span class="badge-showcase-cat"><%= b.category %></span>
+                                            </div>
+                                            <p class="badge-showcase-desc"><%= b.description %></p>
+                                            <% if (b.isCustom && b.awardedBy) { %>
+                                            <div class="badge-showcase-meta">
+                                                <span>Awarded by <strong><%= b.awardedBy %></strong> <%= b.awardedAt ? `· ${(b.awardedAt).slice(0, 10)}` : '' %></span>
+                                            </div>
+                                            <% } %>
+                                        </div>
+                                    </div>
+                                    <% }); %>
+                                </div>
+                                <% } %>
+                            </div>
+
+                            <!-- Next Milestones Tracker -->
+                            <% if (typeof milestoneProgress !== 'undefined' && milestoneProgress.length) { %>
+                            <div style="border-top: 1px solid #383734; padding-top: 16px;">
+                                <span class="account-info-label" style="display: block; margin-bottom: 12px;">Milestone Progression Tracker</span>
+                                <div style="display: flex; flex-direction: column; gap: 12px;">
+                                    <% milestoneProgress.forEach(function(m) { %>
+                                    <div class="milestone-track-item">
+                                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                            <div style="display: flex; align-items: center; gap: 6px;">
+                                                <span class="material-symbols-outlined" style="font-size: 1.15em; color: #60a5fa; background: transparent; padding: 0;"><%= m.icon %></span>
+                                                <strong style="color: #f3efe6; font-size: 0.92em;"><%= m.title %></strong>
+                                            </div>
+                                            <span style="font-size: 0.82em; color: #fbbf24; font-weight: bold;">
+                                                <%= m.current %> / <%= m.target %> <%= m.unit %> (<%= m.percent %>%)
+                                            </span>
+                                        </div>
+                                        <div class="milestone-progress-bg">
+                                            <div class="milestone-progress-fill" style="width: <%= m.percent %>%; background: <%= m.percent >= 100 ? '#10b981' : '#fbbf24' %>;"></div>
+                                        </div>
+                                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px; font-size: 0.78em; color: #8e897e;">
+                                            <span>Next Goal: <strong><%= m.nextName %></strong></span>
+                                            <% if (m.isCompleted) { %>
+                                            <span style="color: #10b981; font-weight: bold;">🏆 Max Milestone!</span>
+                                            <% } %>
+                                        </div>
+                                    </div>
+                                    <% }); %>
+                                </div>
+                            </div>
+                            <% } %>
+                        </div>
+
                         <!-- Personnel Details Card -->
                         <div class="account-card">
                             <div class="account-card-header">

@@ -330,7 +330,8 @@ if (viewUserPopup && closeViewUserPopup) {
         inactiveRisk,
         inactivityReason,
         daysSinceSeen,
-        consecutiveMissed
+        consecutiveMissed,
+        badges
       } = button.dataset;
 
       if (viewUserTimeline) {
@@ -358,6 +359,36 @@ if (viewUserPopup && closeViewUserPopup) {
       viewHireDate.textContent = hireDate || "";
       viewOnboarding.textContent = onboardingComplete ? "Complete" : "Pending";
       viewHostTraining.textContent = hostTrainingComplete ? "Complete" : "Pending";
+
+      const viewUserBadgesList = document.getElementById("viewUserBadgesList");
+      const awardBadgeDiscordId = document.getElementById("awardBadgeDiscordId");
+      if (awardBadgeDiscordId) {
+        awardBadgeDiscordId.value = discordId || "";
+      }
+
+      if (viewUserBadgesList) {
+        let badgeList = [];
+        try {
+          badgeList = badges ? JSON.parse(badges) : [];
+        } catch (e) {
+          badgeList = [];
+        }
+
+        if (badgeList.length === 0) {
+          viewUserBadgesList.innerHTML = '<span style="color:#8e897e;font-size:0.85em;font-style:italic;">No badges earned yet.</span>';
+        } else {
+          viewUserBadgesList.innerHTML = badgeList.map((b) => {
+            const removeBtn = b.isCustom
+              ? `<button type="button" class="badge-remove-btn" onclick="removeCustomBadge('${escapeHtml(discordId)}', '${escapeHtml(b.id)}')" title="Remove badge">&times;</button>`
+              : '';
+            return `<div class="badge-mini-pill badge-tier-${escapeHtml(b.tier || 'common')}" title="${escapeHtml(b.name)}: ${escapeHtml(b.description)}">
+              <span>${escapeHtml(b.icon || '🏅')}</span>
+              <strong>${escapeHtml(b.name)}</strong>
+              ${removeBtn}
+            </div>`;
+          }).join('');
+        }
+      }
 
       if (viewPromotionStatus) {
         if (promotionReady) {

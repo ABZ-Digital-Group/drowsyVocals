@@ -655,6 +655,285 @@ function buildColorMap(list) {
     }, {});
 }
 
+// CALCULATE EARNED STAFF BADGES (MILESTONES + SPECIAL COMMENDATIONS)
+function calculateUserBadges(user, settings = {}) {
+    if (!user) return [];
+    const badges = [];
+    const today = new Date();
+
+    // 1. Tenure / Loyalty Milestones
+    let daysInService = 0;
+    if (user.hireDate) {
+        const hire = new Date(user.hireDate);
+        if (hire instanceof Date && !Number.isNaN(hire.valueOf())) {
+            daysInService = Math.max(0, Math.floor((today - hire) / (1000 * 60 * 60 * 24)));
+        }
+    }
+
+    if (daysInService >= 365) {
+        badges.push({
+            id: 'tenure-365',
+            name: '1 Year Veteran',
+            icon: '🥇',
+            category: 'Tenure',
+            description: 'Served in Drowsy Vocals for over 365 days',
+            tier: 'gold'
+        });
+    } else if (daysInService >= 100) {
+        badges.push({
+            id: 'tenure-100',
+            name: 'Century Staff',
+            icon: '🥈',
+            category: 'Tenure',
+            description: 'Served in Drowsy Vocals for over 100 days',
+            tier: 'silver'
+        });
+    } else if (daysInService >= 30) {
+        badges.push({
+            id: 'tenure-30',
+            name: '30-Day Veteran',
+            icon: '🥉',
+            category: 'Tenure',
+            description: 'Served in Drowsy Vocals for over 30 days',
+            tier: 'bronze'
+        });
+    } else {
+        badges.push({
+            id: 'tenure-recruit',
+            name: 'Fresh Recruit',
+            icon: '🌱',
+            category: 'Tenure',
+            description: 'Newly inducted staff member of Drowsy Vocals',
+            tier: 'common'
+        });
+    }
+
+    // 2. Training & Certifications
+    if (user.onboardingComplete) {
+        badges.push({
+            id: 'training-onboarding',
+            name: 'Certified Staff',
+            icon: '🎓',
+            category: 'Training',
+            description: 'Completed comprehensive staff onboarding',
+            tier: 'blue'
+        });
+    }
+
+    if (user.hostTrainingComplete) {
+        badges.push({
+            id: 'training-host',
+            name: 'Stage Host',
+            icon: '🎤',
+            category: 'Training',
+            description: 'Certified in stage hosting & audience engagement',
+            tier: 'purple'
+        });
+    }
+
+    // 3. Meeting Attendance Dedication
+    const attendanceRecords = Array.isArray(user.attendance) ? user.attendance : [];
+    const attendedCount = attendanceRecords.filter(r => r && r.attended).length;
+
+    if (attendedCount >= 20) {
+        badges.push({
+            id: 'attendance-20',
+            name: 'Iron Pillar',
+            icon: '🛡️',
+            category: 'Attendance',
+            description: 'Attended 20+ weekly staff meetings',
+            tier: 'gold'
+        });
+    } else if (attendedCount >= 10) {
+        badges.push({
+            id: 'attendance-10',
+            name: 'Dedicated Guard',
+            icon: '🛡️',
+            category: 'Attendance',
+            description: 'Attended 10+ weekly staff meetings',
+            tier: 'silver'
+        });
+    } else if (attendedCount >= 5) {
+        badges.push({
+            id: 'attendance-5',
+            name: 'Consistent Host',
+            icon: '🎯',
+            category: 'Attendance',
+            description: 'Attended 5+ weekly staff meetings',
+            tier: 'bronze'
+        });
+    }
+
+    // 4. House Points Contribution
+    const points = Number(user.housePoints) || 0;
+    if (points >= 250) {
+        badges.push({
+            id: 'points-250',
+            name: 'House Legend',
+            icon: '👑',
+            category: 'House Points',
+            description: 'Earned 250+ lifetime house points for their team',
+            tier: 'gold'
+        });
+    } else if (points >= 100) {
+        badges.push({
+            id: 'points-100',
+            name: 'Century Contributor',
+            icon: '💎',
+            category: 'House Points',
+            description: 'Earned 100+ lifetime house points for their team',
+            tier: 'silver'
+        });
+    } else if (points >= 50) {
+        badges.push({
+            id: 'points-50',
+            name: 'Point Pioneer',
+            icon: '🏅',
+            category: 'House Points',
+            description: 'Earned 50+ lifetime house points for their team',
+            tier: 'bronze'
+        });
+    }
+
+    // 5. Conduct & Record
+    const strikeCount = (user.strikes || []).reduce((sum, s) => sum + (Number(s.count) || 0), 0);
+    if (strikeCount === 0 && daysInService >= 30) {
+        badges.push({
+            id: 'record-clean',
+            name: 'Spotless Conduct',
+            icon: '⭐',
+            category: 'Conduct',
+            description: 'Maintained a clean disciplinary record with 0 strikes',
+            tier: 'gold'
+        });
+    }
+
+    // 6. Promotion Readiness
+    if (user.isPromotionReady) {
+        badges.push({
+            id: 'promo-ready',
+            name: 'Promotion Ready',
+            icon: '🚀',
+            category: 'Advancement',
+            description: 'Achieved required time in grade for promotion',
+            tier: 'emerald'
+        });
+    }
+
+    // 7. Custom Commendations / Special Awards
+    if (Array.isArray(user.customBadges)) {
+        user.customBadges.forEach((b) => {
+            badges.push({
+                id: b.id,
+                name: b.name,
+                icon: b.icon || '🌟',
+                category: 'Special Commendation',
+                description: b.description || 'Awarded by management',
+                awardedBy: b.awardedByName || b.awardedBy || 'Management',
+                awardedAt: b.awardedAt || '',
+                isCustom: true,
+                tier: 'special'
+            });
+        });
+    }
+
+    return badges;
+}
+
+// COMPUTE UPCOMING MILESTONE TRACKING PROGRESS
+function getUserMilestoneProgress(user) {
+    if (!user) return [];
+    const today = new Date();
+    const milestones = [];
+
+    // 1. Tenure Milestone
+    let daysInService = 0;
+    if (user.hireDate) {
+        const hire = new Date(user.hireDate);
+        if (hire instanceof Date && !Number.isNaN(hire.valueOf())) {
+            daysInService = Math.max(0, Math.floor((today - hire) / (1000 * 60 * 60 * 24)));
+        }
+    }
+    let nextTenureTarget = 30;
+    let nextTenureName = '30-Day Veteran (🥉)';
+    if (daysInService >= 365) {
+        nextTenureTarget = 365;
+        nextTenureName = '1 Year Veteran (🥇) [Completed]';
+    } else if (daysInService >= 100) {
+        nextTenureTarget = 365;
+        nextTenureName = '1 Year Veteran (🥇)';
+    } else if (daysInService >= 30) {
+        nextTenureTarget = 100;
+        nextTenureName = 'Century Staff (🥈)';
+    }
+    const tenurePercent = Math.min(100, Math.round((daysInService / nextTenureTarget) * 100));
+    milestones.push({
+        title: 'Service Loyalty',
+        icon: 'military_tech',
+        current: daysInService,
+        target: nextTenureTarget,
+        unit: 'days',
+        percent: tenurePercent,
+        nextName: nextTenureName,
+        isCompleted: daysInService >= 365
+    });
+
+    // 2. Attendance Milestone
+    const attendanceRecords = Array.isArray(user.attendance) ? user.attendance : [];
+    const attendedCount = attendanceRecords.filter(r => r && r.attended).length;
+    let nextAttTarget = 5;
+    let nextAttName = 'Consistent Host (🎯 5 Meetings)';
+    if (attendedCount >= 20) {
+        nextAttTarget = 20;
+        nextAttName = 'Iron Pillar (🛡️ 20 Meetings) [Completed]';
+    } else if (attendedCount >= 10) {
+        nextAttTarget = 20;
+        nextAttName = 'Iron Pillar (🛡️ 20 Meetings)';
+    } else if (attendedCount >= 5) {
+        nextAttTarget = 10;
+        nextAttName = 'Dedicated Guard (🛡️ 10 Meetings)';
+    }
+    const attPercent = Math.min(100, Math.round((attendedCount / nextAttTarget) * 100));
+    milestones.push({
+        title: 'Meeting Attendance',
+        icon: 'how_to_reg',
+        current: attendedCount,
+        target: nextAttTarget,
+        unit: 'meetings',
+        percent: attPercent,
+        nextName: nextAttName,
+        isCompleted: attendedCount >= 20
+    });
+
+    // 3. House Points Milestone
+    const points = Number(user.housePoints) || 0;
+    let nextPointsTarget = 50;
+    let nextPointsName = 'Point Pioneer (🏅 50 Pts)';
+    if (points >= 250) {
+        nextPointsTarget = 250;
+        nextPointsName = 'House Legend (👑 250 Pts) [Completed]';
+    } else if (points >= 100) {
+        nextPointsTarget = 250;
+        nextPointsName = 'House Legend (👑 250 Pts)';
+    } else if (points >= 50) {
+        nextPointsTarget = 100;
+        nextPointsName = 'Century Contributor (💎 100 Pts)';
+    }
+    const pointsPercent = Math.min(100, Math.round((points / nextPointsTarget) * 100));
+    milestones.push({
+        title: 'House Points',
+        icon: 'stars',
+        current: points,
+        target: nextPointsTarget,
+        unit: 'pts',
+        percent: pointsPercent,
+        nextName: nextPointsName,
+        isCompleted: points >= 250
+    });
+
+    return milestones;
+}
+
 // PARSE A RANK CAPACITY INPUT: BLANK MEANS UNLIMITED SLOTS
 function parseCapacity(value) {
     if (value === undefined || value === null || value === '') return null;
@@ -2578,6 +2857,116 @@ app.post('/house-points/award', requireDatabase, async (req, res) => {
     }
 });
 
+// AWARD CUSTOM STAFF BADGE / COMMENDATION (MANAGEMENT ONLY)
+app.post('/badges/award', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !hasManagementAccess(req)) {
+        req.flash('error_msg', 'You are not authorized to award staff badges.');
+        return res.redirect('/roster');
+    }
+
+    const { discordId, name, icon, description } = req.body;
+    const cleanDiscordId = (discordId || '').toString().trim();
+    const cleanName = (name || '').toString().trim();
+    const cleanIcon = (icon || '🌟').toString().trim() || '🌟';
+    const cleanDesc = (description || '').toString().trim();
+
+    if (!cleanDiscordId || !cleanName) {
+        req.flash('error_msg', 'Target staff member and badge title are required.');
+        return res.redirect('/roster');
+    }
+
+    try {
+        const targetUser = await db.collection('users').findOne({ 'login.discordId': cleanDiscordId });
+        if (!targetUser) {
+            req.flash('error_msg', 'Target staff member not found.');
+            return res.redirect('/roster');
+        }
+
+        const actor = await db.collection('users').findOne(
+            { 'login.discordId': req.session.currentuser },
+            { projection: { displayName: 1, discordUser: 1 } }
+        );
+
+        const badgeItem = {
+            id: crypto.randomUUID(),
+            name: cleanName,
+            icon: cleanIcon,
+            description: cleanDesc || 'Awarded for exceptional service and community contribution.',
+            awardedBy: req.session.currentuser,
+            awardedByName: actor?.displayName || actor?.discordUser || req.session.currentuser,
+            awardedAt: new Date().toISOString()
+        };
+
+        await db.collection('users').updateOne(
+            { 'login.discordId': cleanDiscordId },
+            { $push: { customBadges: badgeItem } }
+        );
+
+        await writeAudit(
+            req,
+            'Awarded Staff Badge',
+            `${cleanIcon} "${cleanName}" awarded to ${targetUser.displayName || targetUser.discordUser || cleanDiscordId}`
+        );
+
+        sendDiscordWebhook({
+            title: `🌟 Special Staff Commendation Awarded!`,
+            color: 0xF59E0B,
+            fields: [
+                { name: 'Recipient', value: `${targetUser.displayName || targetUser.discordUser} (<@${cleanDiscordId}>)`, inline: true },
+                { name: 'Award / Badge', value: `${cleanIcon} **${cleanName}**`, inline: true },
+                { name: 'Description', value: cleanDesc || 'For exceptional service and community contribution.' },
+                { name: 'Awarded By', value: `<@${req.session.currentuser}>` }
+            ]
+        }, 'housePoints');
+
+        broadcastDataUpdate('users');
+        req.flash('success_msg', `Awarded badge "${cleanName}" to ${targetUser.displayName || targetUser.discordUser}.`);
+        res.redirect(req.headers.referer || '/roster');
+    } catch (error) {
+        console.error('Error awarding badge:', error);
+        req.flash('error_msg', 'Failed to award badge.');
+        res.redirect('/roster');
+    }
+});
+
+// REMOVE CUSTOM STAFF BADGE (MANAGEMENT ONLY)
+app.post('/badges/remove', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !hasManagementAccess(req)) {
+        req.flash('error_msg', 'You are not authorized to remove staff badges.');
+        return res.redirect('/roster');
+    }
+
+    const { discordId, badgeId } = req.body;
+    const cleanDiscordId = (discordId || '').toString().trim();
+    const cleanBadgeId = (badgeId || '').toString().trim();
+
+    if (!cleanDiscordId || !cleanBadgeId) {
+        req.flash('error_msg', 'Discord ID and badge ID are required.');
+        return res.redirect('/roster');
+    }
+
+    try {
+        const result = await db.collection('users').updateOne(
+            { 'login.discordId': cleanDiscordId },
+            { $pull: { customBadges: { id: cleanBadgeId } } }
+        );
+
+        if (result.modifiedCount > 0) {
+            await writeAudit(req, 'Removed Staff Badge', `Badge ${cleanBadgeId} removed from ${cleanDiscordId}`);
+            broadcastDataUpdate('users');
+            req.flash('success_msg', 'Custom badge removed.');
+        } else {
+            req.flash('error_msg', 'Badge not found on user.');
+        }
+
+        res.redirect(req.headers.referer || '/roster');
+    } catch (error) {
+        console.error('Error removing badge:', error);
+        req.flash('error_msg', 'Failed to remove badge.');
+        res.redirect('/roster');
+    }
+});
+
 // DASHBOARD
 app.get('/dashboard', requireDatabase, async (req, res) => {
     if (!req.session.loggedin) return res.redirect('/');
@@ -2634,6 +3023,7 @@ app.get('/dashboard', requireDatabase, async (req, res) => {
         const houseColorMap = Object.fromEntries((settings?.houses || []).map(h => [h.name, h.color]));
         const shiftColorMap = Object.fromEntries((settings?.shifts || []).map(s => [s.name, s.color]));
         const activityColorMap = Object.fromEntries((settings?.activities || []).map(a => [a.name, a.color]));
+        const userBadges = calculateUserBadges(userDoc, settings);
 
         res.render('pages/dashboard', {
             page: 'dashboard',
@@ -2657,7 +3047,8 @@ app.get('/dashboard', requireDatabase, async (req, res) => {
             settings,
             houseColorMap,
             shiftColorMap,
-            activityColorMap
+            activityColorMap,
+            badges: userBadges
         });
     } catch (error) {
         console.error('Error loading dashboard:', error);
@@ -2707,6 +3098,8 @@ app.get('/account', requireDatabase, async (req, res) => {
         }
 
         const totalStrikes = (user.strikes || []).reduce((sum, s) => sum + (Number(s.count) || 0), 0);
+        const badges = calculateUserBadges(user, settings);
+        const milestoneProgress = getUserMilestoneProgress(user);
 
         res.render('pages/account', {
             page: 'account',
@@ -2719,7 +3112,9 @@ app.get('/account', requireDatabase, async (req, res) => {
             attendanceRate,
             tenureDays,
             daysInGrade,
-            totalStrikes
+            totalStrikes,
+            badges,
+            milestoneProgress
         });
     } catch (error) {
         console.error('Error loading account page:', error);
@@ -3732,7 +4127,7 @@ app.get('/roster', requireDatabase, async (req, res) => {
                 }
             }
 
-            return {
+            const userObj = {
                 ...user,
                 timeInService: daysInService,
                 timeInGrade: daysInGrade,
@@ -3745,6 +4140,9 @@ app.get('/roster', requireDatabase, async (req, res) => {
                 attendedThisWeek: attendanceRecord ? attendanceRecord.attended : false,
                 isOnline
             };
+            userObj.badges = calculateUserBadges(userObj, settings);
+
+            return userObj;
         });
 
         usersWithService.sort((a, b) => {
