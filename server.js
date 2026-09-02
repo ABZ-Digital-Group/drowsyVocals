@@ -3465,12 +3465,16 @@ app.get('/audit-log', requireDatabase, async (req, res) => {
 app.get('/pop-up', requireDatabase, async (req, res) => {
     if (!req.session.loggedin) return res.redirect('/');
     try {
-        const events = await db.collection('popupEvents').find().sort({ scheduledStartTime: 1 }).toArray();
+        const [events, users] = await Promise.all([
+            db.collection('popupEvents').find().sort({ scheduledStartTime: 1 }).toArray(),
+            db.collection('users').find({}, { projection: { displayName: 1, discordUser: 1, 'login.discordId': 1, accountType: 1 } }).sort({ displayName: 1 }).toArray()
+        ]);
         const now = new Date();
         res.render('pages/popUp', {
             page: 'pop-up',
             upcomingEvents: events.filter((event) => new Date(event.scheduledEndTime || event.scheduledStartTime) >= now),
             pastEvents: events.filter((event) => new Date(event.scheduledEndTime || event.scheduledStartTime) < now).reverse(),
+            users,
             isManager: hasManagementAccess(req)
         });
     } catch (error) {
@@ -3485,6 +3489,7 @@ app.post('/pop-up/create', requireDatabase, async (req, res) => {
     const title = (req.body.title || '').toString().trim();
     const location = (req.body.location || 'Discord').toString().trim();
     const description = (req.body.description || '').toString().trim();
+    const host = (req.body.host || '').toString().trim() || null;
     const start = new Date((req.body.startIso || '').toString());
     const endIso = (req.body.endIso || '').toString();
     const end = endIso ? new Date(endIso) : null;
@@ -3493,10 +3498,11 @@ app.post('/pop-up/create', requireDatabase, async (req, res) => {
         return res.redirect('/pop-up');
     }
     try {
-        const event = { id: crypto.randomUUID(), title, location, description, scheduledStartTime: start.toISOString(), scheduledEndTime: end ? end.toISOString() : null, createdBy: req.session.currentuser, createdAt: new Date().toISOString() };
+        const event = { id: crypto.randomUUID(), title, location, description, host, scheduledStartTime: start.toISOString(), scheduledEndTime: end ? end.toISOString() : null, createdBy: req.session.currentuser, createdAt: new Date().toISOString() };
         await db.collection('popupEvents').insertOne(event);
         await writeAudit(req, 'Scheduled Pop-up Event', `${title} (${event.scheduledStartTime})`);
-        sendDiscordWebhook({ title: `✨ Pop-up Event: ${title}`, color: 0xF59E0B, fields: [{ name: 'Location', value: location, inline: true }, { name: 'Starts', value: `<t:${Math.floor(start.getTime() / 1000)}:F>`, inline: true }, { name: 'Details', value: description || 'No additional details provided.' }, { name: 'Created By', value: `<@${req.session.currentuser}>`, inline: true }] }, 'events');
+        const hostField = host ? [{ name: 'Host', value: host.match(/^\d+$/) ? `<@${host}>` : host, inline: true }] : [];
+        sendDiscordWebhook({ title: `✨ Pop-up Event: ${title}`, color: 0xF59E0B, fields: [{ name: 'Location', value: location, inline: true }, { name: 'Starts', value: `<t:${Math.floor(start.getTime() / 1000)}:F>`, inline: true }, ...hostField, { name: 'Details', value: description || 'No additional details provided.' }, { name: 'Created By', value: `<@${req.session.currentuser}>`, inline: true }] }, 'events');
         req.flash('success_msg', `Pop-up event "${title}" scheduled successfully.`);
     } catch (error) {
         console.error('Error creating pop-up event:', error);
@@ -3510,13 +3516,14 @@ app.post('/pop-up/:eventId/update', requireDatabase, async (req, res) => {
     const title = (req.body.title || '').toString().trim();
     const location = (req.body.location || 'Discord').toString().trim();
     const description = (req.body.description || '').toString().trim();
+    const host = (req.body.host || '').toString().trim() || null;
     const start = new Date((req.body.startIso || '').toString());
     const endIso = (req.body.endIso || '').toString();
     const end = endIso ? new Date(endIso) : null;
     if (!title || Number.isNaN(start.getTime()) || (endIso && Number.isNaN(end.getTime()))) return res.redirect('/pop-up');
     try {
         const query = { $or: [{ id: req.params.eventId }, { _id: ObjectId.isValid(req.params.eventId) ? new ObjectId(req.params.eventId) : null }] };
-        const result = await db.collection('popupEvents').findOneAndUpdate(query, { $set: { title, location, description, scheduledStartTime: start.toISOString(), scheduledEndTime: end ? end.toISOString() : null, updatedBy: req.session.currentuser, updatedAt: new Date().toISOString() } }, { returnDocument: 'after' });
+        const result = await db.collection('popupEvents').findOneAndUpdate(query, { $set: { title, location, description, host, scheduledStartTime: start.toISOString(), scheduledEndTime: end ? end.toISOString() : null, updatedBy: req.session.currentuser, updatedAt: new Date().toISOString() } }, { returnDocument: 'after' });
         if (result) {
             await writeAudit(req, 'Updated Pop-up Event', `${title} (${req.params.eventId})`);
             req.flash('success_msg', `Pop-up event "${title}" updated successfully.`);
