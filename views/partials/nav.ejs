@@ -13,8 +13,16 @@
     <ul id="primaryNavigation">
         <li><a href="/dashboard">Dashboard</a></li>
         <li><a href="/roster">Roster</a></li>
-        <li><a href="/events">Events</a></li>
-            <li><a href="/pop-up">Pop-up Events</a></li>
+        <li class="nav-guidelines-menu">
+            <button class="nav-guidelines-trigger" type="button" aria-expanded="false" aria-controls="eventsMenu">
+                Events
+                <span class="material-symbols-outlined nav-guidelines-arrow" aria-hidden="true">expand_more</span>
+            </button>
+            <div class="nav-guidelines-dropdown" id="eventsMenu">
+                <a href="/events">Events Schedule</a>
+                <a href="/pop-up">Pop-up Events</a>
+            </div>
+        </li>
         <li><a href="/house-points">House Points</a></li>
         <li><a href="/bingo">Bingo</a></li>
         <li class="nav-guidelines-menu">
