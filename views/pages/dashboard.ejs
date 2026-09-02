@@ -56,6 +56,22 @@
                                     <span><%= activity || 'Active' %></span>
                                 </span>
                             </div>
+
+                            <% if (typeof badges !== 'undefined' && badges && badges.length) { %>
+                            <div class="dashboard-hero-badges" style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; align-items: center;">
+                                <% badges.slice(0, 5).forEach(function(b) { %>
+                                <a href="/account#badges" class="dashboard-badge-pill badge-tier-<%= b.tier || 'common' %>" title="<%= b.name %>: <%= b.description %>">
+                                    <span><%= b.icon %></span>
+                                    <span><%= b.name %></span>
+                                </a>
+                                <% }); %>
+                                <% if (badges.length > 5) { %>
+                                <a href="/account#badges" class="dashboard-badge-pill" style="color: #8e897e; font-size: 0.75em;">
+                                    +<%= badges.length - 5 %> more
+                                </a>
+                                <% } %>
+                            </div>
+                            <% } %>
                         </div>
                     </div>
 

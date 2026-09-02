@@ -268,7 +268,8 @@
                                         data-inactive-risk="<%= user.isInactiveRisk ? '1' : '' %>"
                                         data-inactivity-reason="<%= user.inactivityReason || '' %>"
                                         data-days-since-seen="<%= user.daysSinceSeen !== null ? user.daysSinceSeen : '' %>"
-                                        data-consecutive-missed="<%= user.consecutiveMissedMeetings || '0' %>">
+                                        data-consecutive-missed="<%= user.consecutiveMissedMeetings || '0' %>"
+                                        data-badges="<%= JSON.stringify(user.badges || []) %>">
                                         <span class="material-symbols-outlined">visibility</span>
                                     </button>
                                     <button class="strikeBtn" type="button"
@@ -428,8 +429,61 @@
                         <strong id="viewInactivityStatus"></strong>
                     </div>
                 </div>
+
+                <!-- Badges & Achievements Section -->
+                <div class="staff-timeline" style="margin-top: 16px;">
+                    <span>Earned Staff Badges & Commendations</span>
+                    <div id="viewUserBadgesList" class="badges-mini-grid" style="margin-top: 8px;"></div>
+                </div>
+
+                <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender' || userType === 'Dreamy Defender' || userIsDeveloper) { %>
+                <!-- Management: Award Commendation Badge -->
+                <details class="settings-accordion" style="margin-top: 14px; padding: 10px 14px;">
+                    <summary style="font-size: 0.85em; font-weight: bold; color: #fbbf24;">
+                        <span class="material-symbols-outlined" style="font-size: 1.15em;">military_tech</span>
+                        <span>Award Special Commendation Badge</span>
+                    </summary>
+                    <form action="/badges/award" method="POST" style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px;">
+                        <input type="hidden" id="awardBadgeDiscordId" name="discordId">
+
+                        <div style="display: grid; grid-template-columns: 80px 1fr; gap: 8px;">
+                            <div>
+                                <label for="awardBadgeIcon" style="font-size: 0.78em;">Icon</label>
+                                <select id="awardBadgeIcon" name="icon" style="padding: 6px;">
+                                    <option value="🌟">🌟 Star</option>
+                                    <option value="👑">👑 Crown</option>
+                                    <option value="💎">💎 Diamond</option>
+                                    <option value="🔥">🔥 Fire</option>
+                                    <option value="🏆">🏆 Trophy</option>
+                                    <option value="💖">💖 Heart</option>
+                                    <option value="🎤">🎤 Mic</option>
+                                    <option value="⚡">⚡ Bolt</option>
+                                    <option value="🎨">🎨 Art</option>
+                                    <option value="🛡️">🛡️ Shield</option>
+                                    <option value="🚀">🚀 Rocket</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="awardBadgeName" style="font-size: 0.78em;">Badge Title</label>
+                                <input type="text" id="awardBadgeName" name="name" placeholder="e.g. Star Host of the Month" required style="padding: 6px 10px;">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="awardBadgeDesc" style="font-size: 0.78em;">Reason / Description</label>
+                            <input type="text" id="awardBadgeDesc" name="description" placeholder="e.g. Outstanding karaoke hosting and crowd energy..." style="padding: 6px 10px;">
+                        </div>
+
+                        <button type="submit" class="settings-btn settings-btn-primary settings-btn-sm" style="align-self: flex-start; margin-top: 4px;">
+                            <span class="material-symbols-outlined">military_tech</span>
+                            <span>Award Badge</span>
+                        </button>
+                    </form>
+                </details>
+                <% } %>
+
                 <div class="staff-timeline"><span>Profile timeline</span><ul id="viewUserTimeline"></ul></div>
-                <button type="button" id="closeViewUserPopup">Close</button>
+                <button type="button" id="closeViewUserPopup" style="margin-top: 14px;">Close</button>
             </dialog>
 
             <dialog id="addStrikePopup">
@@ -581,6 +635,10 @@
             <input type="hidden" name="discordId" id="removeStrikeDiscordId">
             <input type="hidden" name="strikeId" id="removeStrikeId">
         </form>
+        <form id="removeBadgeForm" action="/badges/remove" method="POST" style="display:none;">
+            <input type="hidden" name="discordId" id="removeBadgeDiscordId">
+            <input type="hidden" name="badgeId" id="removeBadgeId">
+        </form>
         <script>
             window.APP_RANKS = <%- JSON.stringify(settings.ranks.map(function(rank) { return rank.name; })) %>;
 
@@ -596,6 +654,14 @@
                     document.getElementById('removeStrikeDiscordId').value = discordId;
                     document.getElementById('removeStrikeId').value = strikeId;
                     document.getElementById('removeStrikeForm').submit();
+                }
+            }
+
+            function removeCustomBadge(discordId, badgeId) {
+                if(confirm('Remove this special badge from user?')) {
+                    document.getElementById('removeBadgeDiscordId').value = discordId;
+                    document.getElementById('removeBadgeId').value = badgeId;
+                    document.getElementById('removeBadgeForm').submit();
                 }
             }
         </script>
