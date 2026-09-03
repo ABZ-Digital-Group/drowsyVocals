@@ -255,6 +255,31 @@ app.use((req, res, next) => {
     next();
 });
 
+// SUSPENDED ACCOUNTS CANNOT CONTINUE USING AN ACTIVE SESSION.
+app.use(async (req, res, next) => {
+    if (!isDatabaseReady || !db || !req.session.loggedin || !req.session.currentuser || req.path === '/logout') return next();
+
+    try {
+        const user = await db.collection('users').findOne(
+            { 'login.discordId': req.session.currentuser },
+            { projection: { suspended: 1 } }
+        );
+
+        if (user?.suspended) {
+            req.session.loggedin = false;
+            req.session.currentuser = null;
+            req.session.accountType = null;
+            req.session.isDeveloper = false;
+            req.flash('error_msg', 'Your account has been suspended. Please contact management.');
+            return res.redirect('/');
+        }
+    } catch (error) {
+        console.error('Suspension status check failed:', error.message);
+    }
+
+    next();
+});
+
 function requireDatabase(req, res, next) {
     if (shuttingDown || !isDatabaseReady || !db) {
         return res.status(503).send('Database is temporarily unavailable. Please try again shortly.');
@@ -1464,6 +1489,43 @@ app.post('/remove-strike', requireDatabase, async (req, res) => {
         req.flash('error_msg', 'Unable to remove strike.');
         res.redirect('/roster');
     }
+});
+
+// TOGGLE ACCOUNT SUSPENSION
+app.post('/toggle-suspension', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin) return res.redirect('/');
+
+    if (!hasManagementAccess(req)) {
+        req.flash('error_msg', 'You are not authorized to suspend accounts.');
+        return res.redirect('/roster');
+    }
+
+    const discordId = (req.body.discordId || '').toString().trim();
+    if (!discordId || discordId === req.session.currentuser) {
+        req.flash('error_msg', 'You cannot suspend your own account.');
+        return res.redirect('/roster');
+    }
+
+    try {
+        const user = await db.collection('users').findOne({ 'login.discordId': discordId });
+        if (!user) {
+            req.flash('error_msg', 'User account not found.');
+            return res.redirect('/roster');
+        }
+
+        const suspended = !Boolean(user.suspended);
+        await db.collection('users').updateOne(
+            { 'login.discordId': discordId },
+            { $set: { suspended } }
+        );
+        await writeAudit(req, suspended ? 'Suspended User Account' : 'Unsuspended User Account', `${user.displayName || user.discordUser || discordId} (${discordId})`);
+        req.flash('success_msg', `${user.displayName || discordId} has been ${suspended ? 'suspended' : 'unsuspended'}.`);
+    } catch (error) {
+        console.error('Error toggling account suspension:', error);
+        req.flash('error_msg', 'Unable to update account suspension.');
+    }
+
+    res.redirect('/roster');
 });
 
 // SUBMIT STRIKE APPEAL (STAFF MEMBER ONLY)
@@ -2762,6 +2824,12 @@ app.post('/login', requireDatabase, async (req, res) => {
         if (!isMatch) {
             recordRateLimitAttempt(rateLimitKey);
             req.flash('error_msg', 'Invalid Discord ID or password.');
+            return res.redirect('/');
+        }
+
+        if (userDoc.suspended) {
+            recordRateLimitAttempt(rateLimitKey);
+            req.flash('error_msg', 'Your account has been suspended. Please contact management.');
             return res.redirect('/');
         }
 
