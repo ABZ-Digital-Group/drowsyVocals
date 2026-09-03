@@ -214,6 +214,7 @@
                                     data-discord-id="<%= user.login.discordId %>"
                                     data-display-name="<%= user.displayName || user.discordUser || user.login.discordId %>"
                                     data-strikes="<%= JSON.stringify(user.strikes || []) %>"
+                                    data-suspended="<%= user.suspended ? '1' : '' %>"
                                 >
                                     <span class="material-symbols-outlined">warning</span>
                                 </button>
@@ -407,6 +408,10 @@
                 <hr>
                 <p><b>Existing Strikes</b></p>
                 <ul id="manageStrikesList"></ul>
+                <form action="/toggle-suspension" method="POST" id="suspensionForm" onsubmit="return confirm('Change this account suspension status?');">
+                    <input type="hidden" id="suspensionDiscordId" name="discordId" required>
+                    <button type="submit" id="suspensionButton" class="settings-btn settings-btn-danger settings-btn-sm"></button>
+                </form>
             </dialog>
 
             <dialog id="editUserPopup">

@@ -431,13 +431,21 @@ if (addStrikePopup && closeAddStrikePopup) {
   const strikeCount = document.getElementById("strikeCount");
   const strikeReason = document.getElementById("strikeReason");
   const manageStrikesList = document.getElementById("manageStrikesList");
+  const suspensionDiscordId = document.getElementById("suspensionDiscordId");
+  const suspensionButton = document.getElementById("suspensionButton");
 
   strikeButtons.forEach((button) => {
     button.addEventListener("click", () => {
-      const { discordId, displayName, strikes } = button.dataset;
+      const { discordId, displayName, strikes, suspended } = button.dataset;
 
       strikeDiscordId.value = discordId || "";
       strikeDisplayName.value = displayName || "";
+      if (suspensionDiscordId) suspensionDiscordId.value = discordId || "";
+      if (suspensionButton) {
+        const isSuspended = suspended === "1";
+        suspensionButton.innerHTML = `<span class="material-symbols-outlined">${isSuspended ? "lock_open" : "lock"}</span>${isSuspended ? "Unsuspend Account" : "Suspend Account"}`;
+        suspensionButton.className = isSuspended ? "settings-btn settings-btn-primary settings-btn-sm" : "settings-btn settings-btn-danger settings-btn-sm";
+      }
       strikeCount.value = "1";
       strikeReason.value = "";
 
