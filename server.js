@@ -588,17 +588,26 @@ async function getBotLiveState() {
     const host = env.OBS_HTTP_HOST === '0.0.0.0' ? '127.0.0.1' : (env.OBS_HTTP_HOST || '127.0.0.1');
     const url = `http://${host}:${port}/admin/api/state`;
 
+    let connectionError = null;
     try {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 1200);
-        const res = await fetch(url, { signal: controller.signal, headers: { 'Accept': 'application/json' } });
-        clearTimeout(timeout);
+        let res;
+        try {
+            res = await fetch(url, { signal: controller.signal, headers: { 'Accept': 'application/json' } });
+        } finally {
+            clearTimeout(timeout);
+        }
         if (res.ok) {
             const data = await res.json();
             return { online: true, ...data };
         }
-    } catch {
-        // Fallback when bot is offline
+        connectionError = `Bot returned HTTP ${res.status}.`;
+    } catch (error) {
+        connectionError = error.name === 'AbortError'
+            ? 'Bot health check timed out.'
+            : 'Bot HTTP service is unreachable.';
+        console.error(`Bot health check failed (${url}):`, error.message);
     }
 
     const adsData = readBotJson(path.join(BOT_DATA_DIR, 'obs-ads.json'), { items: [], activeId: null });
@@ -613,7 +622,8 @@ async function getBotLiveState() {
         advertisements: adsData.items || [],
         activeAdvertisement: activeAd,
         rotationIntervalMs: adsData.rotationIntervalMs || null,
-        allowedInviteUsers: readBotJson(path.join(BOT_DATA_DIR, 'allowed-invite-users.json'), []) || []
+        allowedInviteUsers: readBotJson(path.join(BOT_DATA_DIR, 'allowed-invite-users.json'), []) || [],
+        connectionError
     };
 }
 
@@ -2662,18 +2672,23 @@ async function sendBotApiPost(pathname, bodyParams = {}) {
     try {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 2000);
-        const res = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams(bodyParams).toString(),
-            signal: controller.signal
-        });
-        clearTimeout(timeout);
-        if (res.ok) {
-            return await res.json();
+        try {
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams(bodyParams).toString(),
+                signal: controller.signal
+            });
+            if (res.ok) {
+                return await res.json();
+            }
+            console.error(`Bot API returned HTTP ${res.status} on ${pathname}`);
+        } finally {
+            clearTimeout(timeout);
         }
-    } catch (e) {
-        console.error(`Bot API error on ${pathname}:`, e.message);
+    } catch (error) {
+        const reason = error.name === 'AbortError' ? 'request timed out' : 'service unreachable';
+        console.error(`Bot API error on ${pathname}: ${reason}:`, error.message);
     }
     return null;
 }
