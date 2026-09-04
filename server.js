@@ -104,7 +104,10 @@ function safeTimingCompare(a, b) {
     return crypto.timingSafeEqual(bufA, bufB);
 }
 
-app.use(express.static(path.join(__dirname, 'public')));
+app.use((req, res, next) => {
+    if (req.path.startsWith('/uploads/check-ins/')) return next();
+    express.static(path.join(__dirname, 'public'))(req, res, next);
+});
 
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
@@ -296,6 +299,11 @@ const GOD_ROLES = ['Mr. Sandman', 'Realm God'];
 const hasManagementAccess = (req) => MANAGEMENT_ROLES.includes(req.session.accountType) || Boolean(req.session.isDeveloper);
 const hasGodAccess = (req) => GOD_ROLES.includes(req.session.accountType) || Boolean(req.session.isDeveloper);
 const hasCheckInAccess = (req, settings) => hasGodAccess(req) || (settings.checkInAccessUserIds || []).includes(req.session.currentuser);
+const canViewCheckIn = (req, checkIn) => {
+    if (checkIn.visibility === 'gods') return hasGodAccess(req);
+    if (checkIn.visibility === 'staff') return (checkIn.visibleUserIds || []).includes(req.session.currentuser) || hasGodAccess(req);
+    return Boolean(req.session.loggedin);
+};
 const hasFeedbackManagementAccess = (req) => hasGodAccess(req);
 const rankOrder = ['Mr. Sandman', 'Realm God', 'Drowsy Defender', 'Dreamy Defender', 'Dreamland Guard', 'Nighty Knights', 'Tired Esquire'];
 const getRankChangeType = (oldRank, newRank) => rankOrder.indexOf(newRank) < rankOrder.indexOf(oldRank) ? 'promotion' : 'demotion';
@@ -327,6 +335,8 @@ app.get('/check-ins', requireDatabase, async (req, res) => {
         console.log('Check-ins request started:', req.query.user || '(default)', req.session.currentuser);
         const settings = await getSettings();
         const requestedDiscordId = typeof req.query.user === 'string' ? req.query.user.trim() : '';
+        const searchQuery = typeof req.query.q === 'string' ? req.query.q.trim().toLowerCase() : '';
+        const followUpFilter = ['open', 'complete'].includes(req.query.followUp) ? req.query.followUp : '';
         if (hasGodAccess(req) && !requestedDiscordId) {
             const firstUser = await db.collection('users').findOne({}, { projection: { 'login.discordId': 1 }, sort: { displayName: 1 } });
             if (!firstUser?.login?.discordId) return res.status(404).send('No users are available for check-ins.');
@@ -336,7 +346,7 @@ app.get('/check-ins', requireDatabase, async (req, res) => {
 
         if (!targetDiscordId) return res.status(404).send('No user was selected for check-ins.');
 
-        const [users, targetUser, checkIns] = await Promise.all([
+        const [users, targetUser, storedCheckIns] = await Promise.all([
             req.session.loggedin
                 ? db.collection('users').find({}, { projection: { displayName: 1, discordUser: 1, accountType: 1, 'login.discordId': 1 } }).sort({ displayName: 1 }).toArray()
                 : [],
@@ -348,6 +358,10 @@ app.get('/check-ins', requireDatabase, async (req, res) => {
         ]);
 
         if (!targetUser) return res.status(404).send('The selected user could not be found.');
+        const checkIns = storedCheckIns
+            .filter((checkIn) => canViewCheckIn(req, checkIn))
+            .filter((checkIn) => !searchQuery || [checkIn.note, checkIn.authorDisplayName, checkIn.followUpText].some((value) => String(value || '').toLowerCase().includes(searchQuery)))
+            .filter((checkIn) => !followUpFilter || (followUpFilter === 'complete' ? checkIn.followUpComplete : checkIn.followUpText && !checkIn.followUpComplete));
 
         res.render('pages/check-ins', {
             page: 'check-ins',
@@ -355,7 +369,15 @@ app.get('/check-ins', requireDatabase, async (req, res) => {
             targetUser,
             checkIns,
             canCreate: hasCheckInAccess(req, settings),
-            canSelectUser: true
+            canSelectUser: true,
+            searchQuery,
+            followUpFilter,
+            checkInTemplates: [
+                { name: 'General check-in', note: '' },
+                { name: 'Welfare check', note: 'Reason for check-in:\n\nHow the member is doing:\n\nSupport or follow-up needed:\n' },
+                { name: 'Performance check-in', note: 'What is going well:\n\nAreas to improve:\n\nAgreed actions:\n' },
+                { name: 'Return from LOA', note: 'Return date:\n\nHow the member is settling back in:\n\nSupport or follow-up needed:\n' }
+            ]
         });
     } catch (error) {
         console.error('Error loading check-ins:', error.stack || error);
@@ -363,14 +385,23 @@ app.get('/check-ins', requireDatabase, async (req, res) => {
     }
 });
 
-app.post('/check-ins', requireDatabase, async (req, res) => {
+app.post('/check-ins', requireDatabase, (req, res) => checkInUpload.single('attachment')(req, res, async (uploadError) => {
     if (!req.session.loggedin) return res.redirect('/');
     const settings = await getSettings();
     if (!hasCheckInAccess(req, settings)) return res.status(403).send('You do not have permission to create check-ins.');
 
+    if (uploadError) {
+        req.flash('error_msg', uploadError.message || 'Unable to upload the attachment.');
+        return res.redirect(`/check-ins?user=${encodeURIComponent(req.body?.targetDiscordId || '')}`);
+    }
+
     const targetDiscordId = typeof req.body.targetDiscordId === 'string' ? req.body.targetDiscordId.trim() : '';
     const note = typeof req.body.note === 'string' ? req.body.note.trim() : '';
-    if (!targetDiscordId || !note || note.length > 5000) {
+    const visibility = ['all', 'staff', 'gods'].includes(req.body.visibility) ? req.body.visibility : 'all';
+    const visibleUserIds = Array.isArray(req.body.visibleUserIds) ? req.body.visibleUserIds : (req.body.visibleUserIds ? [req.body.visibleUserIds] : []);
+    const followUpText = typeof req.body.followUpText === 'string' ? req.body.followUpText.trim().slice(0, 1000) : '';
+    const followUpDueDate = /^\d{4}-\d{2}-\d{2}$/.test(req.body.followUpDueDate || '') ? req.body.followUpDueDate : '';
+    if (!targetDiscordId || !note || note.length > 5000 || (visibility === 'staff' && !visibleUserIds.length)) {
         req.flash('error_msg', 'Choose a user and enter a note of no more than 5,000 characters.');
         return res.redirect(`/check-ins${targetDiscordId ? `?user=${encodeURIComponent(targetDiscordId)}` : ''}`);
     }
@@ -386,6 +417,13 @@ app.post('/check-ins', requireDatabase, async (req, res) => {
             targetDiscordId,
             targetDisplayName: targetUser.displayName || targetUser.discordUser || targetDiscordId,
             note,
+            visibility,
+            visibleUserIds: [...new Set(visibleUserIds.map((id) => String(id).trim()).filter(Boolean))],
+            followUpText,
+            followUpDueDate,
+            followUpComplete: false,
+            attachments: req.file ? [{ filename: req.file.filename, originalName: req.file.originalname, mimeType: req.file.mimetype, size: req.file.size }] : [],
+            editHistory: [],
             authorDiscordId: req.session.currentuser,
             authorDisplayName: author?.displayName || author?.discordUser || req.session.currentuser,
             createdAt: new Date().toISOString()
@@ -398,7 +436,7 @@ app.post('/check-ins', requireDatabase, async (req, res) => {
         req.flash('error_msg', 'Unable to save the check-in note.');
         res.redirect(`/check-ins?user=${encodeURIComponent(targetDiscordId)}`);
     }
-});
+}));
 
 app.post('/check-ins/:checkInId/edit', requireDatabase, async (req, res) => {
     if (!req.session.loggedin) return res.redirect('/');
@@ -414,13 +452,15 @@ app.post('/check-ins/:checkInId/edit', requireDatabase, async (req, res) => {
     }
 
     try {
-        const result = await db.collection('checkIns').findOneAndUpdate(
-            { _id: new ObjectId(req.params.checkInId) },
-            { $set: { note, updatedAt: new Date().toISOString(), updatedBy: req.session.currentuser } },
-            { returnDocument: 'before' }
-        );
-        const previousNote = result?.value || result;
+        const previousNote = await db.collection('checkIns').findOne({ _id: new ObjectId(req.params.checkInId) });
         if (!previousNote) return res.status(404).send('Check-in note not found.');
+        await db.collection('checkIns').updateOne(
+            { _id: previousNote._id },
+            {
+                $set: { note, updatedAt: new Date().toISOString(), updatedBy: req.session.currentuser },
+                $push: { editHistory: { note: previousNote.note, editedAt: new Date().toISOString(), editedBy: req.session.currentuser } }
+            }
+        );
 
         await writeAudit(req, 'Edited private check-in note', previousNote.targetDisplayName || previousNote.targetDiscordId);
         req.flash('success_msg', 'Check-in note updated.');
@@ -451,6 +491,41 @@ app.post('/check-ins/:checkInId/delete', requireDatabase, async (req, res) => {
         console.error('Error deleting check-in:', error);
         req.flash('error_msg', 'Unable to delete the check-in note.');
         res.redirect(`/check-ins?user=${encodeURIComponent(req.body.targetDiscordId || '')}`);
+    }
+});
+
+app.post('/check-ins/:checkInId/follow-up', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin) return res.redirect('/');
+    const settings = await getSettings();
+    if (!hasCheckInAccess(req, settings)) return res.status(403).send('You do not have permission to update follow-ups.');
+    if (!ObjectId.isValid(req.params.checkInId)) return res.status(400).send('Invalid check-in note.');
+
+    try {
+        const checkIn = await db.collection('checkIns').findOne({ _id: new ObjectId(req.params.checkInId) });
+        if (!checkIn) return res.status(404).send('Check-in note not found.');
+        await db.collection('checkIns').updateOne(
+            { _id: checkIn._id },
+            { $set: { followUpComplete: req.body.completed === 'true', updatedAt: new Date().toISOString(), updatedBy: req.session.currentuser } }
+        );
+        res.redirect(`/check-ins?user=${encodeURIComponent(checkIn.targetDiscordId)}`);
+    } catch (error) {
+        console.error('Error updating check-in follow-up:', error);
+        res.status(500).send('Unable to update follow-up.');
+    }
+});
+
+app.get('/check-ins/:checkInId/attachment/:filename', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin) return res.redirect('/');
+    if (!ObjectId.isValid(req.params.checkInId)) return res.status(400).send('Invalid check-in note.');
+
+    try {
+        const checkIn = await db.collection('checkIns').findOne({ _id: new ObjectId(req.params.checkInId) });
+        const attachment = checkIn?.attachments?.find((item) => item.filename === req.params.filename);
+        if (!checkIn || !attachment || !canViewCheckIn(req, checkIn)) return res.status(404).send('Attachment not found.');
+        return res.sendFile(path.join(CHECK_IN_UPLOAD_DIR, path.basename(attachment.filename)));
+    } catch (error) {
+        console.error('Error loading check-in attachment:', error);
+        return res.status(500).send('Unable to load attachment.');
     }
 });
 
@@ -623,6 +698,22 @@ const avatarUpload = multer({
         if (!AVATAR_MIME_EXTENSIONS[file.mimetype]) {
             return cb(new Error('Only PNG, JPEG, or WEBP images are allowed.'));
         }
+        cb(null, true);
+    }
+});
+
+const CHECK_IN_UPLOAD_DIR = path.join(__dirname, 'public', 'uploads', 'check-ins');
+fs.mkdirSync(CHECK_IN_UPLOAD_DIR, { recursive: true });
+
+const checkInUpload = multer({
+    storage: multer.diskStorage({
+        destination: (req, file, cb) => cb(null, CHECK_IN_UPLOAD_DIR),
+        filename: (req, file, cb) => cb(null, `check-in-${Date.now()}-${crypto.randomBytes(6).toString('hex')}${path.extname(file.originalname).toLowerCase()}`)
+    }),
+    limits: { fileSize: 8 * 1024 * 1024 },
+    fileFilter: (req, file, cb) => {
+        const allowedMimes = ['image/png', 'image/jpeg', 'image/webp', 'application/pdf', 'text/plain'];
+        if (!allowedMimes.includes(file.mimetype)) return cb(new Error('Only PNG, JPEG, WEBP, PDF, or text files are allowed.'));
         cb(null, true);
     }
 });
