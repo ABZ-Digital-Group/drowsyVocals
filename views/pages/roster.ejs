@@ -207,7 +207,7 @@
                                 <% } %>
                             </tr>
                             <% } else { %>
-                            <tr class="roster-user-row" data-rank="<%= (user.accountType || '').toLowerCase() %>" data-house="<%= (user.house || '').toLowerCase() %>" data-activity="<%= (user.activity || '').toLowerCase() %>" data-promotion-ready="<%= user.isPromotionReady ? '1' : '' %>" data-inactive-risk="<%= user.isInactiveRisk ? '1' : '' %>" data-search="<%= [user.displayName, user.discordUser, user.login.discordId].join(' ').toLowerCase() %>">
+                            <tr class="roster-user-row<%= user.suspended ? ' suspended-row' : '' %>" data-rank="<%= (user.accountType || '').toLowerCase() %>" data-house="<%= (user.house || '').toLowerCase() %>" data-activity="<%= (user.activity || '').toLowerCase() %>" data-promotion-ready="<%= user.isPromotionReady ? '1' : '' %>" data-inactive-risk="<%= user.isInactiveRisk ? '1' : '' %>" data-search="<%= [user.displayName, user.discordUser, user.login.discordId].join(' ').toLowerCase() %>">
                                 <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender' || userType === 'Dreamy Defender' || userIsDeveloper) { %>
                                 <td><input type="checkbox" name="attendees" value="<%= user.login.discordId %>" <%= user.attendedThisWeek ? 'checked' : '' %>></td>
                                 <% } %>

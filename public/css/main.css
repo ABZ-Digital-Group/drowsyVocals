@@ -3205,6 +3205,20 @@ tbody tr:not(.rank-group-header):not(.bingo-rank-header):hover {
     vertical-align: middle;
 }
 
+.roster-content table tr.suspended-row > td {
+    background-color: rgba(185, 28, 28, 0.22) !important;
+    border-top: 1px solid rgba(248, 113, 113, 0.75);
+    border-bottom: 1px solid rgba(248, 113, 113, 0.75);
+}
+
+.roster-content table tr.suspended-row > td:first-child {
+    border-left: 3px solid #ef4444;
+}
+
+.roster-content table tr.suspended-row > td:last-child {
+    border-right: 1px solid rgba(248, 113, 113, 0.75);
+}
+
 .roster-content table input[type="checkbox"]:checked {
     background-color: #B7B2A7;
 }

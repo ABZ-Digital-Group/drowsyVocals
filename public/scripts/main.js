@@ -433,6 +433,19 @@ if (addStrikePopup && closeAddStrikePopup) {
   const manageStrikesList = document.getElementById("manageStrikesList");
   const suspensionDiscordId = document.getElementById("suspensionDiscordId");
   const suspensionButton = document.getElementById("suspensionButton");
+  const suspensionForm = document.getElementById("suspensionForm");
+
+  if (suspensionForm) {
+    suspensionForm.addEventListener("submit", (event) => {
+      if (!suspensionDiscordId.value) {
+        suspensionDiscordId.value = strikeDiscordId.value || "";
+      }
+      if (!suspensionDiscordId.value) {
+        event.preventDefault();
+        window.alert("Select a user before changing account suspension.");
+      }
+    });
+  }
 
   strikeButtons.forEach((button) => {
     button.addEventListener("click", () => {
