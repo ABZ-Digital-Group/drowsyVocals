@@ -1252,6 +1252,7 @@ app.post('/update-user', requireDatabase, async (req, res) => {
         discordUser,
         accountType,
         hireDate,
+        lastPromotion,
         password,
         house,
         housePoints,
