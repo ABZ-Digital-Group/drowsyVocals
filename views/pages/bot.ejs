@@ -27,8 +27,11 @@
                             <div class="settings-stat-info">
                                 <span class="settings-stat-label">Bot Service</span>
                                 <span class="settings-stat-val" style="color: <%= botLiveState.online ? '#10b981' : '#fbbf24' %>;">
-                                    <%= botLiveState.online ? '🟢 Connected' : '🟡 Standby / Synced' %>
+                                    <%= botLiveState.online ? 'Connected' : 'Offline' %>
                                 </span>
+                                <% if (!botLiveState.online && botLiveState.connectionError) { %>
+                                <small style="display: block; color: #f59e0b; margin-top: 4px;"><%= botLiveState.connectionError %></small>
+                                <% } %>
                             </div>
                         </div>
 
