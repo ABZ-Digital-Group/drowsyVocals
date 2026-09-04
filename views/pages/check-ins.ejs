@@ -29,6 +29,18 @@
                 </form>
                 <% } %>
 
+                <form class="check-in-filters" method="GET" action="/check-ins">
+                    <input type="hidden" name="user" value="<%= targetUser.login.discordId %>">
+                    <label for="checkInSearch">Search notes</label>
+                    <input id="checkInSearch" type="search" name="q" value="<%= searchQuery || '' %>" placeholder="Search notes, authors, or follow-ups">
+                    <select name="followUp" aria-label="Follow-up filter">
+                        <option value="">All follow-ups</option>
+                        <option value="open" <%= followUpFilter === 'open' ? 'selected' : '' %>>Open follow-ups</option>
+                        <option value="complete" <%= followUpFilter === 'complete' ? 'selected' : '' %>>Completed follow-ups</option>
+                    </select>
+                    <button class="action-button action-button-secondary" type="submit"><span class="material-symbols-outlined" aria-hidden="true">filter_alt</span>Filter</button>
+                </form>
+
                 <div class="check-in-record-header">
                     <div>
                         <p class="profile-eyebrow">Selected record</p>
@@ -39,10 +51,32 @@
                 </div>
 
                 <% if (canCreate) { %>
-                <form class="check-in-form" method="POST" action="/check-ins">
+                <form class="check-in-form" method="POST" action="/check-ins" enctype="multipart/form-data">
                     <input type="hidden" name="targetDiscordId" value="<%= targetUser.login.discordId %>">
+                    <label for="checkInTemplate">Template</label>
+                    <select id="checkInTemplate">
+                        <% checkInTemplates.forEach(function(template) { %><option value="<%= template.note %>"><%= template.name %></option><% }); %>
+                        </select>
                     <label for="checkInNote">Meeting note</label>
                     <textarea id="checkInNote" name="note" rows="6" maxlength="5000" placeholder="Record what was discussed and any follow-up actions..." required></textarea>
+                    <label for="checkInVisibility">Who can view this note?</label>
+                    <select id="checkInVisibility" name="visibility">
+                        <option value="all">All authenticated users</option>
+                        <option value="staff">Selected staff only</option>
+                        <option value="gods">Gods and developers only</option>
+                    </select>
+                    <label for="checkInVisibleUsers">Selected staff</label>
+                    <select id="checkInVisibleUsers" name="visibleUserIds" multiple size="4">
+                        <% users.forEach(function(user) { %>
+                        <% if (user.login?.discordId) { %><option value="<%= user.login.discordId %>"><%= user.displayName || user.discordUser || user.login.discordId %></option><% } %>
+                        <% }); %>
+                    </select>
+                    <label for="followUpText">Follow-up action</label>
+                    <input id="followUpText" name="followUpText" maxlength="1000" placeholder="Optional action to complete">
+                    <label for="followUpDueDate">Follow-up due date</label>
+                    <input id="followUpDueDate" name="followUpDueDate" type="date">
+                    <label for="checkInAttachment">Attachment</label>
+                    <input id="checkInAttachment" name="attachment" type="file" accept="image/png,image/jpeg,image/webp,application/pdf,text/plain">
                     <button class="action-button action-button-primary" type="submit"><span class="material-symbols-outlined" aria-hidden="true">add_comment</span>Add check-in note</button>
                 </form>
                 <% } %>
@@ -62,6 +96,17 @@
                             <time datetime="<%= checkIn.createdAt %>"><%= new Date(checkIn.createdAt).toLocaleString() %></time>
                         </div>
                         <p><%= checkIn.note %></p>
+                        <div class="check-in-note-details">
+                            <span class="check-in-visibility"><span class="material-symbols-outlined" aria-hidden="true">visibility</span><%= checkIn.visibility === 'gods' ? 'Gods and developers only' : checkIn.visibility === 'staff' ? 'Selected staff only' : 'All authenticated users' %></span>
+                            <% if (checkIn.followUpText) { %>
+                            <span class="check-in-follow-up <%= checkIn.followUpComplete ? 'is-complete' : '' %>"><strong>Follow-up:</strong> <%= checkIn.followUpText %><%= checkIn.followUpDueDate ? ` · due ${checkIn.followUpDueDate}` : '' %></span>
+                            <form method="POST" action="/check-ins/<%= checkIn._id %>/follow-up">
+                                <input type="hidden" name="completed" value="<%= checkIn.followUpComplete ? 'false' : 'true' %>">
+                                <button class="action-button action-button-secondary" type="submit"><span class="material-symbols-outlined" aria-hidden="true"><%= checkIn.followUpComplete ? 'restart_alt' : 'task_alt' %></span><%= checkIn.followUpComplete ? 'Reopen' : 'Complete' %></button>
+                            </form>
+                            <% } %>
+                            <% (checkIn.attachments || []).forEach(function(attachment) { %><a href="/check-ins/<%= checkIn._id %>/attachment/<%= encodeURIComponent(attachment.filename) %>" target="_blank" rel="noreferrer"><span class="material-symbols-outlined" aria-hidden="true">attach_file</span><%= attachment.originalName %></a><% }); %>
+                        </div>
                         <% if (canCreate) { %>
                         <details class="check-in-edit">
                             <summary><span class="material-symbols-outlined" aria-hidden="true">edit</span> Edit note</summary>
@@ -76,6 +121,9 @@
                             </form>
                         </details>
                         <% } %>
+                        <% if ((checkIn.editHistory || []).length) { %>
+                        <details class="check-in-history"><summary>View edit history (<%= checkIn.editHistory.length %>)</summary><ul><% checkIn.editHistory.slice().reverse().forEach(function(edit) { %><li><time><%= new Date(edit.editedAt).toLocaleString() %></time> by <%= edit.editedBy %><p><%= edit.note %></p></li><% }); %></ul></details>
+                        <% } %>
                     </article>
                     <% }); %>
                     <% } %>
@@ -83,5 +131,10 @@
             </section>
         </main>
         <div class="footer"><p>&copy; 2026 Drowsy Vocals | All rights reserved.</p></div>
+        <script>
+            const templateSelect = document.getElementById('checkInTemplate');
+            const noteField = document.getElementById('checkInNote');
+            if (templateSelect && noteField) templateSelect.addEventListener('change', () => { if (!noteField.value.trim()) noteField.value = templateSelect.value; });
+        </script>
     </body>
 </html>
