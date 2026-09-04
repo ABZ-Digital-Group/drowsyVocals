@@ -740,7 +740,9 @@ const initEventsLocalization = () => {
     try {
       const now = new Date();
       const shortTz = new Intl.DateTimeFormat('en-GB', { timeZone: userTimezone, timeZoneName: 'short' }).formatToParts(now).find(p => p.type === 'timeZoneName')?.value || '';
-      offsetEl.textContent = shortTz ? `(${shortTz})` : '';
+      const longTz = new Intl.DateTimeFormat('en-GB', { timeZone: userTimezone, timeZoneName: 'long' }).formatToParts(now).find(p => p.type === 'timeZoneName')?.value || '';
+      const displayedTz = shortTz && !/^GMT[+-]\d/.test(shortTz) ? shortTz : (longTz || shortTz);
+      offsetEl.textContent = displayedTz ? `(${displayedTz})` : '';
     } catch (_) {}
   }
 
