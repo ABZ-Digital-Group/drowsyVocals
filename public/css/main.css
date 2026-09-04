@@ -4094,3 +4094,28 @@ dialog button {
 .audit-log { margin: 28px 0 0; padding: 0; list-style: none; border-top: 1px solid #242320; }
 .audit-log li { display: grid; grid-template-columns: minmax(160px, .7fr) 1fr minmax(180px, 1fr); gap: 12px; padding: 14px 0; border-bottom: 1px solid #24232044; }
 .audit-log small { color: #6f6a60; }
+.check-in-selector { display: flex; align-items: end; gap: 10px; margin: 24px 0; }
+.check-in-selector label, .check-in-form label { display: flex; flex-direction: column; gap: 6px; font-weight: bold; }
+.check-in-selector select, .check-in-form textarea { box-sizing: border-box; padding: 10px; border: 1px solid #242320; background: #d0cdc5; color: #242320; font: inherit; }
+.check-in-selector select { min-width: min(420px, 100%); min-height: 44px; }
+.check-in-record-header { display: flex; justify-content: space-between; align-items: start; gap: 16px; margin: 28px 0 18px; padding: 20px; border: 1px solid #242320; background: #d0cdc5; }
+.check-in-record-header h2 { margin: 0; font-size: 1.7em; }
+.check-in-record-header p:last-child { margin-bottom: 0; color: #6f6a60; }
+.check-in-lock { font-size: 32px; color: #6f6a60; }
+.check-in-form { display: grid; gap: 10px; margin: 0 0 30px; }
+.check-in-form textarea { width: 100%; resize: vertical; }
+.check-in-form .action-button { justify-self: start; }
+.check-in-notes { border-top: 4px solid #242320; }
+.check-in-notes-heading { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.check-in-notes-heading h2 { margin: 18px 0 10px; }
+.check-in-notes-heading span { color: #6f6a60; font-weight: bold; }
+.check-in-empty { color: #6f6a60; font-style: italic; }
+.check-in-note { margin: 12px 0; padding: 16px; border-left: 4px solid #242320; background: #d0cdc5; }
+.check-in-note-meta { display: flex; justify-content: space-between; gap: 12px; color: #6f6a60; font-size: .9em; }
+.check-in-note-meta strong { color: #242320; }
+.check-in-note p { margin: 12px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+@media (max-width: 600px) {
+    .check-in-selector { align-items: stretch; flex-direction: column; }
+    .check-in-selector select { min-width: 0; }
+    .check-in-note-meta { align-items: start; flex-direction: column; gap: 4px; }
+}

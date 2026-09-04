@@ -292,6 +292,7 @@ const MANAGEMENT_ROLES = ['Mr. Sandman', 'Realm God', 'Drowsy Defender', 'Dreamy
 const GOD_ROLES = ['Mr. Sandman', 'Realm God'];
 const hasManagementAccess = (req) => MANAGEMENT_ROLES.includes(req.session.accountType) || Boolean(req.session.isDeveloper);
 const hasGodAccess = (req) => GOD_ROLES.includes(req.session.accountType) || Boolean(req.session.isDeveloper);
+const hasCheckInAccess = (req, targetDiscordId) => hasGodAccess(req) || req.session.currentuser === targetDiscordId;
 const hasFeedbackManagementAccess = (req) => hasGodAccess(req);
 const rankOrder = ['Mr. Sandman', 'Realm God', 'Drowsy Defender', 'Dreamy Defender', 'Dreamland Guard', 'Nighty Knights', 'Tired Esquire'];
 const getRankChangeType = (oldRank, newRank) => rankOrder.indexOf(newRank) < rankOrder.indexOf(oldRank) ? 'promotion' : 'demotion';
@@ -314,6 +315,86 @@ async function writeAudit(req, action, detail) {
         console.error('Audit logging failed:', error.message);
     }
 }
+
+// CHECK-INS ARE PRIVATE TO GODS, DEVELOPERS, AND THE MEMBER BEING REVIEWED.
+app.get('/check-ins', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin) return res.redirect('/');
+
+    const requestedDiscordId = typeof req.query.user === 'string' ? req.query.user.trim() : '';
+    if (hasGodAccess(req) && !requestedDiscordId) {
+        const firstUser = await db.collection('users').findOne({}, { projection: { 'login.discordId': 1 }, sort: { displayName: 1 } });
+        if (!firstUser?.login?.discordId) return res.status(404).send('No users are available for check-ins.');
+        return res.redirect(`/check-ins?user=${encodeURIComponent(firstUser.login.discordId)}`);
+    }
+    const targetDiscordId = hasGodAccess(req) ? requestedDiscordId : req.session.currentuser;
+
+    if (!targetDiscordId || !hasCheckInAccess(req, targetDiscordId)) {
+        return res.status(403).send('You do not have permission to view check-ins.');
+    }
+
+    try {
+        const [users, targetUser, checkIns] = await Promise.all([
+            hasGodAccess(req)
+                ? db.collection('users').find({}, { projection: { displayName: 1, discordUser: 1, accountType: 1, 'login.discordId': 1 } }).sort({ displayName: 1 }).toArray()
+                : [],
+            db.collection('users').findOne(
+                { 'login.discordId': targetDiscordId },
+                { projection: { displayName: 1, discordUser: 1, accountType: 1, 'login.discordId': 1 } }
+            ),
+            db.collection('checkIns').find({ targetDiscordId }).sort({ createdAt: -1 }).toArray()
+        ]);
+
+        if (!targetUser) return res.status(404).send('The selected user could not be found.');
+
+        res.render('pages/check-ins', {
+            page: 'check-ins',
+            users,
+            targetUser,
+            checkIns,
+            canCreate: hasGodAccess(req),
+            canSelectUser: hasGodAccess(req)
+        });
+    } catch (error) {
+        console.error('Error loading check-ins:', error);
+        res.status(500).send('Error loading check-ins.');
+    }
+});
+
+app.post('/check-ins', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin) return res.redirect('/');
+    if (!hasGodAccess(req)) return res.status(403).send('You do not have permission to create check-ins.');
+
+    const targetDiscordId = typeof req.body.targetDiscordId === 'string' ? req.body.targetDiscordId.trim() : '';
+    const note = typeof req.body.note === 'string' ? req.body.note.trim() : '';
+    if (!targetDiscordId || !note || note.length > 5000) {
+        req.flash('error_msg', 'Choose a user and enter a note of no more than 5,000 characters.');
+        return res.redirect(`/check-ins${targetDiscordId ? `?user=${encodeURIComponent(targetDiscordId)}` : ''}`);
+    }
+
+    try {
+        const [targetUser, author] = await Promise.all([
+            db.collection('users').findOne({ 'login.discordId': targetDiscordId }, { projection: { displayName: 1, discordUser: 1, 'login.discordId': 1 } }),
+            db.collection('users').findOne({ 'login.discordId': req.session.currentuser }, { projection: { displayName: 1, discordUser: 1 } })
+        ]);
+        if (!targetUser) return res.status(404).send('The selected user could not be found.');
+
+        await db.collection('checkIns').insertOne({
+            targetDiscordId,
+            targetDisplayName: targetUser.displayName || targetUser.discordUser || targetDiscordId,
+            note,
+            authorDiscordId: req.session.currentuser,
+            authorDisplayName: author?.displayName || author?.discordUser || req.session.currentuser,
+            createdAt: new Date().toISOString()
+        });
+        await writeAudit(req, 'Added private check-in note', `${targetUser.displayName || targetDiscordId}`);
+        req.flash('success_msg', 'Check-in note added to the user record.');
+        res.redirect(`/check-ins?user=${encodeURIComponent(targetDiscordId)}`);
+    } catch (error) {
+        console.error('Error saving check-in:', error);
+        req.flash('error_msg', 'Unable to save the check-in note.');
+        res.redirect(`/check-ins?user=${encodeURIComponent(targetDiscordId)}`);
+    }
+});
 
 // POST PAYLOAD TO A SPECIFIC DISCORD WEBHOOK URL
 function postWebhookPayload(webhookUrl, embed, messageOnly = false) {
