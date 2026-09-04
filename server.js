@@ -582,11 +582,26 @@ function updateBotEnv(filePath, updates) {
     }
 }
 
-async function getBotLiveState() {
+function getBotApiConfig() {
     const env = parseBotEnv(BOT_ENV_FILE);
-    const port = env.OBS_HTTP_PORT || 8080;
-    const host = env.OBS_HTTP_HOST === '0.0.0.0' ? '127.0.0.1' : (env.OBS_HTTP_HOST || '127.0.0.1');
-    const url = `http://${host}:${port}/admin/api/state`;
+    const configuredUrl = (process.env.BOT_API_URL || '').trim();
+    const fallbackHost = env.OBS_HTTP_HOST === '0.0.0.0' ? '127.0.0.1' : (env.OBS_HTTP_HOST || '127.0.0.1');
+    const fallbackUrl = `http://${fallbackHost}:${env.OBS_HTTP_PORT || 8080}`;
+    const baseUrl = (configuredUrl || fallbackUrl).replace(/\/+$/, '');
+    const token = (process.env.BOT_API_TOKEN || '').trim();
+
+    return {
+        baseUrl,
+        headers: {
+            Accept: 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
+        }
+    };
+}
+
+async function getBotLiveState() {
+    const botApi = getBotApiConfig();
+    const url = `${botApi.baseUrl}/admin/api/state`;
 
     let connectionError = null;
     try {
@@ -594,7 +609,7 @@ async function getBotLiveState() {
         const timeout = setTimeout(() => controller.abort(), 1200);
         let res;
         try {
-            res = await fetch(url, { signal: controller.signal, headers: { 'Accept': 'application/json' } });
+            res = await fetch(url, { signal: controller.signal, headers: botApi.headers });
         } finally {
             clearTimeout(timeout);
         }
@@ -2664,10 +2679,8 @@ app.post('/bot/config', requireDatabase, async (req, res) => {
 
 // WEB STAGE CONTROLLER ACTIONS (BOT API FORWARDER)
 async function sendBotApiPost(pathname, bodyParams = {}) {
-    const env = parseBotEnv(BOT_ENV_FILE);
-    const port = env.OBS_HTTP_PORT || 8080;
-    const host = env.OBS_HTTP_HOST === '0.0.0.0' ? '127.0.0.1' : (env.OBS_HTTP_HOST || '127.0.0.1');
-    const url = `http://${host}:${port}${pathname}`;
+    const botApi = getBotApiConfig();
+    const url = `${botApi.baseUrl}${pathname}`;
 
     try {
         const controller = new AbortController();
@@ -2675,7 +2688,7 @@ async function sendBotApiPost(pathname, bodyParams = {}) {
         try {
             const res = await fetch(url, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                headers: { ...botApi.headers, 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: new URLSearchParams(bodyParams).toString(),
                 signal: controller.signal
             });
