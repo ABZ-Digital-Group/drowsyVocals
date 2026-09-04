@@ -3285,7 +3285,8 @@ app.post('/house-points/award', requireDatabase, async (req, res) => {
         }
 
         const currentPoints = Number(targetUser.housePoints) || 0;
-        const newPoints = Math.max(0, currentPoints + cleanAmount);
+        const effectiveAmount = cleanAmount > 0 && currentPoints > 10 ? cleanAmount * 2 : cleanAmount;
+        const newPoints = Math.max(0, currentPoints + effectiveAmount);
 
         await db.collection('users').updateOne(
             { 'login.discordId': cleanDiscordId },
@@ -3301,7 +3302,7 @@ app.post('/house-points/award', requireDatabase, async (req, res) => {
             recipientId: cleanDiscordId,
             recipientName: targetUser.displayName || targetUser.discordUser || cleanDiscordId,
             recipientHouse: targetUser.house || null,
-            amount: cleanAmount,
+            amount: effectiveAmount,
             reason: cleanReason,
             actorId: req.session.currentuser,
             actorName: actor?.displayName || actor?.discordUser || req.session.currentuser,
@@ -3309,22 +3310,22 @@ app.post('/house-points/award', requireDatabase, async (req, res) => {
         };
 
         await db.collection('housePointsLog').insertOne(logEntry);
-        await writeAudit(req, 'Awarded House Points', `${cleanAmount >= 0 ? '+' : ''}${cleanAmount} pts to ${logEntry.recipientName} (${cleanReason})`);
+        await writeAudit(req, 'Awarded House Points', `${effectiveAmount >= 0 ? '+' : ''}${effectiveAmount} pts to ${logEntry.recipientName} (${cleanReason})`);
 
         sendDiscordWebhook({
-            title: cleanAmount >= 0 ? '# 🏆 House Points Awarded! 🏆' : '# ⚠️ House Points Deducted ⚠️',
-            color: cleanAmount >= 0 ? 0xFBBF24 : 0xEF4444,
+            title: effectiveAmount >= 0 ? '# 🏆 House Points Awarded! 🏆' : '# ⚠️ House Points Deducted ⚠️',
+            color: effectiveAmount >= 0 ? 0xFBBF24 : 0xEF4444,
             fields: [
                 { name: 'Staff Member', value: `${logEntry.recipientName} (<@${cleanDiscordId}>)`, inline: true },
                 { name: 'House', value: targetUser.house || 'None', inline: true },
-                { name: 'Change', value: `${cleanAmount >= 0 ? '+' : ''}${cleanAmount} Pts (Total: ${newPoints})`, inline: true },
+                { name: 'Change', value: `${effectiveAmount >= 0 ? '+' : ''}${effectiveAmount} Pts (Total: ${newPoints})`, inline: true },
                 { name: 'Reason', value: cleanReason },
                 { name: 'Awarded By', value: `<@${req.session.currentuser}>` }
             ]
         }, 'housePoints');
 
         broadcastDataUpdate('users');
-        req.flash('success_msg', `Recorded point change of ${cleanAmount >= 0 ? '+' : ''}${cleanAmount} pts for ${logEntry.recipientName}.`);
+        req.flash('success_msg', `Recorded point change of ${effectiveAmount >= 0 ? '+' : ''}${effectiveAmount} pts for ${logEntry.recipientName}.`);
         res.redirect('/house-points');
     } catch (error) {
         console.error('Error awarding points:', error);
