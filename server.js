@@ -169,6 +169,7 @@ function startLiveUpdates() {
 app.use(async (req, res, next) => {
     res.locals.notifications = [];
     res.locals.checkInAccess = false;
+    res.locals.checkInReadAccess = Boolean(req.session.loggedin);
     if (isDatabaseReady && db && req.session.loggedin && req.session.currentuser) {
         try {
             const user = await db.collection('users').findOne(
@@ -318,7 +319,7 @@ async function writeAudit(req, action, detail) {
     }
 }
 
-// CHECK-INS ARE PRIVATE TO GODS, DEVELOPERS, AND THE MEMBER BEING REVIEWED.
+// AUTHENTICATED USERS MAY READ CHECK-INS; GODS, DEVELOPERS, AND ALLOWED STAFF MAY WRITE THEM.
 app.get('/check-ins', requireDatabase, async (req, res) => {
     if (!req.session.loggedin) return res.redirect('/');
 
@@ -333,12 +334,10 @@ app.get('/check-ins', requireDatabase, async (req, res) => {
         }
         const targetDiscordId = requestedDiscordId || req.session.currentuser;
 
-        if (!targetDiscordId || !hasCheckInAccess(req, settings)) {
-            return res.status(403).send('You do not have permission to view check-ins.');
-        }
+        if (!targetDiscordId) return res.status(404).send('No user was selected for check-ins.');
 
         const [users, targetUser, checkIns] = await Promise.all([
-            hasCheckInAccess(req, settings)
+            req.session.loggedin
                 ? db.collection('users').find({}, { projection: { displayName: 1, discordUser: 1, accountType: 1, 'login.discordId': 1 } }).sort({ displayName: 1 }).toArray()
                 : [],
             db.collection('users').findOne(
@@ -356,7 +355,7 @@ app.get('/check-ins', requireDatabase, async (req, res) => {
             targetUser,
             checkIns,
             canCreate: hasCheckInAccess(req, settings),
-            canSelectUser: hasCheckInAccess(req, settings)
+            canSelectUser: true
         });
     } catch (error) {
         console.error('Error loading check-ins:', error.stack || error);
