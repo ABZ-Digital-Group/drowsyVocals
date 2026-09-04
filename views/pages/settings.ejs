@@ -349,7 +349,7 @@ function testSendLatest() {
                             </div>
                             <form action="/settings/check-in-access" method="POST" class="check-in-access-form">
                                 <div class="check-in-access-list">
-                                    <% users.forEach(function(user) { %>
+                                    <% (users || []).forEach(function(user) { %>
                                     <% const accessUserId = user.login?.discordId; %>
                                     <% if (accessUserId) { %>
                                     <label class="check-in-access-option">
