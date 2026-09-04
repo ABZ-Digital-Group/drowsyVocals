@@ -321,6 +321,7 @@ app.get('/check-ins', requireDatabase, async (req, res) => {
     if (!req.session.loggedin) return res.redirect('/');
 
     try {
+        console.log('Check-ins request started:', req.query.user || '(default)', req.session.currentuser);
         const requestedDiscordId = typeof req.query.user === 'string' ? req.query.user.trim() : '';
         if (hasGodAccess(req) && !requestedDiscordId) {
             const firstUser = await db.collection('users').findOne({}, { projection: { 'login.discordId': 1 }, sort: { displayName: 1 } });
@@ -355,8 +356,8 @@ app.get('/check-ins', requireDatabase, async (req, res) => {
             canSelectUser: hasGodAccess(req)
         });
     } catch (error) {
-        console.error('Error loading check-ins:', error);
-        res.status(500).send('Error loading check-ins.');
+        console.error('Error loading check-ins:', error.stack || error);
+        res.status(500).send('Unable to load check-ins. Check the application log for the request error.');
     }
 });
 
