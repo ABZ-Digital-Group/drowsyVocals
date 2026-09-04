@@ -739,7 +739,7 @@ const initEventsLocalization = () => {
   if (offsetEl) {
     try {
       const now = new Date();
-      const shortTz = new Intl.DateTimeFormat('en-US', { timeZoneName: 'short' }).formatToParts(now).find(p => p.type === 'timeZoneName')?.value || '';
+      const shortTz = new Intl.DateTimeFormat('en-GB', { timeZone: userTimezone, timeZoneName: 'short' }).formatToParts(now).find(p => p.type === 'timeZoneName')?.value || '';
       offsetEl.textContent = shortTz ? `(${shortTz})` : '';
     } catch (_) {}
   }
