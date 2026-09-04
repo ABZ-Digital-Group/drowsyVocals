@@ -59,18 +59,6 @@
                         </select>
                     <label for="checkInNote">Meeting note</label>
                     <textarea id="checkInNote" name="note" rows="6" maxlength="5000" placeholder="Record what was discussed and any follow-up actions..." required></textarea>
-                    <label for="checkInVisibility">Who can view this note?</label>
-                    <select id="checkInVisibility" name="visibility">
-                        <option value="all">All authenticated users</option>
-                        <option value="staff">Selected staff only</option>
-                        <option value="gods">Gods and developers only</option>
-                    </select>
-                    <label for="checkInVisibleUsers">Selected staff</label>
-                    <select id="checkInVisibleUsers" name="visibleUserIds" multiple size="4">
-                        <% users.forEach(function(user) { %>
-                        <% if (user.login?.discordId) { %><option value="<%= user.login.discordId %>"><%= user.displayName || user.discordUser || user.login.discordId %></option><% } %>
-                        <% }); %>
-                    </select>
                     <label for="followUpText">Follow-up action</label>
                     <input id="followUpText" name="followUpText" maxlength="1000" placeholder="Optional action to complete">
                     <label for="followUpDueDate">Follow-up due date</label>
