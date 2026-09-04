@@ -48,9 +48,6 @@
                 <% } %>
             </div>
         </li>
-        <% if (typeof checkInReadAccess !== 'undefined' && checkInReadAccess) { %>
-        <li><a href="/check-ins">Check-ins</a></li>
-        <% } %>
         <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender' || userIsDeveloper) { %>
         <li class="nav-guidelines-menu">
             <button class="nav-guidelines-trigger" type="button" aria-expanded="false" aria-controls="managementMenu">
@@ -60,6 +57,8 @@
             <div class="nav-guidelines-dropdown" id="managementMenu">
                 <a href="/applications">Applications</a>
                 <a href="/appeals">Strike Appeals</a>
+                <a href="/check-ins">Check-ins</a>
+                <a href="/loa/history">LOA History</a>
                 <a href="/roster-planner">Roster Planner</a>
                 <a href="/reports">Reports</a>
                 <a href="/audit-log">Audit Log</a>
