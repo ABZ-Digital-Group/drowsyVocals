@@ -330,32 +330,51 @@
                                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px;">
                                     <div class="settings-form-group" style="margin-bottom: 0;">
                                         <label for="baseName">Base Stage Name</label>
-                                        <input type="text" id="baseName" name="baseName" class="settings-input" value="<%= botEnv.SHY_STAGE_BASE_NAME || 'sleepy singing' %>" required>
+                                        <input type="text" id="baseName" name="baseName" class="settings-input" value="<%= botLiveState.botSettings?.shyStage?.baseName || botEnv.SHY_STAGE_BASE_NAME || 'sleepy singing' %>" required>
                                         <span class="settings-hint">Default name given to dynamically spawned shy stage voice channels.</span>
                                     </div>
 
                                     <div class="settings-form-group" style="margin-bottom: 0;">
                                         <label for="limitChoices">User Limit Choices (Comma-Separated)</label>
-                                        <input type="text" id="limitChoices" name="limitChoices" class="settings-input" value="<%= botEnv.SHY_STAGE_LIMIT_CHOICES || '2,3,4,5,6' %>" placeholder="e.g. 2,3,4,5,6" required>
+                                        <input type="text" id="limitChoices" name="limitChoices" class="settings-input" value="<%= (botLiveState.botSettings?.shyStage?.limitChoices || botEnv.SHY_STAGE_LIMIT_CHOICES?.split(',') || [2,3,4,5,6]).join(',') %>" placeholder="e.g. 2,3,4,5,6" required>
                                         <span class="settings-hint">Cap choices offered to users (use 0 or 'unlimited' for no cap).</span>
                                     </div>
 
                                     <div class="settings-form-group" style="margin-bottom: 0;">
                                         <label for="unusedDeleteMinutes">Unused Room Delete Timer (Minutes)</label>
-                                        <input type="number" id="unusedDeleteMinutes" name="unusedDeleteMinutes" class="settings-input" min="1" max="120" value="<%= botEnv.SHY_STAGE_UNUSED_DELETE_MINUTES || 5 %>" required>
+                                        <input type="number" id="unusedDeleteMinutes" name="unusedDeleteMinutes" class="settings-input" min="1" max="1440" value="<%= botLiveState.botSettings?.shyStage?.unusedDeleteMinutes || botEnv.SHY_STAGE_UNUSED_DELETE_MINUTES || 5 %>" required>
                                         <span class="settings-hint">Auto-delete if created but nobody joins within this duration.</span>
                                     </div>
 
                                     <div class="settings-form-group" style="margin-bottom: 0;">
                                         <label for="emptyDeleteMinutes">Empty Room Delete Timer (Minutes)</label>
-                                        <input type="number" id="emptyDeleteMinutes" name="emptyDeleteMinutes" class="settings-input" min="1" max="120" value="<%= botEnv.SHY_STAGE_EMPTY_DELETE_MINUTES || 15 %>" required>
+                                        <input type="number" id="emptyDeleteMinutes" name="emptyDeleteMinutes" class="settings-input" min="1" max="1440" value="<%= botLiveState.botSettings?.shyStage?.emptyDeleteMinutes || botEnv.SHY_STAGE_EMPTY_DELETE_MINUTES || 15 %>" required>
                                         <span class="settings-hint">Auto-delete after all users leave the room.</span>
                                     </div>
 
                                     <div class="settings-form-group" style="margin-bottom: 0;">
                                         <label for="cleanupIntervalSeconds">Cleanup Task Frequency (Seconds)</label>
-                                        <input type="number" id="cleanupIntervalSeconds" name="cleanupIntervalSeconds" class="settings-input" min="10" max="600" value="<%= botEnv.SHY_STAGE_CLEANUP_INTERVAL_SECONDS || 60 %>" required>
+                                        <input type="number" id="cleanupIntervalSeconds" name="cleanupIntervalSeconds" class="settings-input" min="10" max="3600" value="<%= botLiveState.botSettings?.shyStage?.cleanupIntervalSeconds || botEnv.SHY_STAGE_CLEANUP_INTERVAL_SECONDS || 60 %>" required>
                                         <span class="settings-hint">How often the bot checks and prunes stale voice channels.</span>
+                                    </div>
+                                </div>
+
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px;">
+                                    <div class="settings-form-group" style="margin-bottom: 0;">
+                                        <label for="alwaysVisibleCount">Always Visible Stage Count</label>
+                                        <input type="number" id="alwaysVisibleCount" name="alwaysVisibleCount" class="settings-input" min="1" max="20" value="<%= botLiveState.botSettings?.shyStage?.alwaysVisibleCount || 2 %>" required>
+                                    </div>
+                                    <div class="settings-form-group" style="margin-bottom: 0;">
+                                        <label for="userLimit">Default Room User Limit</label>
+                                        <input type="number" id="userLimit" name="userLimit" class="settings-input" min="0" max="99" value="<%= botLiveState.botSettings?.shyStage?.userLimit ?? 3 %>" required>
+                                    </div>
+                                    <div class="settings-form-group" style="margin-bottom: 0;">
+                                        <label for="postEventStatsChannelId">Post-Event Stats Channel ID</label>
+                                        <input type="text" id="postEventStatsChannelId" name="postEventStatsChannelId" class="settings-input" value="<%= botLiveState.botSettings?.postEventStats?.channelId || '' %>" placeholder="Leave blank to disable">
+                                    </div>
+                                    <div class="settings-form-group" style="margin-bottom: 0;">
+                                        <label for="maxQueueLength">Maximum Waiting Queue Length</label>
+                                        <input type="number" id="maxQueueLength" name="maxQueueLength" class="settings-input" min="1" max="500" value="<%= botLiveState.botSettings?.queue?.maxQueueLength || 25 %>" required>
                                     </div>
                                 </div>
 

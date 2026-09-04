@@ -316,21 +316,30 @@ async function writeAudit(req, action, detail) {
 }
 
 // POST PAYLOAD TO A SPECIFIC DISCORD WEBHOOK URL
-function postWebhookPayload(webhookUrl, embed) {
+function postWebhookPayload(webhookUrl, embed, messageOnly = false) {
     if (!webhookUrl || !webhookUrl.startsWith('https://discord.com/api/webhooks/')) return;
 
     try {
+        const message = [
+            embed.title,
+            ...(embed.fields || []).map((field) => `**${field.name}:** ${field.value}`),
+            embed.description
+        ].filter(Boolean).join('\n');
         const payload = JSON.stringify({
             username: 'Drowsy Vocals Management',
-            avatar_url: 'https://manage.drowsyvocals.com/assets/DrowsyLogoDark.png',
-            embeds: [
-                {
-                    color: embed.color || 0xB7B2A7,
-                    timestamp: new Date().toISOString(),
-                    footer: { text: 'Drowsy Vocals Staff Portal' },
-                    ...embed
-                }
-            ]
+            avatar_url: 'https://manage.drowsyvocals.com/assets/sloth.jpg',
+            ...(messageOnly
+                ? { content: message }
+                : {
+                    embeds: [
+                        {
+                            color: embed.color || 0xB7B2A7,
+                            timestamp: new Date().toISOString(),
+                            footer: { text: 'Drowsy Vocals Staff Portal' },
+                            ...embed
+                        }
+                    ]
+                })
         });
 
         const parsedUrl = new URL(webhookUrl);
@@ -401,7 +410,7 @@ async function sendDiscordWebhook(embed, eventType = null) {
             return;
         }
 
-        postWebhookPayload(targetUrl, embed);
+        postWebhookPayload(targetUrl, embed, eventType === 'housePoints' || eventType === 'pdLogs');
     } catch (error) {
         console.error('Error sending Discord webhook:', error.message);
     }
@@ -479,7 +488,7 @@ const avatarUpload = multer({
 });
 
 // DROWSY DISCORD BOT INTEGRATION PATHS & HELPERS
-const DROWSY_BOT_DIR = process.env.DROWSY_BOT_DIR || path.resolve(__dirname, '..', 'drowsy_bot');
+const DROWSY_BOT_DIR = process.env.DROWSY_BOT_DIR || path.resolve(__dirname, '..', 'drowsyBot2.0');
 const BOT_DATA_DIR = path.join(DROWSY_BOT_DIR, 'data');
 const BOT_ASSETS_DIR = path.join(DROWSY_BOT_DIR, 'assets');
 const BOT_ADS_DIR = path.join(BOT_ASSETS_DIR, 'ads');
@@ -626,6 +635,7 @@ async function getBotLiveState() {
     }
 
     const adsData = readBotJson(path.join(BOT_DATA_DIR, 'obs-ads.json'), { items: [], activeId: null });
+    const botSettings = readBotJson(path.join(BOT_DATA_DIR, 'bot-settings.json'), {});
     const activeAd = (adsData.items || []).find(ad => ad.id === adsData.activeId) || (adsData.items || [])[0] || null;
 
     return {
@@ -638,6 +648,7 @@ async function getBotLiveState() {
         activeAdvertisement: activeAd,
         rotationIntervalMs: adsData.rotationIntervalMs || null,
         allowedInviteUsers: readBotJson(path.join(BOT_DATA_DIR, 'allowed-invite-users.json'), []) || [],
+        botSettings,
         connectionError
     };
 }
@@ -1526,7 +1537,12 @@ app.post('/toggle-suspension', requireDatabase, async (req, res) => {
     }
 
     const discordId = (req.body.discordId || '').toString().trim();
-    if (!discordId || discordId === req.session.currentuser) {
+    const currentUserId = (req.session.currentuser || '').toString().trim();
+    if (!discordId) {
+        req.flash('error_msg', 'A user account must be selected.');
+        return res.redirect('/roster');
+    }
+    if (discordId === currentUserId) {
         req.flash('error_msg', 'You cannot suspend your own account.');
         return res.redirect('/roster');
     }
@@ -2413,26 +2429,33 @@ app.post('/bot/shy-stages', requireDatabase, async (req, res) => {
 
     const {
         baseName,
+        alwaysVisibleCount,
+        userLimit,
         unusedDeleteMinutes,
         emptyDeleteMinutes,
         cleanupIntervalSeconds,
-        limitChoices
+        limitChoices,
+        postEventStatsChannelId,
+        maxQueueLength
     } = req.body;
 
-    const updates = {
-        SHY_STAGE_BASE_NAME: (baseName || 'sleepy singing').toString().trim(),
-        SHY_STAGE_UNUSED_DELETE_MINUTES: Number(unusedDeleteMinutes) || 5,
-        SHY_STAGE_EMPTY_DELETE_MINUTES: Number(emptyDeleteMinutes) || 15,
-        SHY_STAGE_CLEANUP_INTERVAL_SECONDS: Number(cleanupIntervalSeconds) || 60,
-        SHY_STAGE_LIMIT_CHOICES: (limitChoices || '2,3,4,5,6').toString().trim()
-    };
+    const result = await sendBotApiPost('/admin/api/settings', {
+        shyStageBaseName: (baseName || '').toString().trim(),
+        shyStageAlwaysVisibleCount: alwaysVisibleCount,
+        shyStageUserLimit: userLimit,
+        shyStageUnusedDeleteMinutes: unusedDeleteMinutes,
+        shyStageEmptyDeleteMinutes: emptyDeleteMinutes,
+        shyStageCleanupIntervalSeconds: cleanupIntervalSeconds,
+        shyStageLimitChoices: (limitChoices || '').toString().trim(),
+        postEventStatsChannelId: (postEventStatsChannelId || '').toString().trim(),
+        maxQueueLength
+    });
 
-    const success = updateBotEnv(BOT_ENV_FILE, updates);
-    if (success) {
-        await writeAudit(req, 'Updated Bot Shy Stage Settings', `Base: ${updates.SHY_STAGE_BASE_NAME}, Limits: ${updates.SHY_STAGE_LIMIT_CHOICES}`);
-        req.flash('success_msg', 'Shy stage configuration saved to bot environment.');
+    if (result?.ok) {
+        await writeAudit(req, 'Updated Bot Vocal Stage Settings', `Base: ${baseName}, Stats Channel: ${postEventStatsChannelId || 'disabled'}`);
+        req.flash('success_msg', 'Vocal stage and post-event statistics settings updated live.');
     } else {
-        req.flash('error_msg', 'Failed to update bot configuration file.');
+        req.flash('error_msg', 'The bot rejected these settings or is not reachable.');
     }
     res.redirect('/bot#shystages');
 });
@@ -4629,6 +4652,7 @@ async function renderGuidelinePage(req, res, slug, title) {
 }
 
 app.get('/staff-guidelines', requireDatabase, (req, res) => renderGuidelinePage(req, res, 'staff-guidelines', 'Staff Guidelines'));
+app.get('/community-host-guidelines', requireDatabase, (req, res) => renderGuidelinePage(req, res, 'community-host-guidelines', 'Community Host Guidelines'));
 app.get('/higher-guidelines', requireDatabase, (req, res) => renderGuidelinePage(req, res, 'higher-guidelines', 'Higher Guidelines'));
 
 function sanitizeGuidelineContent(content) {
@@ -4647,6 +4671,7 @@ app.post('/guidelines/:slug', requireDatabase, async (req, res) => {
 
     const titles = {
         'staff-guidelines': 'Staff Guidelines',
+        'community-host-guidelines': 'Community Host Guidelines',
         'higher-guidelines': 'Higher Guidelines'
     };
     const { slug } = req.params;
