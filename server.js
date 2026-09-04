@@ -400,6 +400,60 @@ app.post('/check-ins', requireDatabase, async (req, res) => {
     }
 });
 
+app.post('/check-ins/:checkInId/edit', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin) return res.redirect('/');
+
+    const settings = await getSettings();
+    if (!hasCheckInAccess(req, settings)) return res.status(403).send('You do not have permission to edit check-ins.');
+    if (!ObjectId.isValid(req.params.checkInId)) return res.status(400).send('Invalid check-in note.');
+
+    const note = typeof req.body.note === 'string' ? req.body.note.trim() : '';
+    if (!note || note.length > 5000) {
+        req.flash('error_msg', 'Enter a note of no more than 5,000 characters.');
+        return res.redirect(`/check-ins?user=${encodeURIComponent(req.body.targetDiscordId || '')}`);
+    }
+
+    try {
+        const result = await db.collection('checkIns').findOneAndUpdate(
+            { _id: new ObjectId(req.params.checkInId) },
+            { $set: { note, updatedAt: new Date().toISOString(), updatedBy: req.session.currentuser } },
+            { returnDocument: 'before' }
+        );
+        const previousNote = result?.value || result;
+        if (!previousNote) return res.status(404).send('Check-in note not found.');
+
+        await writeAudit(req, 'Edited private check-in note', previousNote.targetDisplayName || previousNote.targetDiscordId);
+        req.flash('success_msg', 'Check-in note updated.');
+        res.redirect(`/check-ins?user=${encodeURIComponent(previousNote.targetDiscordId)}`);
+    } catch (error) {
+        console.error('Error editing check-in:', error);
+        req.flash('error_msg', 'Unable to edit the check-in note.');
+        res.redirect(`/check-ins?user=${encodeURIComponent(req.body.targetDiscordId || '')}`);
+    }
+});
+
+app.post('/check-ins/:checkInId/delete', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin) return res.redirect('/');
+
+    const settings = await getSettings();
+    if (!hasCheckInAccess(req, settings)) return res.status(403).send('You do not have permission to delete check-ins.');
+    if (!ObjectId.isValid(req.params.checkInId)) return res.status(400).send('Invalid check-in note.');
+
+    try {
+        const result = await db.collection('checkIns').findOneAndDelete({ _id: new ObjectId(req.params.checkInId) });
+        const deletedNote = result?.value || result;
+        if (!deletedNote) return res.status(404).send('Check-in note not found.');
+
+        await writeAudit(req, 'Deleted private check-in note', deletedNote.targetDisplayName || deletedNote.targetDiscordId);
+        req.flash('success_msg', 'Check-in note deleted.');
+        res.redirect(`/check-ins?user=${encodeURIComponent(deletedNote.targetDiscordId)}`);
+    } catch (error) {
+        console.error('Error deleting check-in:', error);
+        req.flash('error_msg', 'Unable to delete the check-in note.');
+        res.redirect(`/check-ins?user=${encodeURIComponent(req.body.targetDiscordId || '')}`);
+    }
+});
+
 // POST PAYLOAD TO A SPECIFIC DISCORD WEBHOOK URL
 function postWebhookPayload(webhookUrl, embed, messageOnly = false) {
     if (!webhookUrl || !webhookUrl.startsWith('https://discord.com/api/webhooks/')) return;

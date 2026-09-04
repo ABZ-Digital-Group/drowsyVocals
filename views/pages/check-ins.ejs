@@ -62,6 +62,20 @@
                             <time datetime="<%= checkIn.createdAt %>"><%= new Date(checkIn.createdAt).toLocaleString() %></time>
                         </div>
                         <p><%= checkIn.note %></p>
+                        <% if (canCreate) { %>
+                        <details class="check-in-edit">
+                            <summary><span class="material-symbols-outlined" aria-hidden="true">edit</span> Edit note</summary>
+                            <form method="POST" action="/check-ins/<%= checkIn._id %>/edit">
+                                <input type="hidden" name="targetDiscordId" value="<%= targetUser.login.discordId %>">
+                                <textarea name="note" rows="4" maxlength="5000" required><%= checkIn.note %></textarea>
+                                <button class="action-button action-button-secondary" type="submit"><span class="material-symbols-outlined" aria-hidden="true">save</span>Save edit</button>
+                            </form>
+                            <form method="POST" action="/check-ins/<%= checkIn._id %>/delete" onsubmit="return confirm('Delete this check-in note?');">
+                                <input type="hidden" name="targetDiscordId" value="<%= targetUser.login.discordId %>">
+                                <button class="action-button action-button-danger" type="submit"><span class="material-symbols-outlined" aria-hidden="true">delete</span>Delete note</button>
+                            </form>
+                        </details>
+                        <% } %>
                     </article>
                     <% }); %>
                     <% } %>

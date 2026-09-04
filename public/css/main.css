@@ -4114,6 +4114,12 @@ dialog button {
 .check-in-note-meta { display: flex; justify-content: space-between; gap: 12px; color: #6f6a60; font-size: .9em; }
 .check-in-note-meta strong { color: #242320; }
 .check-in-note p { margin: 12px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.check-in-edit { margin-top: 14px; padding-top: 12px; border-top: 1px solid #24232044; }
+.check-in-edit summary { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font-weight: bold; }
+.check-in-edit form { display: grid; gap: 8px; margin-top: 10px; }
+.check-in-edit textarea { box-sizing: border-box; width: 100%; padding: 8px; border: 1px solid #242320; background: #B7B2A7; color: #242320; font: inherit; resize: vertical; }
+.check-in-edit .action-button { justify-self: start; min-height: 36px; padding: 7px 10px; }
+.action-button-danger { background-color: #8a3024; color: #fff; }
 .check-in-access-form { display: grid; gap: 14px; }
 .check-in-access-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; max-height: 360px; overflow-y: auto; }
 .check-in-access-option { display: flex; align-items: start; gap: 10px; padding: 10px; border: 1px solid #24232044; background: #d0cdc5; cursor: pointer; }
