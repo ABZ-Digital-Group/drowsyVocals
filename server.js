@@ -292,7 +292,7 @@ const MANAGEMENT_ROLES = ['Mr. Sandman', 'Realm God', 'Drowsy Defender', 'Dreamy
 const GOD_ROLES = ['Mr. Sandman', 'Realm God'];
 const hasManagementAccess = (req) => MANAGEMENT_ROLES.includes(req.session.accountType) || Boolean(req.session.isDeveloper);
 const hasGodAccess = (req) => GOD_ROLES.includes(req.session.accountType) || Boolean(req.session.isDeveloper);
-const hasCheckInAccess = (req, targetDiscordId) => hasGodAccess(req) || req.session.currentuser === targetDiscordId;
+const hasCheckInAccess = (req, settings) => hasGodAccess(req) || (settings.checkInAccessUserIds || []).includes(req.session.currentuser);
 const hasFeedbackManagementAccess = (req) => hasGodAccess(req);
 const rankOrder = ['Mr. Sandman', 'Realm God', 'Drowsy Defender', 'Dreamy Defender', 'Dreamland Guard', 'Nighty Knights', 'Tired Esquire'];
 const getRankChangeType = (oldRank, newRank) => rankOrder.indexOf(newRank) < rankOrder.indexOf(oldRank) ? 'promotion' : 'demotion';
@@ -322,20 +322,21 @@ app.get('/check-ins', requireDatabase, async (req, res) => {
 
     try {
         console.log('Check-ins request started:', req.query.user || '(default)', req.session.currentuser);
+        const settings = await getSettings();
         const requestedDiscordId = typeof req.query.user === 'string' ? req.query.user.trim() : '';
         if (hasGodAccess(req) && !requestedDiscordId) {
             const firstUser = await db.collection('users').findOne({}, { projection: { 'login.discordId': 1 }, sort: { displayName: 1 } });
             if (!firstUser?.login?.discordId) return res.status(404).send('No users are available for check-ins.');
             return res.redirect(`/check-ins?user=${encodeURIComponent(firstUser.login.discordId)}`);
         }
-        const targetDiscordId = hasGodAccess(req) ? requestedDiscordId : req.session.currentuser;
+        const targetDiscordId = requestedDiscordId || req.session.currentuser;
 
-        if (!targetDiscordId || !hasCheckInAccess(req, targetDiscordId)) {
+        if (!targetDiscordId || !hasCheckInAccess(req, settings)) {
             return res.status(403).send('You do not have permission to view check-ins.');
         }
 
         const [users, targetUser, checkIns] = await Promise.all([
-            hasGodAccess(req)
+            hasCheckInAccess(req, settings)
                 ? db.collection('users').find({}, { projection: { displayName: 1, discordUser: 1, accountType: 1, 'login.discordId': 1 } }).sort({ displayName: 1 }).toArray()
                 : [],
             db.collection('users').findOne(
@@ -352,8 +353,8 @@ app.get('/check-ins', requireDatabase, async (req, res) => {
             users,
             targetUser,
             checkIns,
-            canCreate: hasGodAccess(req),
-            canSelectUser: hasGodAccess(req)
+            canCreate: hasCheckInAccess(req, settings),
+            canSelectUser: hasCheckInAccess(req, settings)
         });
     } catch (error) {
         console.error('Error loading check-ins:', error.stack || error);
@@ -363,7 +364,8 @@ app.get('/check-ins', requireDatabase, async (req, res) => {
 
 app.post('/check-ins', requireDatabase, async (req, res) => {
     if (!req.session.loggedin) return res.redirect('/');
-    if (!hasGodAccess(req)) return res.status(403).send('You do not have permission to create check-ins.');
+    const settings = await getSettings();
+    if (!hasCheckInAccess(req, settings)) return res.status(403).send('You do not have permission to create check-ins.');
 
     const targetDiscordId = typeof req.body.targetDiscordId === 'string' ? req.body.targetDiscordId.trim() : '';
     const note = typeof req.body.note === 'string' ? req.body.note.trim() : '';
@@ -500,8 +502,11 @@ async function sendDiscordWebhook(embed, eventType = null) {
 
 app.use(async (req, res, next) => {
     res.locals.notifications = [];
+    res.locals.checkInAccess = false;
     if (!isDatabaseReady || !db || !req.session.loggedin) return next();
     try {
+        const settings = await getSettings();
+        res.locals.checkInAccess = hasCheckInAccess(req, settings);
         if (hasManagementAccess(req)) {
             const managementQueries = [
                 db.collection('users').countDocuments({ 'loaRequests.status': 'Pending' }),
@@ -748,6 +753,7 @@ function getWeekStart(date) {
 const SETTINGS_CATEGORIES = ['ranks', 'houses', 'shifts', 'activities'];
 
 const DEFAULT_SETTINGS = {
+    checkInAccessUserIds: [],
     ranks: [
         { name: 'Mr. Sandman', order: 0, capacity: null, minDaysInGrade: null },
         { name: 'Realm God', order: 1, capacity: null, minDaysInGrade: null },
@@ -2033,15 +2039,43 @@ app.get('/settings', requireDatabase, async (req, res) => {
     }
 
     try {
-        const [settings, developers] = await Promise.all([
+        const [settings, developers, users] = await Promise.all([
             getSettings(),
-            db.collection('users').find({ isDeveloper: true }, { projection: { displayName: 1, discordUser: 1, 'login.discordId': 1 } }).toArray()
+            db.collection('users').find({ isDeveloper: true }, { projection: { displayName: 1, discordUser: 1, 'login.discordId': 1 } }).toArray(),
+            db.collection('users').find({}, { projection: { displayName: 1, discordUser: 1, accountType: 1, 'login.discordId': 1 } }).sort({ displayName: 1 }).toArray()
         ]);
-        res.render('pages/settings', { page: 'settings', settings, developers });
+        res.render('pages/settings', { page: 'settings', settings, developers, users });
     } catch (error) {
         console.error('Error loading settings:', error);
         res.status(500).send('Error loading settings.');
     }
+});
+
+// UPDATE THE STAFF ALLOWLIST FOR PRIVATE CHECK-INS.
+app.post('/settings/check-in-access', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !hasGodAccess(req)) {
+        req.flash('error_msg', 'You are not authorized to manage check-in access.');
+        return res.redirect('/settings');
+    }
+
+    const selectedIds = Array.isArray(req.body.accessUserIds)
+        ? req.body.accessUserIds
+        : (req.body.accessUserIds ? [req.body.accessUserIds] : []);
+    const accessUserIds = [...new Set(selectedIds.map((id) => String(id).trim()).filter((id) => /^[0-9]{1,30}$/.test(id)))];
+
+    try {
+        await db.collection('settings').updateOne(
+            { _id: 'appSettings' },
+            { $set: { checkInAccessUserIds: accessUserIds } },
+            { upsert: true }
+        );
+        await writeAudit(req, 'Updated private check-in access', `${accessUserIds.length} user${accessUserIds.length === 1 ? '' : 's'} allowed`);
+        req.flash('success_msg', 'Check-in access updated.');
+    } catch (error) {
+        console.error('Error updating check-in access:', error);
+        req.flash('error_msg', 'Unable to update check-in access.');
+    }
+    res.redirect('/settings');
 });
 
 // GRANT OR REMOVE DEVELOPER ACCESS WITHOUT ALTERING A USER'S ACCOUNT TYPE

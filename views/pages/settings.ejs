@@ -335,6 +335,34 @@ function testSendLatest() {
                             </details>
                         </div>
 
+                        <!-- Private Check-in Access Card -->
+                        <div class="settings-card">
+                            <div class="settings-card-header">
+                                <div class="settings-card-title-wrap">
+                                    <h3 class="settings-card-title">
+                                        <span class="material-symbols-outlined">assignment_ind</span>
+                                        Private Check-in Access
+                                    </h3>
+                                    <p class="settings-card-desc">Choose which staff members can open private check-in records and add meeting notes. Realm Gods and Developers always have access.</p>
+                                </div>
+                                <span class="settings-badge badge-neutral"><%= (settings.checkInAccessUserIds || []).length %> Selected</span>
+                            </div>
+                            <form action="/settings/check-in-access" method="POST" class="check-in-access-form">
+                                <div class="check-in-access-list">
+                                    <% users.forEach(function(user) { %>
+                                    <% const accessUserId = user.login?.discordId; %>
+                                    <% if (accessUserId) { %>
+                                    <label class="check-in-access-option">
+                                        <input type="checkbox" name="accessUserIds" value="<%= accessUserId %>" <%= (settings.checkInAccessUserIds || []).includes(accessUserId) ? 'checked' : '' %>>
+                                        <span><strong><%= user.displayName || user.discordUser || accessUserId %></strong><small><%= user.accountType || 'Member' %> · <%= accessUserId %></small></span>
+                                    </label>
+                                    <% } %>
+                                    <% }); %>
+                                </div>
+                                <button type="submit" class="settings-btn settings-btn-primary"><span class="material-symbols-outlined">save</span>Save Check-in Access</button>
+                            </form>
+                        </div>
+
                         <!-- Developer Access Card -->
                         <div class="settings-card">
                             <div class="settings-card-header">

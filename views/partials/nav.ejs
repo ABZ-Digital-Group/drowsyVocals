@@ -59,7 +59,7 @@
                 <a href="/appeals">Strike Appeals</a>
                 <a href="/roster-planner">Roster Planner</a>
                 <a href="/reports">Reports</a>
-                <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userIsDeveloper) { %>
+                <% if (checkInAccess) { %>
                 <a href="/check-ins">Check-ins</a>
                 <% } %>
                 <a href="/audit-log">Audit Log</a>
