@@ -4104,11 +4104,11 @@ dialog button {
 .check-in-lock { font-size: 32px; color: #6f6a60; }
 .check-in-form { display: grid; gap: 10px; margin: 0 0 30px; }
 .check-in-form textarea { width: 100%; resize: vertical; }
-.check-in-form input[type="file"] { padding: 7px; }
 .check-in-form input[type="date"] { width: min(240px, 100%); }
+.check-in-form .account-file-box { width: 100%; box-sizing: border-box; }
 .check-in-form .action-button { justify-self: start; }
 .check-in-filters { display: grid; grid-template-columns: minmax(180px, 1fr) minmax(170px, .6fr) auto; gap: 10px; align-items: end; margin: 0 0 18px; padding: 14px; border: 1px solid #24232044; background: #d0cdc5; }
-.check-in-filters label { display: grid; gap: 6px; font-weight: bold; }
+.check-in-filters label { grid-column: 1 / -1; display: grid; gap: 6px; font-weight: bold; }
 .check-in-filters .action-button { min-height: 42px; }
 .check-in-notes { border-top: 4px solid #242320; }
 .check-in-notes-heading { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
