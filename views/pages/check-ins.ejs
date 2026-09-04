@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head><%- include('../partials/head') %><title>Private Check-ins</title></head>
+    <body>
+        <header><%- include('../partials/nav') %></header>
+        <main>
+            <section class="profile-page check-ins-page">
+                <div class="profile-heading">
+                    <p class="profile-eyebrow">Private Member Records</p>
+                    <h1>Check-ins</h1>
+                    <p class="profile-subtitle">Private meeting notes connected to one member's record.</p>
+                </div>
+
+                <% if (canSelectUser) { %>
+                <form class="check-in-selector" method="GET" action="/check-ins">
+                    <label for="checkInUser">Member</label>
+                    <select id="checkInUser" name="user" required>
+                        <option value="">Select a member</option>
+                        <% users.forEach(function(user) { %>
+                        <% const userId = user.login.discordId; %>
+                        <option value="<%= userId %>" <%= userId === targetUser.login.discordId ? 'selected' : '' %>>
+                            <%= user.displayName || user.discordUser || userId %> (<%= user.accountType || 'Member' %>)
+                        </option>
+                        <% }); %>
+                    </select>
+                    <button class="action-button action-button-secondary" type="submit"><span class="material-symbols-outlined" aria-hidden="true">person_search</span>View record</button>
+                </form>
+                <% } %>
+
+                <div class="check-in-record-header">
+                    <div>
+                        <p class="profile-eyebrow">Selected record</p>
+                        <h2><%= targetUser.displayName || targetUser.discordUser || targetUser.login.discordId %></h2>
+                        <p><%= targetUser.accountType || 'Member' %> · <%= targetUser.login.discordId %></p>
+                    </div>
+                    <span class="material-symbols-outlined check-in-lock" title="Private record" aria-label="Private record">lock</span>
+                </div>
+
+                <% if (canCreate) { %>
+                <form class="check-in-form" method="POST" action="/check-ins">
+                    <input type="hidden" name="targetDiscordId" value="<%= targetUser.login.discordId %>">
+                    <label for="checkInNote">Meeting note</label>
+                    <textarea id="checkInNote" name="note" rows="6" maxlength="5000" placeholder="Record what was discussed and any follow-up actions..." required></textarea>
+                    <button class="action-button action-button-primary" type="submit"><span class="material-symbols-outlined" aria-hidden="true">add_comment</span>Add check-in note</button>
+                </form>
+                <% } %>
+
+                <div class="check-in-notes">
+                    <div class="check-in-notes-heading">
+                        <h2>Meeting notes</h2>
+                        <span><%= checkIns.length %> note<%= checkIns.length === 1 ? '' : 's' %></span>
+                    </div>
+                    <% if (!checkIns.length) { %>
+                    <p class="check-in-empty">No check-in notes have been recorded for this member.</p>
+                    <% } else { %>
+                    <% checkIns.forEach(function(checkIn) { %>
+                    <article class="check-in-note">
+                        <div class="check-in-note-meta">
+                            <strong><%= checkIn.authorDisplayName || checkIn.authorDiscordId %></strong>
+                            <time datetime="<%= checkIn.createdAt %>"><%= new Date(checkIn.createdAt).toLocaleString() %></time>
+                        </div>
+                        <p><%= checkIn.note %></p>
+                    </article>
+                    <% }); %>
+                    <% } %>
+                </div>
+            </section>
+        </main>
+        <div class="footer"><p>&copy; 2026 Drowsy Vocals | All rights reserved.</p></div>
+    </body>
+</html>
