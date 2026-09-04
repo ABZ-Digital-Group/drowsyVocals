@@ -72,10 +72,10 @@
         <li class="nav-notifications-menu">
             <button class="nav-notifications-trigger" type="button" aria-expanded="false" aria-controls="notificationsMenu" aria-label="Notifications">
                 <span class="material-symbols-outlined" aria-hidden="true">notifications</span>
-                <% if (notifications && notifications.length) { %><span class="nav-notification-count"><%= notifications.length %></span><% } %>
+                <% if (typeof notifications !== 'undefined' && notifications.length) { %><span class="nav-notification-count"><%= notifications.length %></span><% } %>
             </button>
             <div class="nav-notifications-dropdown" id="notificationsMenu">
-                <% if (notifications && notifications.length) { %><% notifications.forEach(function(notification) { %><a href="<%= notification.href %>"><%= notification.text %></a><% }); %><% } else { %><span>All caught up.</span><% } %>
+                <% if (typeof notifications !== 'undefined' && notifications.length) { %><% notifications.forEach(function(notification) { %><a href="<%= notification.href %>"><%= notification.text %></a><% }); %><% } else { %><span>All caught up.</span><% } %>
             </div>
         </li>
         <li class="nav-account-menu">
