@@ -15,6 +15,9 @@
                     <p class="profile-eyebrow">Leave of absence</p>
                     <h1>Leave of Absence</h1>
                     <p class="profile-subtitle">Apply for time off and track the status of your requests.</p>
+                    <% if (typeof canViewLoaHistory !== 'undefined' && canViewLoaHistory) { %>
+                    <p><a class="action-button action-button-secondary" href="/loa/history"><span class="material-symbols-outlined" aria-hidden="true">history</span>View LOA history</a></p>
+                    <% } %>
                 </div>
                 <div class="profile-details">
                     <div class="profile-detail-full">

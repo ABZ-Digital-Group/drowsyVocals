@@ -4143,6 +4143,13 @@ dialog button {
 .check-in-access-option input { margin-top: 3px; }
 .check-in-access-option span { display: flex; flex-direction: column; gap: 3px; }
 .check-in-access-option small { color: #6f6a60; }
+.loa-history-table-wrap { width: 100%; overflow-x: auto; }
+.loa-history-table { width: 100%; min-width: 760px; border-collapse: collapse; margin-top: 14px; }
+.loa-history-table th, .loa-history-table td { padding: 12px 10px; border-bottom: 1px solid #24232044; text-align: left; vertical-align: top; }
+.loa-history-table th { color: #6f6a60; font-size: .8em; letter-spacing: .04em; text-transform: uppercase; }
+.loa-history-table td strong, .loa-history-table td small { display: block; }
+.loa-history-table td small { margin-top: 3px; color: #6f6a60; }
+.loa-history-table .status-badge { white-space: nowrap; }
 @media (max-width: 600px) {
     .check-in-selector { align-items: stretch; flex-direction: column; }
     .check-in-selector select { min-width: 0; }

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <%- include('../partials/head') %>
+        <title>LOA History - Drowsy Vocals</title>
+    </head>
+    <body>
+        <header><%- include('../partials/nav') %></header>
+        <main>
+            <section class="profile-page">
+                <div class="profile-heading">
+                    <p class="profile-eyebrow">Staff management</p>
+                    <h1>LOA History</h1>
+                    <p class="profile-subtitle">A complete record of leave of absence requests across the staff team.</p>
+                    <p><a class="action-button action-button-secondary" href="/loa"><span class="material-symbols-outlined" aria-hidden="true">arrow_back</span>Back to LOA</a></p>
+                </div>
+                <div class="profile-details">
+                    <div class="profile-detail-full">
+                        <span>All requests</span>
+                        <% if (!loaHistory.length) { %>
+                        <strong>No LOA requests have been recorded.</strong>
+                        <% } else { %>
+                        <div class="loa-history-table-wrap">
+                            <table class="loa-history-table">
+                                <thead>
+                                    <tr>
+                                        <th>Member</th>
+                                        <th>Dates</th>
+                                        <th>Reason</th>
+                                        <th>Status</th>
+                                        <th>Requested</th>
+                                        <th>Reviewed by</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <% loaHistory.forEach(function(request) { %>
+                                    <tr>
+                                        <td><strong><%= request.displayName %></strong><small><%= request.accountType %></small></td>
+                                        <td><%= request.startDate %> to <%= request.endDate %></td>
+                                        <td><%= request.reason %></td>
+                                        <td><span class="status-badge status-<%= String(request.status || 'Pending').toLowerCase() %>"><%= request.status || 'Pending' %></span></td>
+                                        <td><%= (request.requestedAt || '').slice(0, 10) %></td>
+                                        <td><%= request.reviewedBy || 'Awaiting review' %></td>
+                                    </tr>
+                                    <% }); %>
+                                </tbody>
+                            </table>
+                        </div>
+                        <% } %>
+                    </div>
+                </div>
+            </section>
+        </main>
+        <div class="footer"><p>&copy; 2026 Drowsy Vocals | All rights reserved.</p></div>
+    </body>
+</html>

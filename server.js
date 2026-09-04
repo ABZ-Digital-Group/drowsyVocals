@@ -4263,11 +4263,40 @@ app.get('/loa', requireDatabase, async (req, res) => {
         res.render('pages/loa', {
             page: 'loa',
             loaHistory,
-            pendingRequests
+            pendingRequests,
+            canViewLoaHistory: hasManagementAccess(req)
         });
     } catch (error) {
         console.error('Error loading LOA page:', error);
         res.status(500).send('Error loading LOA page.');
+    }
+});
+
+// LOA HISTORY FOR DEFENDERS AND ABOVE
+app.get('/loa/history', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin) return res.redirect('/');
+    if (!hasManagementAccess(req)) return res.status(403).send('You do not have permission to view LOA history.');
+
+    try {
+        const users = await db.collection('users').find(
+            { 'loaRequests.0': { $exists: true } },
+            { projection: { displayName: 1, discordUser: 1, accountType: 1, 'login.discordId': 1, loaRequests: 1 } }
+        ).toArray();
+
+        const loaHistory = users.flatMap((user) => (Array.isArray(user.loaRequests) ? user.loaRequests : []).map((request) => ({
+            ...request,
+            displayName: user.displayName || user.discordUser || user.login?.discordId,
+            discordId: user.login?.discordId,
+            accountType: user.accountType || 'Unknown'
+        }))).sort((a, b) => new Date(b.requestedAt || 0) - new Date(a.requestedAt || 0));
+
+        res.render('pages/loa-history', {
+            page: 'loa-history',
+            loaHistory
+        });
+    } catch (error) {
+        console.error('Error loading LOA history:', error);
+        res.status(500).send('Error loading LOA history.');
     }
 });
 
