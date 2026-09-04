@@ -3052,7 +3052,7 @@ app.post('/house-points/award', requireDatabase, async (req, res) => {
         await writeAudit(req, 'Awarded House Points', `${cleanAmount >= 0 ? '+' : ''}${cleanAmount} pts to ${logEntry.recipientName} (${cleanReason})`);
 
         sendDiscordWebhook({
-            title: cleanAmount >= 0 ? '🏆 House Points Awarded!' : '⚠️ House Points Deducted',
+            title: cleanAmount >= 0 ? '# 🏆 House Points Awarded! 🏆' : '# ⚠️ House Points Deducted ⚠️',
             color: cleanAmount >= 0 ? 0xFBBF24 : 0xEF4444,
             fields: [
                 { name: 'Staff Member', value: `${logEntry.recipientName} (<@${cleanDiscordId}>)`, inline: true },
