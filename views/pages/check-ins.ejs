@@ -64,7 +64,14 @@
                     <label for="followUpDueDate">Follow-up due date</label>
                     <input id="followUpDueDate" name="followUpDueDate" type="date">
                     <label for="checkInAttachment">Attachment</label>
-                    <input id="checkInAttachment" name="attachment" type="file" accept="image/png,image/jpeg,image/webp,application/pdf,text/plain">
+                    <div class="account-file-box">
+                        <input id="checkInAttachment" name="attachment" type="file" accept="image/png,image/jpeg,image/webp,application/pdf,text/plain">
+                        <label class="account-file-box-label" for="checkInAttachment">
+                            <span class="material-symbols-outlined">cloud_upload</span>
+                            <span class="account-file-box-text">Choose a file or drop it here</span>
+                            <span class="account-file-box-hint">PNG, JPEG, WEBP, PDF, or TXT (Max 8MB)</span>
+                        </label>
+                    </div>
                     <button class="action-button action-button-primary" type="submit"><span class="material-symbols-outlined" aria-hidden="true">add_comment</span>Add check-in note</button>
                 </form>
                 <% } %>
