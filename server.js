@@ -167,6 +167,8 @@ function startLiveUpdates() {
 
 // REFRESH THE INDEPENDENT DEVELOPER FLAG SO ACCESS CHANGES APPLY IMMEDIATELY.
 app.use(async (req, res, next) => {
+    res.locals.notifications = [];
+    res.locals.checkInAccess = false;
     if (isDatabaseReady && db && req.session.loggedin && req.session.currentuser) {
         try {
             const user = await db.collection('users').findOne(
@@ -501,8 +503,6 @@ async function sendDiscordWebhook(embed, eventType = null) {
 }
 
 app.use(async (req, res, next) => {
-    res.locals.notifications = [];
-    res.locals.checkInAccess = false;
     if (!isDatabaseReady || !db || !req.session.loggedin) return next();
     try {
         const settings = await getSettings();
