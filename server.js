@@ -320,19 +320,19 @@ async function writeAudit(req, action, detail) {
 app.get('/check-ins', requireDatabase, async (req, res) => {
     if (!req.session.loggedin) return res.redirect('/');
 
-    const requestedDiscordId = typeof req.query.user === 'string' ? req.query.user.trim() : '';
-    if (hasGodAccess(req) && !requestedDiscordId) {
-        const firstUser = await db.collection('users').findOne({}, { projection: { 'login.discordId': 1 }, sort: { displayName: 1 } });
-        if (!firstUser?.login?.discordId) return res.status(404).send('No users are available for check-ins.');
-        return res.redirect(`/check-ins?user=${encodeURIComponent(firstUser.login.discordId)}`);
-    }
-    const targetDiscordId = hasGodAccess(req) ? requestedDiscordId : req.session.currentuser;
-
-    if (!targetDiscordId || !hasCheckInAccess(req, targetDiscordId)) {
-        return res.status(403).send('You do not have permission to view check-ins.');
-    }
-
     try {
+        const requestedDiscordId = typeof req.query.user === 'string' ? req.query.user.trim() : '';
+        if (hasGodAccess(req) && !requestedDiscordId) {
+            const firstUser = await db.collection('users').findOne({}, { projection: { 'login.discordId': 1 }, sort: { displayName: 1 } });
+            if (!firstUser?.login?.discordId) return res.status(404).send('No users are available for check-ins.');
+            return res.redirect(`/check-ins?user=${encodeURIComponent(firstUser.login.discordId)}`);
+        }
+        const targetDiscordId = hasGodAccess(req) ? requestedDiscordId : req.session.currentuser;
+
+        if (!targetDiscordId || !hasCheckInAccess(req, targetDiscordId)) {
+            return res.status(403).send('You do not have permission to view check-ins.');
+        }
+
         const [users, targetUser, checkIns] = await Promise.all([
             hasGodAccess(req)
                 ? db.collection('users').find({}, { projection: { displayName: 1, discordUser: 1, accountType: 1, 'login.discordId': 1 } }).sort({ displayName: 1 }).toArray()
