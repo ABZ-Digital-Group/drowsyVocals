@@ -17,10 +17,12 @@
                     <select id="checkInUser" name="user" required>
                         <option value="">Select a member</option>
                         <% users.forEach(function(user) { %>
-                        <% const userId = user.login.discordId; %>
-                        <option value="<%= userId %>" <%= userId === targetUser.login.discordId ? 'selected' : '' %>>
+                        <% const userId = user.login?.discordId; %>
+                        <% if (userId) { %>
+                        <option value="<%= userId %>" <%= userId === targetUser.login?.discordId ? 'selected' : '' %>>
                             <%= user.displayName || user.discordUser || userId %> (<%= user.accountType || 'Member' %>)
                         </option>
+                        <% } %>
                         <% }); %>
                     </select>
                     <button class="action-button action-button-secondary" type="submit"><span class="material-symbols-outlined" aria-hidden="true">person_search</span>View record</button>
@@ -31,7 +33,7 @@
                     <div>
                         <p class="profile-eyebrow">Selected record</p>
                         <h2><%= targetUser.displayName || targetUser.discordUser || targetUser.login.discordId %></h2>
-                        <p><%= targetUser.accountType || 'Member' %> · <%= targetUser.login.discordId %></p>
+                        <p><%= targetUser.accountType || 'Member' %> · <%= targetUser.login?.discordId %></p>
                     </div>
                     <span class="material-symbols-outlined check-in-lock" title="Private record" aria-label="Private record">lock</span>
                 </div>
