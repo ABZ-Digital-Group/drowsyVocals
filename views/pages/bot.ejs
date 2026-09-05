@@ -116,7 +116,7 @@
                     </button>
                     <button type="button" class="settings-tab-btn" data-tab="rolesync">
                         <span class="material-symbols-outlined">sync</span>
-                        <span>Role & Display Name Sync</span>
+                        <span>Discord Display Name Sync</span>
                     </button>
                     <button type="button" class="settings-tab-btn" data-tab="announcements">
                         <span class="material-symbols-outlined">campaign</span>
@@ -265,11 +265,11 @@
                         <% } %>
                     </div>
 
-                    <!-- SECTION: DISCORD ROLE & DISPLAY NAME SYNC -->
+                    <!-- SECTION: DISCORD DISPLAY NAME SYNC -->
                     <div class="settings-group" data-section="rolesync">
                         <div class="settings-group-header">
                             <span class="material-symbols-outlined" style="background: #242320; color: #B7B2A7; padding: 4px; border-radius: 4px;">sync</span>
-                            <h2>Automated Discord Role & Display Name Sync</h2>
+                            <h2>Automated Discord Display Name Sync</h2>
                         </div>
 
                         <div class="settings-card">
@@ -277,9 +277,9 @@
                                 <div class="settings-card-title-wrap">
                                     <h3 class="settings-card-title">
                                         <span class="material-symbols-outlined">badge</span>
-                                        <span>Sync Discord Names to Staff Roster</span>
+                                        <span>Pull Discord Names to Staff Roster</span>
                                     </h3>
-                                    <p class="settings-card-desc">Pull each member's current Discord display name into the staff roster. Rank and House roles continue to be updated in Discord from the website roster.</p>
+                                    <p class="settings-card-desc">Pull each member's current Discord display name into the staff roster. This sync does not change Discord roles or nicknames.</p>
                                 </div>
                             </div>
 
@@ -312,11 +312,11 @@
                                     <div>
                                         <h4 style="margin: 0 0 6px; color: #f3efe6; font-size: 1em;">Full Server Bulk Sync</h4>
                                         <p style="margin: 0; font-size: 0.85em; color: #8e897e; line-height: 1.5;">
-                                            Iterate through all <%= users.length %> registered staff members, pulling only their Discord display names into the roster and applying Rank and House roles from the website.
+                                            Iterate through all <%= users.length %> registered staff members and update only their roster display names from Discord.
                                         </p>
                                     </div>
 
-                                    <form action="/bot/sync-member" method="POST" onsubmit="return confirm('Pull Discord display names and sync roles for all <%= users.length %> staff members?');" style="margin-top: 14px;">
+                                    <form action="/bot/sync-member" method="POST" onsubmit="return confirm('Pull Discord display names for all <%= users.length %> staff members?');" style="margin-top: 14px;">
                                         <input type="hidden" name="discordId" value="ALL">
                                         <button type="submit" class="settings-btn settings-btn-secondary" style="width: 100%;">
                                             <span class="material-symbols-outlined">cloud_sync</span>
