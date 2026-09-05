@@ -3248,16 +3248,17 @@ th, td {
     padding: 10px;
     text-align: center;
 }
-.roster-display-name-cell {
+.roster-content table td.roster-display-name-cell {
     width: 220px;
     max-width: 220px;
     overflow: hidden;
-    text-align: left;
+    text-align: left !important;
 }
 .roster-display-name-wrap {
     display: flex;
     align-items: center;
     gap: 8px;
+    width: 100%;
     min-width: 0;
     justify-content: flex-start;
     text-align: left;
