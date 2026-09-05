@@ -3064,20 +3064,25 @@ app.post('/bot/sync-member', requireDatabase, async (req, res) => {
         let syncedCount = 0;
         let errors = [];
         for (const user of targets) {
-            const resp = await botService.syncBot({
-                discordId: user.login.discordId,
-                displayName: user.displayName,
-                rank: user.accountType,
-                house: user.house
-            });
-            if (resp?.ok) {
-                syncedCount++;
-            } else if (resp?.error) {
-                errors.push(`${user.displayName || user.login.discordId}: ${resp.error}`);
-            } else if (resp?.results?.errors?.length) {
-                errors.push(`${user.displayName || user.login.discordId}: ${resp.results.errors.join(' | ')}`);
-            } else if (resp) {
-                errors.push(`${user.displayName || user.login.discordId}: Discord sync returned no successful changes.`);
+            const label = user.displayName || user.login.discordId;
+            try {
+                const resp = await botService.syncBot({
+                    discordId: user.login.discordId,
+                    displayName: user.displayName,
+                    rank: user.accountType,
+                    house: user.house
+                });
+                if (resp?.ok) {
+                    syncedCount++;
+                } else if (resp?.error) {
+                    errors.push(`${label}: ${resp.error}`);
+                } else if (resp?.results?.errors?.length) {
+                    errors.push(`${label}: ${resp.results.errors.join(' | ')}`);
+                } else if (resp) {
+                    errors.push(`${label}: Discord sync returned no successful changes.`);
+                }
+            } catch (error) {
+                errors.push(`${label}: ${error.message || 'Bot API request failed.'}`);
             }
         }
 
@@ -3092,7 +3097,7 @@ app.post('/bot/sync-member', requireDatabase, async (req, res) => {
         }
     } catch (e) {
         console.error('Error during role sync:', e);
-        req.flash('error_msg', 'Encountered an error while synchronizing Discord roles.');
+        req.flash('error_msg', e.message || 'Encountered an error while synchronizing Discord roles.');
     }
 
     res.redirect('/bot#rolesync');
