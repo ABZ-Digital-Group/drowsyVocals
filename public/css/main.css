@@ -3248,6 +3248,31 @@ th, td {
     padding: 10px;
     text-align: center;
 }
+.roster-display-name-cell {
+    width: 220px;
+    max-width: 220px;
+    overflow: hidden;
+}
+.roster-display-name-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    justify-content: flex-start;
+    text-align: left;
+}
+.roster-display-name-wrap .avatar,
+.roster-display-name-wrap img {
+    flex: 0 0 auto;
+}
+.roster-display-name {
+    display: block;
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
 .rank-group-header th {
     padding: 6px 10px !important;
     background-color: #242320 !important;

@@ -212,8 +212,8 @@
                                 <td><input type="checkbox" name="attendees" value="<%= user.login.discordId %>" <%= user.attendedThisWeek ? 'checked' : '' %>></td>
                                 <% } %>
                                 <td><%= user.accountType %></td>
-                                <td>
-                                    <div style="display: flex; align-items: center; gap: 8px; justify-content: flex-start; text-align: left;">
+                                <td class="roster-display-name-cell">
+                                    <div class="roster-display-name-wrap">
                                         <%- include('../partials/avatar', {
                                             avatarUrl: user.avatarUrl,
                                             displayName: user.displayName || user.discordUser || user.login.discordId,
@@ -221,7 +221,7 @@
                                             size: 32,
                                             online: user.isOnline
                                         }) %>
-                                        <span><%= user.displayName %></span>
+                                        <span class="roster-display-name" title="<%= user.displayName || user.discordUser || user.login.discordId %>"><%= user.displayName %></span>
                                         <% if (user.isInactiveRisk) { %>
                                         <span class="badge badge-inactive-risk" title="<%= user.inactivityReason || 'Inactivity Warning' %>">⚠️ Inactive</span>
                                         <% } %>
