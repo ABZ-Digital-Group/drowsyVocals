@@ -64,6 +64,22 @@
                                 </span>
                             </div>
                         </div>
+
+                        <div class="settings-stat-item">
+                            <span class="material-symbols-outlined settings-stat-icon" style="color: #fbbf24;">timer</span>
+                            <div class="settings-stat-info">
+                                <span class="settings-stat-label">Bot Uptime</span>
+                                <span class="settings-stat-val"><%= Number.isFinite(botLiveState.uptimeSeconds) ? Math.floor(botLiveState.uptimeSeconds / 60) + ' min' : 'Unknown' %></span>
+                            </div>
+                        </div>
+
+                        <div class="settings-stat-item">
+                            <span class="material-symbols-outlined settings-stat-icon" style="color: #fb7185;">network_check</span>
+                            <div class="settings-stat-info">
+                                <span class="settings-stat-label">Discord Latency</span>
+                                <span class="settings-stat-val"><%= Number.isFinite(botLiveState.latencyMs) ? botLiveState.latencyMs + ' ms' : 'Unknown' %></span>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -101,6 +117,10 @@
                     <button type="button" class="settings-tab-btn" data-tab="rolesync">
                         <span class="material-symbols-outlined">sync</span>
                         <span>Role & Nickname Sync</span>
+                    </button>
+                    <button type="button" class="settings-tab-btn" data-tab="announcements">
+                        <span class="material-symbols-outlined">campaign</span>
+                        <span>Announcements</span>
                     </button>
                     <button type="button" class="settings-tab-btn" data-tab="shystages">
                         <span class="material-symbols-outlined">mic</span>
@@ -305,6 +325,56 @@
                                     </form>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+
+                    <!-- SECTION: DISCORD ANNOUNCEMENTS -->
+                    <div class="settings-group" data-section="announcements">
+                        <div class="settings-group-header">
+                            <span class="material-symbols-outlined" style="background: #242320; color: #B7B2A7; padding: 4px; border-radius: 4px;">campaign</span>
+                            <h2>Discord Announcements</h2>
+                        </div>
+
+                        <div class="settings-card">
+                            <p class="settings-card-desc">Send a validated announcement through DrowsyBot to a Discord text channel.</p>
+                            <% const announcementGuilds = botLiveState.guilds || []; %>
+                            <% const firstAnnouncementGuild = announcementGuilds[0]; %>
+                            <form action="/bot/announcement" method="POST" style="display: flex; flex-direction: column; gap: 16px;">
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px;">
+                                    <div class="settings-form-group" style="margin-bottom: 0;">
+                                        <label for="announcementGuildId">Guild</label>
+                                        <select id="announcementGuildId" name="guildId" class="settings-input" required>
+                                            <% announcementGuilds.forEach(function(guild, index) { %>
+                                            <option value="<%= guild.id %>" <%= index === 0 ? 'selected' : '' %>><%= guild.name %></option>
+                                            <% }); %>
+                                        </select>
+                                    </div>
+                                    <div class="settings-form-group" style="margin-bottom: 0;">
+                                        <label for="announcementChannelId">Channel</label>
+                                        <select id="announcementChannelId" name="channelId" class="settings-input" required>
+                                            <% (firstAnnouncementGuild?.textChannels || []).forEach(function(channel, index) { %>
+                                            <option value="<%= channel.id %>" <%= index === 0 ? 'selected' : '' %>>#<%= channel.name %></option>
+                                            <% }); %>
+                                        </select>
+                                    </div>
+                                    <div class="settings-form-group" style="margin-bottom: 0;">
+                                        <label for="announcementTitle">Title</label>
+                                        <input id="announcementTitle" name="title" class="settings-input" maxlength="256" placeholder="Optional title">
+                                    </div>
+                                    <div class="settings-form-group" style="margin-bottom: 0;">
+                                        <label for="announcementColor">Color</label>
+                                        <input id="announcementColor" name="color" class="settings-input" maxlength="7" placeholder="#5865F2">
+                                    </div>
+                                </div>
+                                <div class="settings-form-group" style="margin-bottom: 0;">
+                                    <label for="announcementMessage">Message</label>
+                                    <textarea id="announcementMessage" name="message" class="settings-input" rows="6" maxlength="4000" required></textarea>
+                                </div>
+                                <button type="submit" class="settings-btn settings-btn-primary" style="align-self: flex-start;">
+                                    <span class="material-symbols-outlined">send</span>
+                                    Send Announcement
+                                </button>
+                            </form>
                         </div>
                     </div>
 
@@ -699,6 +769,19 @@
         </div>
 
         <script>
+            const announcementGuilds = <%- JSON.stringify(botLiveState.guilds || []).replace(/</g, '\\u003c') %>;
+            const announcementGuildSelect = document.getElementById('announcementGuildId');
+            const announcementChannelSelect = document.getElementById('announcementChannelId');
+
+            if (announcementGuildSelect && announcementChannelSelect) {
+                announcementGuildSelect.addEventListener('change', () => {
+                    const guild = announcementGuilds.find(item => item.id === announcementGuildSelect.value);
+                    announcementChannelSelect.innerHTML = (guild?.textChannels || [])
+                        .map(channel => `<option value="${channel.id}">#${channel.name}</option>`)
+                        .join('');
+                });
+            }
+
             // Client-side Tab Switcher
             document.querySelectorAll('.settings-tab-btn').forEach(button => {
                 button.addEventListener('click', () => {
