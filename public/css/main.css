@@ -3252,6 +3252,7 @@ th, td {
     width: 220px;
     max-width: 220px;
     overflow: hidden;
+    text-align: left;
 }
 .roster-display-name-wrap {
     display: flex;
