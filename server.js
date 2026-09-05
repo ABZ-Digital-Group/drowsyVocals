@@ -3041,7 +3041,7 @@ app.post('/bot/stage/remove-user', requireDatabase, async (req, res) => {
     res.redirect('/bot#stage-queue');
 });
 
-// TRIGGER DISCORD ROLE & NICKNAME SYNC FOR A USER OR ALL USERS
+// Pull Discord display names and apply website-managed roles for one user or all users.
 app.post('/bot/sync-member', requireDatabase, async (req, res) => {
     if (!req.session.loggedin || !hasGodAccess(req)) return res.redirect('/dashboard');
 
