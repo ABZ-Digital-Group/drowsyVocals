@@ -222,9 +222,6 @@
                                             online: user.isOnline
                                         }) %>
                                         <span class="roster-display-name" title="<%= user.displayName || user.discordUser || user.login.discordId %>"><%= user.displayName %></span>
-                                        <% if (user.isInactiveRisk) { %>
-                                        <span class="badge badge-inactive-risk" title="<%= user.inactivityReason || 'Inactivity Warning' %>">⚠️ Inactive</span>
-                                        <% } %>
                                     </div>
                                 </td>
                                 <td><%= user.discordUser %></td>
@@ -234,9 +231,6 @@
                                 <td><%= user.lastPromotion %></td>
                                 <td>
                                     <span><%= user.timeInGrade %></span>
-                                    <% if (user.isPromotionReady) { %>
-                                    <span class="badge badge-promo" title="Promotion Ready: Reached <%= user.minDaysRequired %> days in grade (Current: <%= user.timeInGrade %> days)">🚀 Ready</span>
-                                    <% } %>
                                 </td>
                                 
                                 <td class="shift-cell" style="background-color: <%= shiftColorMap[user.shift] || '' %>"><%= user.shift %></td>
