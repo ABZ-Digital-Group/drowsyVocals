@@ -3261,7 +3261,7 @@ th, td {
     width: 100%;
     min-width: 0;
     justify-content: flex-start;
-    text-align: left;
+    text-align: left !important;
 }
 .roster-display-name-wrap .avatar,
 .roster-display-name-wrap img {
@@ -3271,6 +3271,7 @@ th, td {
     display: block;
     flex: 1 1 auto;
     min-width: 0;
+    text-align: left !important;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
