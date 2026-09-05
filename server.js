@@ -3068,10 +3068,16 @@ app.post('/bot/sync-member', requireDatabase, async (req, res) => {
             try {
                 const resp = await botService.syncBot({
                     discordId: user.login.discordId,
-                    displayName: user.displayName,
                     rank: user.accountType,
                     house: user.house
                 });
+                const discordDisplayName = resp?.results?.discordDisplayName;
+                if (discordDisplayName && discordDisplayName !== user.displayName) {
+                    await db.collection('users').updateOne(
+                        { 'login.discordId': user.login.discordId },
+                        { $set: { displayName: discordDisplayName } }
+                    );
+                }
                 if (resp?.ok) {
                     syncedCount++;
                 } else if (resp?.error) {
