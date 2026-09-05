@@ -3041,7 +3041,7 @@ app.post('/bot/stage/remove-user', requireDatabase, async (req, res) => {
     res.redirect('/bot#stage-queue');
 });
 
-// Pull Discord display names and apply website-managed roles for one user or all users.
+// Pull Discord display names for one user or all users.
 app.post('/bot/sync-member', requireDatabase, async (req, res) => {
     if (!req.session.loggedin || !hasGodAccess(req)) return res.redirect('/dashboard');
 
@@ -3050,9 +3050,9 @@ app.post('/bot/sync-member', requireDatabase, async (req, res) => {
     try {
         let targets = [];
         if (discordId === 'ALL') {
-            targets = await db.collection('users').find({}, { projection: { displayName: 1, accountType: 1, house: 1, 'login.discordId': 1 } }).toArray();
+            targets = await db.collection('users').find({}, { projection: { displayName: 1, 'login.discordId': 1 } }).toArray();
         } else if (discordId) {
-            const single = await db.collection('users').findOne({ 'login.discordId': discordId }, { projection: { displayName: 1, accountType: 1, house: 1, 'login.discordId': 1 } });
+            const single = await db.collection('users').findOne({ 'login.discordId': discordId }, { projection: { displayName: 1, 'login.discordId': 1 } });
             if (single) targets = [single];
         }
 
@@ -3067,9 +3067,7 @@ app.post('/bot/sync-member', requireDatabase, async (req, res) => {
             const label = user.displayName || user.login.discordId;
             try {
                 const resp = await botService.syncBot({
-                    discordId: user.login.discordId,
-                    rank: user.accountType,
-                    house: user.house
+                    discordId: user.login.discordId
                 });
                 const discordDisplayName = resp?.results?.discordDisplayName;
                 if (discordDisplayName && discordDisplayName !== user.displayName) {
