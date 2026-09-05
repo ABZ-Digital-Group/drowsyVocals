@@ -16,6 +16,7 @@ const flash = require('connect-flash');
 const multer = require('multer');
 const { MongoClient, ObjectId } = require('mongodb');
 const { Server } = require('socket.io');
+const { createBotService } = require('./services/botService');
 
 const app = express();
 
@@ -24,6 +25,10 @@ const PORT = Number(process.env.PORT) || 3000;
 const mongoUri = process.env.MONGODB_URI;
 const dbname = process.env.MONGODB_DATABASE;
 const sessionSecret = process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex');
+const botService = createBotService({
+    baseUrl: process.env.BOT_API_URL,
+    secret: process.env.BOT_API_SECRET || process.env.BOT_API_TOKEN,
+});
 
 if (!mongoUri) {
     console.error('MONGODB_URI is not configured. Add it to the application environment variables.');
@@ -823,51 +828,44 @@ function updateBotEnv(filePath, updates) {
 }
 
 function getBotApiConfig() {
-    const env = parseBotEnv(BOT_ENV_FILE);
     const configuredUrl = (process.env.BOT_API_URL || '').trim();
-    const fallbackHost = env.OBS_HTTP_HOST === '0.0.0.0' ? '127.0.0.1' : (env.OBS_HTTP_HOST || '127.0.0.1');
-    const fallbackUrl = `http://${fallbackHost}:${env.OBS_HTTP_PORT || 8080}`;
-    const baseUrl = (configuredUrl || fallbackUrl).replace(/\/+$/, '');
-    const token = (process.env.BOT_API_TOKEN || '').trim();
+    const baseUrl = configuredUrl.replace(/\/+$/, '');
+    const token = (process.env.BOT_API_SECRET || process.env.BOT_API_TOKEN || '').trim();
 
     return {
         baseUrl,
         headers: {
             Accept: 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {})
+            ...(token ? { 'X-Bot-Api-Key': token } : {})
         }
     };
 }
 
 async function getBotLiveState() {
-    const botApi = getBotApiConfig();
-    const url = `${botApi.baseUrl}/admin/api/state`;
-
-    let connectionError = null;
-    try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 1200);
-        let res;
-        try {
-            res = await fetch(url, { signal: controller.signal, headers: botApi.headers });
-        } finally {
-            clearTimeout(timeout);
-        }
-        if (res.ok) {
-            const data = await res.json();
-            return { online: true, ...data };
-        }
-        connectionError = `Bot returned HTTP ${res.status}.`;
-    } catch (error) {
-        connectionError = error.name === 'AbortError'
-            ? 'Bot health check timed out.'
-            : 'Bot HTTP service is unreachable.';
-        console.error(`Bot health check failed (${url}):`, error.message);
-    }
-
     const adsData = readBotJson(path.join(BOT_DATA_DIR, 'obs-ads.json'), { items: [], activeId: null });
     const botSettings = readBotJson(path.join(BOT_DATA_DIR, 'bot-settings.json'), {});
     const activeAd = (adsData.items || []).find(ad => ad.id === adsData.activeId) || (adsData.items || [])[0] || null;
+    let connectionError = null;
+
+    try {
+        const status = await botService.getBotStatus();
+        return {
+            online: status.online !== false,
+            botUser: status.botUser || 'Connected',
+            guildCount: status.guildCount || 0,
+            guilds: status.guilds || [],
+            trackedStages: status.trackedStages || [],
+            advertisements: adsData.items || [],
+            activeAdvertisement: activeAd,
+            rotationIntervalMs: adsData.rotationIntervalMs || null,
+            allowedInviteUsers: readBotJson(path.join(BOT_DATA_DIR, 'allowed-invite-users.json'), []) || [],
+            botSettings,
+            ...status
+        };
+    } catch (error) {
+        connectionError = error.message || 'Bot HTTP service is unreachable.';
+        console.error('Bot status check failed:', error.message);
+    }
 
     return {
         online: false,
@@ -3065,11 +3063,9 @@ app.post('/bot/sync-member', requireDatabase, async (req, res) => {
 
         let syncedCount = 0;
         let errors = [];
-        const botEnv = parseBotEnv(BOT_ENV_FILE);
-
         for (const user of targets) {
-            const resp = await sendBotApiPost('/admin/api/sync-member', {
-            guildId: botEnv.GUILD_ID,
+            const resp = await botService.syncBot({
+                guildId: parseBotEnv(BOT_ENV_FILE).GUILD_ID,
                 discordId: user.login.discordId,
                 displayName: user.displayName,
                 rank: user.accountType,
@@ -3101,6 +3097,38 @@ app.post('/bot/sync-member', requireDatabase, async (req, res) => {
     }
 
     res.redirect('/bot#rolesync');
+});
+
+// SEND A VALIDATED ANNOUNCEMENT THROUGH THE BOT API
+app.post('/bot/announcement', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !hasGodAccess(req)) {
+        req.flash('error_msg', 'Unauthorized.');
+        return res.redirect('/dashboard');
+    }
+
+    const message = String(req.body.message || '').trim();
+    const guildId = String(req.body.guildId || '').trim();
+    const channelId = String(req.body.channelId || '').trim();
+    if (!guildId || !channelId || !message || message.length > 4000) {
+        req.flash('error_msg', 'Choose an authorized destination and enter a message up to 4000 characters.');
+        return res.redirect('/bot');
+    }
+
+    try {
+        await botService.sendAnnouncement({
+            guildId,
+            channelId,
+            message,
+            title: String(req.body.title || '').trim().slice(0, 256),
+            color: String(req.body.color || '').trim(),
+        });
+        await writeAudit(req, 'Sent Discord Bot Announcement', `Guild ${guildId}, channel ${channelId}`);
+        req.flash('success_msg', 'Announcement sent through DrowsyBot.');
+    } catch (error) {
+        console.error('Bot announcement failed:', error.message);
+        req.flash('error_msg', error.message || 'Discord action failed.');
+    }
+    res.redirect('/bot');
 });
 
 // USER LOGIN (WITH BRUTE-FORCE RATE LIMITING & SESSION REGENERATION)
