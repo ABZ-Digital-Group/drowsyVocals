@@ -47,7 +47,10 @@
                         <h2><%= targetUser.displayName || targetUser.discordUser || targetUser.login.discordId %></h2>
                         <p><%= targetUser.accountType || 'Member' %> · <%= targetUser.login?.discordId %></p>
                     </div>
-                    <span class="material-symbols-outlined check-in-lock" title="Private record" aria-label="Private record">lock</span>
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <a href="/footprint?username=<%= encodeURIComponent(targetUser.displayName || targetUser.discordUser || '') %>" class="action-button action-button-secondary" style="font-size: 0.85rem; padding: 0.4rem 0.8rem;"><span class="material-symbols-outlined" aria-hidden="true" style="font-size: 1.1rem;">fingerprint</span> Footprint</a>
+                        <span class="material-symbols-outlined check-in-lock" title="Private record" aria-label="Private record">lock</span>
+                    </div>
                 </div>
 
                 <% if (canCreate) { %>

@@ -3885,6 +3885,396 @@ app.get('/audit-log', requireDatabase, async (req, res) => {
 });
 
 // ==========================================================================
+// DIGITAL FOOTPRINT / OSINT SEARCH
+// ==========================================================================
+
+const FOOTPRINT_PLATFORMS = [
+    {
+        id: 'github',
+        name: 'GitHub',
+        category: 'Coding & Tech',
+        icon: 'code',
+        check: async (username) => {
+            const url = `https://github.com/${encodeURIComponent(username)}`;
+            const res = await fetch(url, {
+                headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
+                signal: AbortSignal.timeout(3500)
+            });
+            return { exists: res.status === 200, profileUrl: url };
+        }
+    },
+    {
+        id: 'gitlab',
+        name: 'GitLab',
+        category: 'Coding & Tech',
+        icon: 'code_blocks',
+        check: async (username) => {
+            const url = `https://gitlab.com/${encodeURIComponent(username)}`;
+            const res = await fetch(url, {
+                headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
+                signal: AbortSignal.timeout(3500)
+            });
+            return { exists: res.status === 200, profileUrl: url };
+        }
+    },
+    {
+        id: 'npm',
+        name: 'npm',
+        category: 'Coding & Tech',
+        icon: 'package_2',
+        check: async (username) => {
+            const url = `https://www.npmjs.com/~${encodeURIComponent(username)}`;
+            const res = await fetch(url, {
+                headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
+                signal: AbortSignal.timeout(3500)
+            });
+            return { exists: res.status === 200, profileUrl: url };
+        }
+    },
+    {
+        id: 'devto',
+        name: 'Dev.to',
+        category: 'Coding & Tech',
+        icon: 'terminal',
+        check: async (username) => {
+            const url = `https://dev.to/${encodeURIComponent(username)}`;
+            const res = await fetch(url, {
+                headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
+                signal: AbortSignal.timeout(3500)
+            });
+            return { exists: res.status === 200, profileUrl: url };
+        }
+    },
+    {
+        id: 'replit',
+        name: 'Replit',
+        category: 'Coding & Tech',
+        icon: 'integration_instructions',
+        check: async (username) => {
+            const url = `https://replit.com/@${encodeURIComponent(username)}`;
+            const res = await fetch(url, {
+                headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
+                signal: AbortSignal.timeout(3500)
+            });
+            return { exists: res.status === 200, profileUrl: url };
+        }
+    },
+    {
+        id: 'pypi',
+        name: 'PyPI',
+        category: 'Coding & Tech',
+        icon: 'data_object',
+        check: async (username) => {
+            const url = `https://pypi.org/user/${encodeURIComponent(username)}/`;
+            const res = await fetch(url, {
+                headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
+                signal: AbortSignal.timeout(3500)
+            });
+            return { exists: res.status === 200, profileUrl: url };
+        }
+    },
+    {
+        id: 'reddit',
+        name: 'Reddit',
+        category: 'Social & Forums',
+        icon: 'forum',
+        check: async (username) => {
+            const url = `https://www.reddit.com/user/${encodeURIComponent(username)}/about.json`;
+            const res = await fetch(url, {
+                headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
+                signal: AbortSignal.timeout(3500)
+            });
+            if (res.status === 200) {
+                const data = await res.json();
+                return { exists: Boolean(data && data.data && !data.data.is_suspended), profileUrl: `https://www.reddit.com/user/${encodeURIComponent(username)}` };
+            }
+            return { exists: false, profileUrl: `https://www.reddit.com/user/${encodeURIComponent(username)}` };
+        }
+    },
+    {
+        id: 'youtube',
+        name: 'YouTube',
+        category: 'Media & Streaming',
+        icon: 'smart_display',
+        check: async (username) => {
+            const handle = username.startsWith('@') ? username : `@${username}`;
+            const url = `https://www.youtube.com/${encodeURIComponent(handle)}`;
+            const res = await fetch(url, {
+                headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
+                signal: AbortSignal.timeout(3500)
+            });
+            return { exists: res.status === 200, profileUrl: url };
+        }
+    },
+    {
+        id: 'twitch',
+        name: 'Twitch',
+        category: 'Media & Streaming',
+        icon: 'live_tv',
+        check: async (username) => {
+            const url = `https://www.twitch.tv/${encodeURIComponent(username)}`;
+            const res = await fetch(url, {
+                headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
+                signal: AbortSignal.timeout(3500)
+            });
+            return { exists: res.status === 200, profileUrl: url };
+        }
+    },
+    {
+        id: 'roblox',
+        name: 'Roblox',
+        category: 'Gaming',
+        icon: 'sports_esports',
+        check: async (username) => {
+            const url = `https://users.roblox.com/v1/usernames/users`;
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+                },
+                body: JSON.stringify({ usernames: [username], excludeBannedUsers: false }),
+                signal: AbortSignal.timeout(3500)
+            });
+            if (res.status === 200) {
+                const data = await res.json();
+                if (data.data && data.data.length > 0) {
+                    const userId = data.data[0].id;
+                    return { exists: true, profileUrl: `https://www.roblox.com/users/${userId}/profile` };
+                }
+            }
+            return { exists: false, profileUrl: `https://www.roblox.com/search/users?keyword=${encodeURIComponent(username)}` };
+        }
+    },
+    {
+        id: 'steam',
+        name: 'Steam',
+        category: 'Gaming',
+        icon: 'videogame_asset',
+        check: async (username) => {
+            const url = `https://steamcommunity.com/id/${encodeURIComponent(username)}`;
+            const res = await fetch(url, {
+                headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
+                signal: AbortSignal.timeout(3500)
+            });
+            if (res.status === 200) {
+                const text = await res.text();
+                const notFound = text.includes('The specified profile could not be found');
+                return { exists: !notFound, profileUrl: url };
+            }
+            return { exists: false, profileUrl: url };
+        }
+    },
+    {
+        id: 'namemc',
+        name: 'Minecraft (NameMC)',
+        category: 'Gaming',
+        icon: 'view_in_ar',
+        check: async (username) => {
+            const url = `https://namemc.com/profile/${encodeURIComponent(username)}`;
+            const res = await fetch(url, {
+                headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
+                signal: AbortSignal.timeout(3500)
+            });
+            return { exists: res.status === 200, profileUrl: url };
+        }
+    },
+    {
+        id: 'chesscom',
+        name: 'Chess.com',
+        category: 'Gaming',
+        icon: 'extension',
+        check: async (username) => {
+            const url = `https://api.chess.com/pub/player/${encodeURIComponent(username.toLowerCase())}`;
+            const res = await fetch(url, {
+                headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
+                signal: AbortSignal.timeout(3500)
+            });
+            return { exists: res.status === 200, profileUrl: `https://www.chess.com/member/${encodeURIComponent(username)}` };
+        }
+    },
+    {
+        id: 'medium',
+        name: 'Medium',
+        category: 'Social & Media',
+        icon: 'article',
+        check: async (username) => {
+            const handle = username.startsWith('@') ? username : `@${username}`;
+            const url = `https://medium.com/${encodeURIComponent(handle)}`;
+            const res = await fetch(url, {
+                headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
+                signal: AbortSignal.timeout(3500)
+            });
+            return { exists: res.status === 200, profileUrl: url };
+        }
+    },
+    {
+        id: 'soundcloud',
+        name: 'SoundCloud',
+        category: 'Media & Streaming',
+        icon: 'graphic_eq',
+        check: async (username) => {
+            const url = `https://soundcloud.com/${encodeURIComponent(username)}`;
+            const res = await fetch(url, {
+                headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
+                signal: AbortSignal.timeout(3500)
+            });
+            return { exists: res.status === 200, profileUrl: url };
+        }
+    },
+    {
+        id: 'pinterest',
+        name: 'Pinterest',
+        category: 'Social & Media',
+        icon: 'push_pin',
+        check: async (username) => {
+            const url = `https://www.pinterest.com/${encodeURIComponent(username)}/`;
+            const res = await fetch(url, {
+                headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
+                signal: AbortSignal.timeout(3500)
+            });
+            return { exists: res.status === 200, profileUrl: url };
+        }
+    },
+    {
+        id: 'letterboxd',
+        name: 'Letterboxd',
+        category: 'Social & Media',
+        icon: 'movie',
+        check: async (username) => {
+            const url = `https://letterboxd.com/${encodeURIComponent(username)}/`;
+            const res = await fetch(url, {
+                headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
+                signal: AbortSignal.timeout(3500)
+            });
+            return { exists: res.status === 200, profileUrl: url };
+        }
+    }
+];
+
+function generateSearchDorks(username) {
+    const encoded = encodeURIComponent(username);
+    return [
+        {
+            name: 'Google Exact Username',
+            description: 'Search for exact username occurrences across the web',
+            icon: 'search',
+            url: `https://www.google.com/search?q=%22${encoded}%22`
+        },
+        {
+            name: 'Google Risk & Ban Check',
+            description: 'Search for username alongside terms like ban, scam, report, or staff',
+            icon: 'warning',
+            url: `https://www.google.com/search?q=%22${encoded}%22+%22ban%22+OR+%22scam%22+OR+%22report%22+OR+%22staff%22`
+        },
+        {
+            name: 'Discord Mention Search',
+            description: 'Search Google for Discord posts or profile references',
+            icon: 'forum',
+            url: `https://www.google.com/search?q=%22${encoded}%22+site%3Adiscord.com+OR+site%3Adiscord.gg`
+        },
+        {
+            name: 'X (Twitter) Lookup',
+            description: 'Search X / Twitter for tweets or mentions of handle',
+            icon: 'tag',
+            url: `https://x.com/search?q=${encoded}`
+        },
+        {
+            name: 'Instagram Search',
+            description: 'Google index search for Instagram profiles',
+            icon: 'photo_camera',
+            url: `https://www.google.com/search?q=%22${encoded}%22+site%3Ainstagram.com`
+        },
+        {
+            name: 'TikTok Search',
+            description: 'Search TikTok for user handle',
+            icon: 'audiotrack',
+            url: `https://www.tiktok.com/search?q=${encoded}`
+        }
+    ];
+}
+
+app.get('/footprint', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin) return res.redirect('/');
+    if (!hasManagementAccess(req)) return res.status(403).send('You do not have permission to view Digital Footprint search.');
+
+    try {
+        const users = await db.collection('users')
+            .find({}, { projection: { displayName: 1, discordUser: 1, 'login.discordId': 1, accountType: 1 } })
+            .sort({ displayName: 1 })
+            .toArray();
+
+        res.render('pages/footprint', {
+            page: 'footprint',
+            users,
+            initialUsername: (req.query.username || '').toString().trim()
+        });
+    } catch (error) {
+        console.error('Error loading footprint page:', error);
+        res.status(500).send('Error loading Digital Footprint page.');
+    }
+});
+
+app.get('/api/footprint/search', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin) return res.status(401).json({ error: 'Unauthorized' });
+    if (!hasManagementAccess(req)) return res.status(403).json({ error: 'Forbidden' });
+
+    const username = (req.query.username || '').toString().trim();
+    if (!username || username.length < 2) {
+        return res.status(400).json({ error: 'Please provide a username (at least 2 characters).' });
+    }
+
+    if (!checkRateLimit(`footprint:${req.session.currentuser}`, 15, 60000)) {
+        return res.status(429).json({ error: 'Rate limit exceeded. Please wait a minute before running another search.' });
+    }
+    recordRateLimitAttempt(`footprint:${req.session.currentuser}`);
+
+    try {
+        const results = await Promise.all(FOOTPRINT_PLATFORMS.map(async (platform) => {
+            try {
+                const res = await platform.check(username);
+                return {
+                    id: platform.id,
+                    name: platform.name,
+                    category: platform.category,
+                    icon: platform.icon,
+                    exists: res.exists,
+                    profileUrl: res.profileUrl,
+                    status: res.exists ? 'found' : 'not_found'
+                };
+            } catch (err) {
+                return {
+                    id: platform.id,
+                    name: platform.name,
+                    category: platform.category,
+                    icon: platform.icon,
+                    exists: false,
+                    profileUrl: `https://${platform.id}.com/`,
+                    status: 'error',
+                    error: 'Timed out or blocked'
+                };
+            }
+        }));
+
+        const dorks = generateSearchDorks(username);
+
+        await writeAudit(req, 'Ran Digital Footprint investigation', username);
+
+        res.json({
+            username,
+            scannedAt: new Date().toISOString(),
+            totalScanned: results.length,
+            totalFound: results.filter(r => r.exists).length,
+            results,
+            dorks
+        });
+    } catch (error) {
+        console.error('Error during footprint search:', error);
+        res.status(500).json({ error: 'Failed to run footprint investigation.' });
+    }
+});
+
+// ==========================================================================
 // EVENT SCHEDULER & DISCORD EVENT MANAGEMENT
 // ==========================================================================
 
