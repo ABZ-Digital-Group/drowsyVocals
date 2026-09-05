@@ -3062,6 +3062,7 @@ app.post('/bot/sync-member', requireDatabase, async (req, res) => {
         }
 
         let syncedCount = 0;
+        let updatedCount = 0;
         let errors = [];
         for (const user of targets) {
             const label = user.displayName || user.login.discordId;
@@ -3070,11 +3071,18 @@ app.post('/bot/sync-member', requireDatabase, async (req, res) => {
                     discordId: user.login.discordId
                 });
                 const discordDisplayName = resp?.results?.discordDisplayName;
-                if (discordDisplayName && discordDisplayName !== user.displayName) {
-                    await db.collection('users').updateOne(
+                if (!discordDisplayName) {
+                    errors.push(`${label}: Bot returned no Discord display name.`);
+                } else if (discordDisplayName !== user.displayName) {
+                    const updateResult = await db.collection('users').updateOne(
                         { 'login.discordId': user.login.discordId },
                         { $set: { displayName: discordDisplayName } }
                     );
+                    if (updateResult.matchedCount === 0) {
+                        errors.push(`${label}: No roster record matched Discord ID ${user.login.discordId}.`);
+                    } else {
+                        updatedCount++;
+                    }
                 }
                 if (resp?.ok) {
                     syncedCount++;
@@ -3094,7 +3102,7 @@ app.post('/bot/sync-member', requireDatabase, async (req, res) => {
 
         if (syncedCount > 0) {
             const failureDetails = errors.length ? ` First failures: ${errors.slice(0, 3).join(' | ')}` : '';
-            req.flash('success_msg', `Pulled Discord display names into the roster and synchronized roles for ${syncedCount} member(s).${errors.length ? ` (${errors.length} failed).` : ''}${failureDetails}`);
+            req.flash('success_msg', `Pulled Discord display names into the roster: ${updatedCount} roster record(s) updated from ${syncedCount} Discord member(s).${errors.length ? ` (${errors.length} issue(s)).` : ''}${failureDetails}`);
         } else {
             req.flash('error_msg', errors.length
                 ? `Sync failed: ${errors.slice(0, 3).join(' | ')}`
