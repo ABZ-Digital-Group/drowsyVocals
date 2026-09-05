@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <%- include('../partials/head') %>
+        <title>Digital Footprint Investigation</title>
+        <style>
+            .footprint-container {
+                display: flex;
+                flex-direction: column;
+                gap: 1.5rem;
+                max-width: 1100px;
+                margin: 0 auto;
+                padding: 1rem 0;
+            }
+            .footprint-search-box {
+                background: rgba(255, 255, 255, 0.05);
+                border: 1px solid rgba(255, 255, 255, 0.12);
+                border-radius: 12px;
+                padding: 1.5rem;
+                display: flex;
+                flex-direction: column;
+                gap: 1rem;
+            }
+            .footprint-form-row {
+                display: flex;
+                gap: 1rem;
+                flex-wrap: wrap;
+                align-items: center;
+            }
+            .footprint-input-group {
+                flex: 1;
+                min-width: 240px;
+                display: flex;
+                flex-direction: column;
+                gap: 0.35rem;
+            }
+            .footprint-input-group label {
+                font-size: 0.85rem;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                opacity: 0.8;
+            }
+            .footprint-input-group input,
+            .footprint-input-group select {
+                background: rgba(0, 0, 0, 0.25);
+                border: 1px solid rgba(255, 255, 255, 0.18);
+                color: #fff;
+                padding: 0.75rem 1rem;
+                border-radius: 8px;
+                font-size: 1rem;
+                outline: none;
+            }
+            .footprint-input-group input:focus,
+            .footprint-input-group select:focus {
+                border-color: #7289da;
+                box-shadow: 0 0 0 2px rgba(114, 137, 218, 0.3);
+            }
+            .footprint-btn {
+                background: #5865f2;
+                color: #fff;
+                border: none;
+                padding: 0.75rem 1.5rem;
+                border-radius: 8px;
+                font-size: 1rem;
+                font-weight: 600;
+                cursor: pointer;
+                display: inline-flex;
+                align-items: center;
+                gap: 0.5rem;
+                transition: background 0.2s;
+                align-self: flex-end;
+                margin-top: 1.25rem;
+            }
+            .footprint-btn:hover {
+                background: #4752c4;
+            }
+            .footprint-btn:disabled {
+                opacity: 0.6;
+                cursor: not-allowed;
+            }
+            .footprint-stats {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 1rem;
+            }
+            .footprint-stat-card {
+                background: rgba(255, 255, 255, 0.04);
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                border-radius: 10px;
+                padding: 1.2rem;
+                display: flex;
+                flex-direction: column;
+                gap: 0.25rem;
+            }
+            .footprint-stat-card span {
+                font-size: 0.8rem;
+                opacity: 0.7;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+            .footprint-stat-card strong {
+                font-size: 1.8rem;
+                font-weight: 700;
+            }
+            .footprint-results-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+                gap: 1rem;
+            }
+            .footprint-card {
+                background: rgba(255, 255, 255, 0.04);
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                border-radius: 10px;
+                padding: 1.25rem;
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+                gap: 1rem;
+                transition: transform 0.2s, border-color 0.2s;
+            }
+            .footprint-card:hover {
+                border-color: rgba(255, 255, 255, 0.2);
+            }
+            .footprint-card-header {
+                display: flex;
+                align-items: center;
+                gap: 0.75rem;
+            }
+            .footprint-card-icon {
+                font-size: 1.8rem;
+                color: #b7b2a7;
+            }
+            .footprint-card-title {
+                display: flex;
+                flex-direction: column;
+            }
+            .footprint-card-title h3 {
+                margin: 0;
+                font-size: 1.05rem;
+                font-weight: 600;
+            }
+            .footprint-card-title small {
+                font-size: 0.8rem;
+                opacity: 0.6;
+            }
+            .footprint-badge {
+                padding: 0.25rem 0.6rem;
+                border-radius: 20px;
+                font-size: 0.75rem;
+                font-weight: 600;
+                text-transform: uppercase;
+                display: inline-flex;
+                align-items: center;
+                gap: 0.3rem;
+                width: fit-content;
+            }
+            .footprint-badge-found {
+                background: rgba(46, 204, 113, 0.15);
+                color: #2ecc71;
+                border: 1px solid rgba(46, 204, 113, 0.3);
+            }
+            .footprint-badge-not-found {
+                background: rgba(149, 165, 166, 0.15);
+                color: #95a5a6;
+                border: 1px solid rgba(149, 165, 166, 0.3);
+            }
+            .footprint-badge-error {
+                background: rgba(231, 76, 60, 0.15);
+                color: #e74c3c;
+                border: 1px solid rgba(231, 76, 60, 0.3);
+            }
+            .footprint-link-btn {
+                background: rgba(255, 255, 255, 0.08);
+                color: #fff;
+                text-decoration: none;
+                padding: 0.5rem 1rem;
+                border-radius: 6px;
+                font-size: 0.85rem;
+                font-weight: 500;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 0.4rem;
+                transition: background 0.2s;
+            }
+            .footprint-link-btn:hover {
+                background: rgba(255, 255, 255, 0.18);
+            }
+            .footprint-loading-overlay {
+                display: none;
+                align-items: center;
+                justify-content: center;
+                flex-direction: column;
+                gap: 1rem;
+                padding: 3rem 1rem;
+                text-align: center;
+            }
+            .footprint-spinner {
+                width: 48px;
+                height: 48px;
+                border: 4px solid rgba(255, 255, 255, 0.1);
+                border-top-color: #5865f2;
+                border-radius: 50%;
+                animation: spin 1s linear infinite;
+            }
+            @keyframes spin {
+                to { transform: rotate(360deg); }
+            }
+            .footprint-section-title {
+                font-size: 1.2rem;
+                font-weight: 600;
+                margin-top: 1rem;
+                margin-bottom: 0.5rem;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+                padding-bottom: 0.5rem;
+            }
+        </style>
+    </head>
+    <body>
+        <header><%- include('../partials/nav') %></header>
+        <main>
+            <section class="profile-page">
+                <div class="profile-heading">
+                    <p class="profile-eyebrow">Management & OSINT Intelligence</p>
+                    <h1>Digital Footprint Investigation</h1>
+                    <p class="profile-subtitle">Scan public social, gaming, and developer networks for staff handles or custom aliases.</p>
+                </div>
+
+                <div class="footprint-container">
+                    <div class="footprint-search-box">
+                        <div class="footprint-form-row">
+                            <div class="footprint-input-group">
+                                <label for="staffSelect">Select Staff Member</label>
+                                <select id="staffSelect">
+                                    <option value="">-- Choose a staff member --</option>
+                                    <% users.forEach(function(u) { %>
+                                    <% const uHandle = u.displayName || u.discordUser || u.login?.discordId; %>
+                                    <option value="<%= uHandle %>" <%= initialUsername === uHandle ? 'selected' : '' %>>
+                                        <%= uHandle %> (<%= u.accountType || 'Member' %>)
+                                    </option>
+                                    <% }); %>
+                                </select>
+                            </div>
+                            <div class="footprint-input-group">
+                                <label for="customUsername">Or Enter Username / Alias</label>
+                                <input type="text" id="customUsername" placeholder="e.g. stuartiek" value="<%= initialUsername %>" autocomplete="off" />
+                            </div>
+                            <button id="scanBtn" class="footprint-btn" type="button">
+                                <span class="material-symbols-outlined" aria-hidden="true">fingerprint</span>
+                                Run Investigation
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="loadingOverlay" class="footprint-loading-overlay">
+                        <div class="footprint-spinner"></div>
+                        <h3>Scanning online platforms...</h3>
+                        <p style="opacity: 0.7;">Querying public endpoints across developer, gaming, and social networks. Please wait a few seconds.</p>
+                    </div>
+
+                    <div id="resultsContainer" style="display: none;">
+                        <div class="footprint-stats">
+                            <div class="footprint-stat-card">
+                                <span>Target Handle</span>
+                                <strong id="statHandle">-</strong>
+                            </div>
+                            <div class="footprint-stat-card">
+                                <span>Platforms Scanned</span>
+                                <strong id="statScanned">0</strong>
+                            </div>
+                            <div class="footprint-stat-card">
+                                <span>Matches Detected</span>
+                                <strong id="statFound" style="color: #2ecc71;">0</strong>
+                            </div>
+                        </div>
+
+                        <div id="resultsSections"></div>
+                    </div>
+                </div>
+            </section>
+        </main>
+        <div class="footer"><p>&copy; 2026 Drowsy Vocals | All rights reserved.</p></div>
+
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                const staffSelect = document.getElementById('staffSelect');
+                const customUsername = document.getElementById('customUsername');
+                const scanBtn = document.getElementById('scanBtn');
+                const loadingOverlay = document.getElementById('loadingOverlay');
+                const resultsContainer = document.getElementById('resultsContainer');
+                const resultsSections = document.getElementById('resultsSections');
+                const statHandle = document.getElementById('statHandle');
+                const statScanned = document.getElementById('statScanned');
+                const statFound = document.getElementById('statFound');
+
+                staffSelect.addEventListener('change', () => {
+                    if (staffSelect.value) {
+                        customUsername.value = staffSelect.value;
+                    }
+                });
+
+                async function runScan() {
+                    const handle = customUsername.value.trim();
+                    if (!handle) {
+                        alert('Please select a staff member or enter a username to scan.');
+                        return;
+                    }
+
+                    scanBtn.disabled = true;
+                    loadingOverlay.style.display = 'flex';
+                    resultsContainer.style.display = 'none';
+
+                    try {
+                        const res = await fetch(`/api/footprint/search?username=${encodeURIComponent(handle)}`);
+                        const data = await res.json();
+
+                        if (!res.ok) {
+                            alert(data.error || 'Failed to complete investigation scan.');
+                            return;
+                        }
+
+                        renderResults(data);
+                    } catch (err) {
+                        console.error('Scan error:', err);
+                        alert('An error occurred while connecting to the investigation server.');
+                    } finally {
+                        scanBtn.disabled = false;
+                        loadingOverlay.style.display = 'none';
+                    }
+                }
+
+                function renderResults(data) {
+                    statHandle.textContent = `@${data.username}`;
+                    statScanned.textContent = data.totalScanned;
+                    statFound.textContent = data.totalFound;
+
+                    resultsSections.innerHTML = '';
+
+                    const categories = {};
+                    data.results.forEach(item => {
+                        if (!categories[item.category]) categories[item.category] = [];
+                        categories[item.category].push(item);
+                    });
+
+                    Object.keys(categories).forEach(cat => {
+                        const catTitle = document.createElement('h2');
+                        catTitle.className = 'footprint-section-title';
+                        catTitle.innerHTML = `<span class="material-symbols-outlined">folder</span> ${cat}`;
+                        resultsSections.appendChild(catTitle);
+
+                        const grid = document.createElement('div');
+                        grid.className = 'footprint-results-grid';
+
+                        categories[cat].forEach(item => {
+                            const card = document.createElement('div');
+                            card.className = 'footprint-card';
+
+                            let badgeHtml = '';
+                            if (item.status === 'found') {
+                                badgeHtml = `<span class="footprint-badge footprint-badge-found"><span class="material-symbols-outlined" style="font-size: 1rem;">check_circle</span> Profile Found</span>`;
+                            } else if (item.status === 'error') {
+                                badgeHtml = `<span class="footprint-badge footprint-badge-error"><span class="material-symbols-outlined" style="font-size: 1rem;">help</span> ${item.error}</span>`;
+                            } else {
+                                badgeHtml = `<span class="footprint-badge footprint-badge-not-found"><span class="material-symbols-outlined" style="font-size: 1rem;">cancel</span> Not Found</span>`;
+                            }
+
+                            card.innerHTML = `
+                                <div>
+                                    <div class="footprint-card-header">
+                                        <span class="material-symbols-outlined footprint-card-icon">${item.icon || 'public'}</span>
+                                        <div class="footprint-card-title">
+                                            <h3>${item.name}</h3>
+                                            <small>${cat}</small>
+                                        </div>
+                                    </div>
+                                    <div style="margin-top: 0.75rem;">${badgeHtml}</div>
+                                </div>
+                                <a href="${item.profileUrl}" target="_blank" rel="noreferrer" class="footprint-link-btn">
+                                    <span class="material-symbols-outlined" style="font-size: 1.1rem;">open_in_new</span>
+                                    Visit ${item.name}
+                                </a>
+                            `;
+                            grid.appendChild(card);
+                        });
+
+                        resultsSections.appendChild(grid);
+                    });
+
+                    if (data.dorks && data.dorks.length) {
+                        const dorkTitle = document.createElement('h2');
+                        dorkTitle.className = 'footprint-section-title';
+                        dorkTitle.style.marginTop = '2rem';
+                        dorkTitle.innerHTML = `<span class="material-symbols-outlined">manage_search</span> Search Engine & Investigation Links`;
+                        resultsSections.appendChild(dorkTitle);
+
+                        const dorkGrid = document.createElement('div');
+                        dorkGrid.className = 'footprint-results-grid';
+
+                        data.dorks.forEach(dork => {
+                            const card = document.createElement('div');
+                            card.className = 'footprint-card';
+                            card.innerHTML = `
+                                <div>
+                                    <div class="footprint-card-header">
+                                        <span class="material-symbols-outlined footprint-card-icon" style="color: #5865f2;">${dork.icon || 'search'}</span>
+                                        <div class="footprint-card-title">
+                                            <h3>${dork.name}</h3>
+                                            <small>${dork.description}</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <a href="${dork.url}" target="_blank" rel="noreferrer" class="footprint-link-btn" style="background: rgba(88, 101, 242, 0.2); color: #7983f5;">
+                                    <span class="material-symbols-outlined" style="font-size: 1.1rem;">travel_explore</span>
+                                    Open Query
+                                </a>
+                            `;
+                            dorkGrid.appendChild(card);
+                        });
+
+                        resultsSections.appendChild(dorkGrid);
+                    }
+
+                    resultsContainer.style.display = 'block';
+                }
+
+                scanBtn.addEventListener('click', runScan);
+
+                if (customUsername.value.trim().length > 1) {
+                    runScan();
+                }
+            });
+        </script>
+    </body>
+</html>
