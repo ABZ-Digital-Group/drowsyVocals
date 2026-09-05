@@ -3065,7 +3065,6 @@ app.post('/bot/sync-member', requireDatabase, async (req, res) => {
         let errors = [];
         for (const user of targets) {
             const resp = await botService.syncBot({
-                guildId: parseBotEnv(BOT_ENV_FILE).GUILD_ID,
                 discordId: user.login.discordId,
                 displayName: user.displayName,
                 rank: user.accountType,
