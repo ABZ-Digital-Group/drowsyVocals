@@ -3092,11 +3092,11 @@ app.post('/bot/sync-member', requireDatabase, async (req, res) => {
             }
         }
 
-        await writeAudit(req, 'Triggered Discord Role & Nickname Sync', `${syncedCount} of ${targets.length} members synchronized`);
+        await writeAudit(req, 'Triggered Discord Role & Display Name Sync', `${syncedCount} of ${targets.length} members synchronized`);
 
         if (syncedCount > 0) {
             const failureDetails = errors.length ? ` First failures: ${errors.slice(0, 3).join(' | ')}` : '';
-            req.flash('success_msg', `Synchronized Discord roles and nicknames for ${syncedCount} member(s).${errors.length ? ` (${errors.length} failed).` : ''}${failureDetails}`);
+            req.flash('success_msg', `Pulled Discord display names into the roster and synchronized roles for ${syncedCount} member(s).${errors.length ? ` (${errors.length} failed).` : ''}${failureDetails}`);
         } else {
             req.flash('error_msg', errors.length
                 ? `Sync failed: ${errors.slice(0, 3).join(' | ')}`
