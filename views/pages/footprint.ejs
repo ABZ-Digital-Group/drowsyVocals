@@ -155,10 +155,15 @@
                 gap: 0.3rem;
                 width: fit-content;
             }
-            .footprint-badge-found {
+            .footprint-badge-exact {
                 background: rgba(46, 204, 113, 0.15);
                 color: #2ecc71;
                 border: 1px solid rgba(46, 204, 113, 0.3);
+            }
+            .footprint-badge-potential {
+                background: rgba(241, 196, 15, 0.15);
+                color: #f1c40f;
+                border: 1px solid rgba(241, 196, 15, 0.3);
             }
             .footprint-badge-not-found {
                 background: rgba(149, 165, 166, 0.15);
@@ -361,11 +366,20 @@
 
                             let badgeHtml = '';
                             if (item.status === 'found') {
-                                badgeHtml = `<span class="footprint-badge footprint-badge-found"><span class="material-symbols-outlined" style="font-size: 1rem;">check_circle</span> Profile Found</span>`;
+                                if (item.confidence === 'exact') {
+                                    badgeHtml = `<span class="footprint-badge footprint-badge-exact" title="Confirmed exact handle match via platform API"><span class="material-symbols-outlined" style="font-size: 1rem;">verified</span> Exact Match</span>`;
+                                } else {
+                                    badgeHtml = `<span class="footprint-badge footprint-badge-potential" title="Public profile found (verify identity manually)"><span class="material-symbols-outlined" style="font-size: 1rem;">saved_search</span> Potential Match</span>`;
+                                }
                             } else if (item.status === 'error') {
                                 badgeHtml = `<span class="footprint-badge footprint-badge-error"><span class="material-symbols-outlined" style="font-size: 1rem;">help</span> ${item.error}</span>`;
                             } else {
                                 badgeHtml = `<span class="footprint-badge footprint-badge-not-found"><span class="material-symbols-outlined" style="font-size: 1rem;">cancel</span> Not Found</span>`;
+                            }
+
+                            let detailHtml = '';
+                            if (item.detail) {
+                                detailHtml = `<div style="margin-top: 0.4rem; font-size: 0.8rem; opacity: 0.8; display: flex; align-items: center; gap: 0.3rem;"><span class="material-symbols-outlined" style="font-size: 0.95rem; color: #b7b2a7;">schedule</span> <span>${item.detail}</span></div>`;
                             }
 
                             card.innerHTML = `
@@ -377,7 +391,10 @@
                                             <small>${cat}</small>
                                         </div>
                                     </div>
-                                    <div style="margin-top: 0.75rem;">${badgeHtml}</div>
+                                    <div style="margin-top: 0.75rem;">
+                                        ${badgeHtml}
+                                        ${detailHtml}
+                                    </div>
                                 </div>
                                 <a href="${item.profileUrl}" target="_blank" rel="noreferrer" class="footprint-link-btn">
                                     <span class="material-symbols-outlined" style="font-size: 1.1rem;">open_in_new</span>
