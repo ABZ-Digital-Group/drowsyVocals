@@ -197,6 +197,17 @@
                                     <span>Submit Point Change</span>
                                 </button>
                             </form>
+
+                            <div style="border-top: 1px solid #383734; margin-top: 20px; padding-top: 20px;">
+                                <h4 style="margin: 0 0 8px; color: #f3efe6;">Start a New Competition Cycle</h4>
+                                <p class="settings-hint" style="margin: 0 0 12px;">Reset every staff member's current points to 0 and post a pinned announcement on the bulletin board. Existing point history will be preserved.</p>
+                                <form action="/house-points/reset" method="POST" onsubmit="return confirm('Reset all current house points to 0 and post a bulletin announcement? This cannot be undone.');">
+                                    <button type="submit" class="settings-btn settings-btn-danger">
+                                        <span class="material-symbols-outlined">restart_alt</span>
+                                        <span>Reset All House Points</span>
+                                    </button>
+                                </form>
+                            </div>
                         </div>
                         <% } %>
 
