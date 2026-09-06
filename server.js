@@ -1704,7 +1704,7 @@ app.post('/promote-user', requireDatabase, async (req, res) => {
 
         const isPromotion = getRankChangeType(user.accountType, cleanAccountType) === 'promotion';
         await writeAudit(req, isPromotion ? 'Promoted User' : 'Demoted User', `${user.displayName || cleanDiscordId}: ${user.accountType} -> ${cleanAccountType}`);
-        sendPdLogsWebhook(isPromotion ? 'Staff Promoted' : '# ⬇️ Staff Demoted ⬇️', isPromotion ? 0x3B82F6 : 0xF97316, [
+        sendPdLogsWebhook(isPromotion ? '# ⬆️Staff Promoted ⬆️' : '# ⬇️ Staff Demoted ⬇️', isPromotion ? 0x3B82F6 : 0xF97316, [
             { name: 'Staff Member', value: `${user.displayName || user.discordUser || cleanDiscordId} (<@${cleanDiscordId}>)`, inline: true },
             { name: 'Previous Rank', value: user.accountType || 'Unassigned', inline: true },
             { name: 'New Rank', value: cleanAccountType, inline: true },
