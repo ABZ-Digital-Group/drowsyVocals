@@ -3330,7 +3330,7 @@ app.post('/house-points/award', requireDatabase, async (req, res) => {
         }
 
         const currentPoints = Number(targetUser.housePoints) || 0;
-        const effectiveAmount = cleanAmount > 0 && currentPoints > 10 ? cleanAmount * 2 : cleanAmount;
+        const effectiveAmount = cleanAmount;
         const newPoints = Math.max(0, currentPoints + effectiveAmount);
 
         await db.collection('users').updateOne(
@@ -3895,12 +3895,28 @@ const FOOTPRINT_PLATFORMS = [
         category: 'Coding & Tech',
         icon: 'code',
         check: async (username) => {
-            const url = `https://github.com/${encodeURIComponent(username)}`;
-            const res = await fetch(url, {
+            const apiUrl = `https://api.github.com/users/${encodeURIComponent(username)}`;
+            const res = await fetch(apiUrl, {
                 headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
                 signal: AbortSignal.timeout(3500)
             });
-            return { exists: res.status === 200, profileUrl: url };
+            if (res.status === 200) {
+                const data = await res.json();
+                let detail = null;
+                if (data.created_at) {
+                    const createdDate = new Date(data.created_at);
+                    const ageYears = Math.floor((new Date() - createdDate) / (1000 * 60 * 60 * 24 * 365.25));
+                    detail = `Account created ${createdDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })} (~${ageYears} yrs old)`;
+                }
+                const isExact = data.login.toLowerCase() === username.toLowerCase();
+                return {
+                    exists: true,
+                    profileUrl: data.html_url || `https://github.com/${encodeURIComponent(username)}`,
+                    confidence: isExact ? 'exact' : 'potential',
+                    detail
+                };
+            }
+            return { exists: false, profileUrl: `https://github.com/${encodeURIComponent(username)}`, confidence: 'potential' };
         }
     },
     {
@@ -3914,7 +3930,7 @@ const FOOTPRINT_PLATFORMS = [
                 headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
                 signal: AbortSignal.timeout(3500)
             });
-            return { exists: res.status === 200, profileUrl: url };
+            return { exists: res.status === 200, profileUrl: url, confidence: 'potential' };
         }
     },
     {
@@ -3928,7 +3944,7 @@ const FOOTPRINT_PLATFORMS = [
                 headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
                 signal: AbortSignal.timeout(3500)
             });
-            return { exists: res.status === 200, profileUrl: url };
+            return { exists: res.status === 200, profileUrl: url, confidence: 'potential' };
         }
     },
     {
@@ -3942,7 +3958,7 @@ const FOOTPRINT_PLATFORMS = [
                 headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
                 signal: AbortSignal.timeout(3500)
             });
-            return { exists: res.status === 200, profileUrl: url };
+            return { exists: res.status === 200, profileUrl: url, confidence: 'potential' };
         }
     },
     {
@@ -3956,7 +3972,7 @@ const FOOTPRINT_PLATFORMS = [
                 headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
                 signal: AbortSignal.timeout(3500)
             });
-            return { exists: res.status === 200, profileUrl: url };
+            return { exists: res.status === 200, profileUrl: url, confidence: 'potential' };
         }
     },
     {
@@ -3970,7 +3986,7 @@ const FOOTPRINT_PLATFORMS = [
                 headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
                 signal: AbortSignal.timeout(3500)
             });
-            return { exists: res.status === 200, profileUrl: url };
+            return { exists: res.status === 200, profileUrl: url, confidence: 'potential' };
         }
     },
     {
@@ -3986,9 +4002,23 @@ const FOOTPRINT_PLATFORMS = [
             });
             if (res.status === 200) {
                 const data = await res.json();
-                return { exists: Boolean(data && data.data && !data.data.is_suspended), profileUrl: `https://www.reddit.com/user/${encodeURIComponent(username)}` };
+                if (data && data.data && !data.data.is_suspended) {
+                    let detail = null;
+                    if (data.data.created_utc) {
+                        const createdDate = new Date(data.data.created_utc * 1000);
+                        const ageYears = Math.floor((new Date() - createdDate) / (1000 * 60 * 60 * 24 * 365.25));
+                        detail = `Account created ${createdDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })} (~${ageYears} yrs old)`;
+                    }
+                    const isExact = data.data.name.toLowerCase() === username.toLowerCase();
+                    return {
+                        exists: true,
+                        profileUrl: `https://www.reddit.com/user/${encodeURIComponent(username)}`,
+                        confidence: isExact ? 'exact' : 'potential',
+                        detail
+                    };
+                }
             }
-            return { exists: false, profileUrl: `https://www.reddit.com/user/${encodeURIComponent(username)}` };
+            return { exists: false, profileUrl: `https://www.reddit.com/user/${encodeURIComponent(username)}`, confidence: 'potential' };
         }
     },
     {
@@ -4003,7 +4033,7 @@ const FOOTPRINT_PLATFORMS = [
                 headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
                 signal: AbortSignal.timeout(3500)
             });
-            return { exists: res.status === 200, profileUrl: url };
+            return { exists: res.status === 200, profileUrl: url, confidence: 'exact' };
         }
     },
     {
@@ -4017,7 +4047,7 @@ const FOOTPRINT_PLATFORMS = [
                 headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
                 signal: AbortSignal.timeout(3500)
             });
-            return { exists: res.status === 200, profileUrl: url };
+            return { exists: res.status === 200, profileUrl: url, confidence: 'potential' };
         }
     },
     {
@@ -4039,11 +4069,24 @@ const FOOTPRINT_PLATFORMS = [
             if (res.status === 200) {
                 const data = await res.json();
                 if (data.data && data.data.length > 0) {
-                    const userId = data.data[0].id;
-                    return { exists: true, profileUrl: `https://www.roblox.com/users/${userId}/profile` };
+                    const userObj = data.data[0];
+                    const userId = userObj.id;
+                    const isExact = userObj.name.toLowerCase() === username.toLowerCase();
+                    let detail = `Roblox ID: ${userId}`;
+                    if (userObj.created) {
+                        const createdDate = new Date(userObj.created);
+                        const ageYears = Math.floor((new Date() - createdDate) / (1000 * 60 * 60 * 24 * 365.25));
+                        detail += ` · Created ${createdDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })} (~${ageYears} yrs old)`;
+                    }
+                    return {
+                        exists: true,
+                        profileUrl: `https://www.roblox.com/users/${userId}/profile`,
+                        confidence: isExact ? 'exact' : 'potential',
+                        detail
+                    };
                 }
             }
-            return { exists: false, profileUrl: `https://www.roblox.com/search/users?keyword=${encodeURIComponent(username)}` };
+            return { exists: false, profileUrl: `https://www.roblox.com/search/users?keyword=${encodeURIComponent(username)}`, confidence: 'potential' };
         }
     },
     {
@@ -4060,9 +4103,9 @@ const FOOTPRINT_PLATFORMS = [
             if (res.status === 200) {
                 const text = await res.text();
                 const notFound = text.includes('The specified profile could not be found');
-                return { exists: !notFound, profileUrl: url };
+                return { exists: !notFound, profileUrl: url, confidence: notFound ? 'potential' : 'exact' };
             }
-            return { exists: false, profileUrl: url };
+            return { exists: false, profileUrl: url, confidence: 'potential' };
         }
     },
     {
@@ -4076,7 +4119,7 @@ const FOOTPRINT_PLATFORMS = [
                 headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
                 signal: AbortSignal.timeout(3500)
             });
-            return { exists: res.status === 200, profileUrl: url };
+            return { exists: res.status === 200, profileUrl: url, confidence: 'exact' };
         }
     },
     {
@@ -4090,7 +4133,23 @@ const FOOTPRINT_PLATFORMS = [
                 headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
                 signal: AbortSignal.timeout(3500)
             });
-            return { exists: res.status === 200, profileUrl: `https://www.chess.com/member/${encodeURIComponent(username)}` };
+            if (res.status === 200) {
+                const data = await res.json();
+                let detail = null;
+                if (data.joined) {
+                    const joinedDate = new Date(data.joined * 1000);
+                    const ageYears = Math.floor((new Date() - joinedDate) / (1000 * 60 * 60 * 24 * 365.25));
+                    detail = `Joined ${joinedDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })} (~${ageYears} yrs old)`;
+                }
+                const isExact = data.username.toLowerCase() === username.toLowerCase();
+                return {
+                    exists: true,
+                    profileUrl: `https://www.chess.com/member/${encodeURIComponent(username)}`,
+                    confidence: isExact ? 'exact' : 'potential',
+                    detail
+                };
+            }
+            return { exists: false, profileUrl: `https://www.chess.com/member/${encodeURIComponent(username)}`, confidence: 'potential' };
         }
     },
     {
@@ -4105,7 +4164,7 @@ const FOOTPRINT_PLATFORMS = [
                 headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
                 signal: AbortSignal.timeout(3500)
             });
-            return { exists: res.status === 200, profileUrl: url };
+            return { exists: res.status === 200, profileUrl: url, confidence: 'potential' };
         }
     },
     {
@@ -4119,7 +4178,7 @@ const FOOTPRINT_PLATFORMS = [
                 headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
                 signal: AbortSignal.timeout(3500)
             });
-            return { exists: res.status === 200, profileUrl: url };
+            return { exists: res.status === 200, profileUrl: url, confidence: 'potential' };
         }
     },
     {
@@ -4133,7 +4192,7 @@ const FOOTPRINT_PLATFORMS = [
                 headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
                 signal: AbortSignal.timeout(3500)
             });
-            return { exists: res.status === 200, profileUrl: url };
+            return { exists: res.status === 200, profileUrl: url, confidence: 'potential' };
         }
     },
     {
@@ -4147,7 +4206,7 @@ const FOOTPRINT_PLATFORMS = [
                 headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
                 signal: AbortSignal.timeout(3500)
             });
-            return { exists: res.status === 200, profileUrl: url };
+            return { exists: res.status === 200, profileUrl: url, confidence: 'potential' };
         }
     }
 ];
@@ -4240,6 +4299,8 @@ app.get('/api/footprint/search', requireDatabase, async (req, res) => {
                     icon: platform.icon,
                     exists: res.exists,
                     profileUrl: res.profileUrl,
+                    confidence: res.confidence || 'potential',
+                    detail: res.detail || null,
                     status: res.exists ? 'found' : 'not_found'
                 };
             } catch (err) {
@@ -4250,6 +4311,8 @@ app.get('/api/footprint/search', requireDatabase, async (req, res) => {
                     icon: platform.icon,
                     exists: false,
                     profileUrl: `https://${platform.id}.com/`,
+                    confidence: 'potential',
+                    detail: null,
                     status: 'error',
                     error: 'Timed out or blocked'
                 };
