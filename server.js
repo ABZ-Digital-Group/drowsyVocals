@@ -3884,11 +3884,6 @@ app.get('/audit-log', requireDatabase, async (req, res) => {
             db.collection('users').find({}, { projection: { displayName: 1, discordUser: 1, 'login.discordId': 1 } }).toArray()
         ]);
 
-        app.get('/changelog', async (req, res) => {
-            if (!req.session.loggedin) return res.redirect('/');
-            if (!hasManagementAccess(req)) return res.status(403).send('You do not have permission to view the changelog.');
-            res.render('pages/changelog', { page: 'changelog', entries: CHANGELOG_ENTRIES });
-        });
         const nameByDiscordId = new Map(users.map((user) => [user.login.discordId, user.displayName || user.discordUser || user.login.discordId]));
         res.render('pages/audit-log', { page: 'audit-log', entries: entries.map((entry) => ({ ...entry, actorDisplayName: entry.actorDisplayName || nameByDiscordId.get(entry.actor) || entry.actor })) });
     } catch (error) {
@@ -3898,6 +3893,12 @@ app.get('/audit-log', requireDatabase, async (req, res) => {
 });
 
 // ==========================================================================
+
+app.get('/changelog', async (req, res) => {
+    if (!req.session.loggedin) return res.redirect('/');
+    if (!hasManagementAccess(req)) return res.status(403).send('You do not have permission to view the changelog.');
+    res.render('pages/changelog', { page: 'changelog', entries: CHANGELOG_ENTRIES });
+});
 // DIGITAL FOOTPRINT / OSINT SEARCH
 // ==========================================================================
 
