@@ -312,6 +312,13 @@ const canViewCheckIn = (req, checkIn) => {
 const hasFeedbackManagementAccess = (req) => hasGodAccess(req);
 const rankOrder = ['Mr. Sandman', 'Realm God', 'Drowsy Defender', 'Dreamy Defender', 'Dreamland Guard', 'Nighty Knights', 'Tired Esquire'];
 const getRankChangeType = (oldRank, newRank) => rankOrder.indexOf(newRank) < rankOrder.indexOf(oldRank) ? 'promotion' : 'demotion';
+const CHANGELOG_ENTRIES = [
+    {
+        date: '2026-09-06',
+        title: 'House points awards updated',
+        changes: ['Removed the automatic doubling of house points for users with more than 10 points.']
+    }
+];
 
 async function writeAudit(req, action, detail) {
     if (!db || !req.session.currentuser) return;
@@ -3876,6 +3883,12 @@ app.get('/audit-log', requireDatabase, async (req, res) => {
             db.collection('auditLog').find().sort({ createdAt: -1 }).limit(100).toArray(),
             db.collection('users').find({}, { projection: { displayName: 1, discordUser: 1, 'login.discordId': 1 } }).toArray()
         ]);
+
+        app.get('/changelog', async (req, res) => {
+            if (!req.session.loggedin) return res.redirect('/');
+            if (!hasManagementAccess(req)) return res.status(403).send('You do not have permission to view the changelog.');
+            res.render('pages/changelog', { page: 'changelog', entries: CHANGELOG_ENTRIES });
+        });
         const nameByDiscordId = new Map(users.map((user) => [user.login.discordId, user.displayName || user.discordUser || user.login.discordId]));
         res.render('pages/audit-log', { page: 'audit-log', entries: entries.map((entry) => ({ ...entry, actorDisplayName: entry.actorDisplayName || nameByDiscordId.get(entry.actor) || entry.actor })) });
     } catch (error) {

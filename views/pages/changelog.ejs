@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head><%- include('../partials/head') %><title>Changelog</title></head>
+    <body>
+        <header><%- include('../partials/nav') %></header>
+        <main>
+            <section class="profile-page">
+                <div class="profile-heading">
+                    <p class="profile-eyebrow">Management</p>
+                    <h1>Changelog</h1>
+                    <p class="profile-subtitle">Recent website updates and feature changes.</p>
+                </div>
+                <ul class="changelog-list">
+                    <% if (!entries.length) { %>
+                    <li>No updates have been recorded yet.</li>
+                    <% } %>
+                    <% entries.forEach(function(entry) { %>
+                    <li class="changelog-entry">
+                        <time datetime="<%= entry.date %>"><%= entry.date %></time>
+                        <div>
+                            <h2><%= entry.title %></h2>
+                            <ul>
+                                <% entry.changes.forEach(function(change) { %>
+                                <li><%= change %></li>
+                                <% }); %>
+                            </ul>
+                        </div>
+                    </li>
+                    <% }); %>
+                </ul>
+            </section>
+        </main>
+        <div class="footer"><p>&copy; 2026 Drowsy Vocals | All rights reserved.</p></div>
+    </body>
+</html>
