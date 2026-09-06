@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head><%- include('../partials/head') %><title>Notifications</title></head>
+    <body>
+        <header><%- include('../partials/nav') %></header>
+        <main>
+            <section class="profile-page">
+                <div class="profile-heading notification-heading">
+                    <div>
+                        <p class="profile-eyebrow">Account</p>
+                        <h1>Notifications</h1>
+                        <p class="profile-subtitle">Updates and decisions related to your account.</p>
+                    </div>
+                    <% if (unreadCount) { %>
+                    <form method="post" action="/notifications/read-all">
+                        <button class="settings-btn settings-btn-secondary" type="submit">Mark all as read</button>
+                    </form>
+                    <% } %>
+                </div>
+                <ul class="notifications-list">
+                    <% if (!entries.length) { %>
+                    <li class="notification-empty">You are all caught up.</li>
+                    <% } %>
+                    <% entries.forEach(function(entry) { %>
+                    <li class="notification-item<%= entry.readAt ? '' : ' is-unread' %>">
+                        <div>
+                            <h2><%= entry.title %></h2>
+                            <p><%= entry.text %></p>
+                            <time datetime="<%= entry.createdAt %>"><%= (entry.createdAt || '').replace('T', ' ').slice(0, 19) %></time>
+                        </div>
+                        <div class="notification-actions">
+                            <% if (entry.href) { %><a class="settings-btn settings-btn-secondary settings-btn-sm" href="<%= entry.href %>">View</a><% } %>
+                            <% if (!entry.readAt) { %>
+                            <form method="post" action="/notifications/<%= entry._id %>/read">
+                                <button class="settings-btn settings-btn-secondary settings-btn-sm" type="submit">Mark read</button>
+                            </form>
+                            <% } %>
+                        </div>
+                    </li>
+                    <% }); %>
+                </ul>
+            </section>
+        </main>
+        <div class="footer"><p>&copy; 2026 Drowsy Vocals | All rights reserved.</p></div>
+    </body>
+</html>

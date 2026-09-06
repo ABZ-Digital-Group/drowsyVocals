@@ -4122,6 +4122,16 @@ dialog button {
 .audit-log { margin: 28px 0 0; padding: 0; list-style: none; border-top: 1px solid #242320; }
 .audit-log li { display: grid; grid-template-columns: minmax(160px, .7fr) 1fr minmax(180px, 1fr); gap: 12px; padding: 14px 0; border-bottom: 1px solid #24232044; }
 .audit-log small { color: #6f6a60; }
+.notification-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
+.notifications-list { margin: 28px 0 0; padding: 0; list-style: none; border-top: 1px solid #242320; }
+.notification-item { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; padding: 18px 0; border-bottom: 1px solid #24232044; }
+.notification-item.is-unread { border-left: 4px solid #242320; padding-left: 12px; }
+.notification-item h2 { margin: 0 0 6px; font-size: 1.05em; }
+.notification-item p { margin: 0 0 7px; }
+.notification-item time { color: #6f6a60; font-size: .85em; }
+.notification-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.notification-actions form { margin: 0; }
+.notification-empty { padding: 18px 0; color: #6f6a60; }
 .changelog-list { margin: 28px 0 0; padding: 0; list-style: none; border-top: 1px solid #242320; }
 .changelog-entry { display: grid; grid-template-columns: minmax(120px, .3fr) 1fr; gap: 20px; padding: 18px 0; border-bottom: 1px solid #24232044; }
 .changelog-entry time { color: #6f6a60; font-weight: bold; }

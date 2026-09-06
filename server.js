@@ -153,6 +153,18 @@ function broadcastDataUpdate(collection) {
     io?.emit('data-updated', { collection });
 }
 
+async function createNotification(recipientId, title, text, href) {
+    if (!db || !recipientId) return;
+    await db.collection('notifications').insertOne({
+        recipientId,
+        title,
+        text,
+        href,
+        readAt: null,
+        createdAt: new Date().toISOString()
+    });
+}
+
 function startLiveUpdates() {
     if (!db || liveChangeStreams.length) return;
 
@@ -663,6 +675,19 @@ app.use(async (req, res, next) => {
             if (hasFeedbackManagementAccess(req) && newFeedback) res.locals.notifications.push({ href: '/feedback', text: `${newFeedback} feedback item${newFeedback === 1 ? '' : 's'} to review` });
             if (pendingApps) res.locals.notifications.push({ href: '/applications', text: `${pendingApps} pending application${pendingApps === 1 ? '' : 's'}` });
         }
+
+        const storedNotifications = await db.collection('notifications')
+            .find({ recipientId: req.session.currentuser, readAt: null })
+            .sort({ createdAt: -1 })
+            .limit(5)
+            .toArray();
+        storedNotifications.forEach((notification) => {
+            res.locals.notifications.push({
+                href: '/notifications',
+                text: notification.title,
+                notificationId: notification._id.toString()
+            });
+        });
     } catch (error) {
         console.error('Notification refresh failed:', error.message);
     }
@@ -673,6 +698,11 @@ app.use(async (req, res, next) => {
 const BINGO_GOALS = [
     { id: '1', label: '1', target: '3 HP' },
     { id: '2', label: '2', target: '2 HP' },
+    {
+        date: '2026-09-06',
+        title: 'Persistent notifications inbox added',
+        changes: ['Added a notification inbox with stored history, unread counts, and mark-as-read controls for personal updates.']
+    },
     { id: '3', label: '3', target: '2 HP' },
     { id: '4', label: '4', target: '2 HP' },
     { id: '5', label: '5', target: '3 HP' },
@@ -1958,6 +1988,12 @@ app.post('/appeals/:appealId/decision', requireDatabase, async (req, res) => {
         }, 'appeals');
 
         await writeAudit(req, 'Decided Strike Appeal', `${decision} for ${appeal.applicantName} (Strike: ${appeal.strikeReason})`);
+        createNotification(
+            appeal.applicantDiscordId,
+            'Strike appeal decision',
+            `Your strike appeal was ${decision.toLowerCase()}.`,
+            '/account'
+        ).catch((error) => console.error('Failed to create appeal notification:', error.message));
         req.flash('success_msg', `Appeal decision recorded: ${decision}.`);
         res.redirect('/appeals');
     } catch (e) {
@@ -3376,6 +3412,12 @@ app.post('/house-points/award', requireDatabase, async (req, res) => {
             ]
         }, 'housePoints');
 
+        createNotification(
+            cleanDiscordId,
+            effectiveAmount >= 0 ? 'House points awarded' : 'House points deducted',
+            `${effectiveAmount >= 0 ? '+' : ''}${effectiveAmount} house points were recorded for your account.`,
+            '/house-points'
+        ).catch((error) => console.error('Failed to create house-points notification:', error.message));
         broadcastDataUpdate('users');
         req.flash('success_msg', `Recorded point change of ${effectiveAmount >= 0 ? '+' : ''}${effectiveAmount} pts for ${logEntry.recipientName}.`);
         res.redirect('/house-points');
@@ -3448,6 +3490,12 @@ app.post('/badges/award', requireDatabase, async (req, res) => {
             ]
         }, 'housePoints');
 
+        createNotification(
+            cleanDiscordId,
+            'New staff badge awarded',
+            `You received the badge "${cleanName}".`,
+            '/account'
+        ).catch((error) => console.error('Failed to create badge notification:', error.message));
         broadcastDataUpdate('users');
         req.flash('success_msg', `Awarded badge "${cleanName}" to ${targetUser.displayName || targetUser.discordUser}.`);
         res.redirect(req.headers.referer || '/roster');
@@ -3899,6 +3947,46 @@ app.get('/changelog', async (req, res) => {
     if (!hasManagementAccess(req)) return res.status(403).send('You do not have permission to view the changelog.');
     res.render('pages/changelog', { page: 'changelog', entries: CHANGELOG_ENTRIES });
 });
+
+app.get('/notifications', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin) return res.redirect('/');
+    try {
+        const entries = await db.collection('notifications')
+            .find({ recipientId: req.session.currentuser })
+            .sort({ createdAt: -1 })
+            .limit(100)
+            .toArray();
+        res.render('pages/notifications', {
+            page: 'notifications',
+            entries,
+            unreadCount: entries.filter((entry) => !entry.readAt).length
+        });
+    } catch (error) {
+        console.error('Error loading notifications:', error);
+        res.status(500).send('Error loading notifications.');
+    }
+});
+
+app.post('/notifications/read-all', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin) return res.redirect('/');
+    await db.collection('notifications').updateMany(
+        { recipientId: req.session.currentuser, readAt: null },
+        { $set: { readAt: new Date().toISOString() } }
+    );
+    res.redirect('/notifications');
+});
+
+app.post('/notifications/:notificationId/read', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin) return res.redirect('/');
+    if (ObjectId.isValid(req.params.notificationId)) {
+        await db.collection('notifications').updateOne(
+            { _id: new ObjectId(req.params.notificationId), recipientId: req.session.currentuser },
+            { $set: { readAt: new Date().toISOString() } }
+        );
+    }
+    res.redirect('/notifications');
+});
+
 // DIGITAL FOOTPRINT / OSINT SEARCH
 // ==========================================================================
 
@@ -4921,6 +5009,12 @@ app.post('/review-loa', requireDatabase, async (req, res) => {
         }, 'loa');
 
         await writeAudit(req, 'Reviewed LOA request', `${decision}: ${discordId}`);
+        createNotification(
+            discordId,
+            `LOA request ${decision.toLowerCase()}`,
+            `Your LOA request was ${decision.toLowerCase()}.`,
+            '/loa'
+        ).catch((error) => console.error('Failed to create LOA notification:', error.message));
         req.flash('success_msg', `LOA request ${decision.toLowerCase()}.`);
         res.redirect('/loa');
     } catch (error) {
