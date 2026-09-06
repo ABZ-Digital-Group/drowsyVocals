@@ -327,6 +327,11 @@ const getRankChangeType = (oldRank, newRank) => rankOrder.indexOf(newRank) < ran
 const CHANGELOG_ENTRIES = [
     {
         date: '2026-09-06',
+        title: 'House points reset tool added',
+        changes: ['Managers can reset all current house points to zero and automatically publish a bulletin-board announcement.']
+    },
+    {
+        date: '2026-09-06',
         title: 'Persistent notifications inbox added',
         changes: ['Added a notification inbox with stored history, unread counts, and mark-as-read controls for personal updates.']
     },
@@ -3426,6 +3431,45 @@ app.post('/house-points/award', requireDatabase, async (req, res) => {
         req.flash('error_msg', 'Failed to update points.');
         res.redirect('/house-points');
     }
+});
+
+// RESET ALL CURRENT HOUSE POINTS (MANAGEMENT ONLY)
+app.post('/house-points/reset', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !hasManagementAccess(req)) {
+        req.flash('error_msg', 'You are not authorized to reset house points.');
+        return res.redirect('/house-points');
+    }
+
+    try {
+        const resetAt = new Date().toISOString();
+        const actor = await db.collection('users').findOne(
+            { 'login.discordId': req.session.currentuser },
+            { projection: { displayName: 1, discordUser: 1 } }
+        );
+        const actorName = actor?.displayName || actor?.discordUser || req.session.currentuser;
+        const resetResult = await db.collection('users').updateMany(
+            { housePoints: { $exists: true, $ne: 0 } },
+            { $set: { housePoints: 0 } }
+        );
+        const announcement = `House points have been reset to 0 for a new competition cycle by ${actorName}.`;
+
+        await db.collection('announcements').insertOne({
+            content: announcement,
+            createdBy: req.session.currentuser,
+            createdByName: actorName,
+            createdAt: resetAt.slice(0, 19),
+            expiresAt: null,
+            pinned: true
+        });
+        await writeAudit(req, 'Reset House Points', `${resetResult.modifiedCount} user account(s) reset to 0`);
+        broadcastDataUpdate('users');
+        req.flash('success_msg', `House points reset to 0 for ${resetResult.modifiedCount} user account(s), and a bulletin announcement was posted.`);
+    } catch (error) {
+        console.error('Error resetting house points:', error);
+        req.flash('error_msg', 'Failed to reset house points.');
+    }
+
+    res.redirect('/house-points');
 });
 
 // AWARD CUSTOM STAFF BADGE / COMMENDATION (MANAGEMENT ONLY)
