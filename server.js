@@ -2662,7 +2662,7 @@ app.post('/deleteUser', requireDatabase, async (req, res) => {
 
         await db.collection('users').deleteOne({ 'login.discordId': cleanDiscordId });
         await writeAudit(req, 'Deleted User', `${targetUser.displayName || targetUser.discordUser || cleanDiscordId} (${cleanDiscordId})`);
-        sendPdLogsWebhook('Staff Departure', 0xEF4444, [
+        sendPdLogsWebhook('# 👋 Staff Departure 👋', 0xEF4444, [
             { name: 'Staff Member', value: `${targetUser.displayName || targetUser.discordUser || cleanDiscordId} (<@${cleanDiscordId}>)`, inline: true },
             { name: 'Final Rank', value: targetUser.accountType || 'Unassigned', inline: true },
             { name: 'Removed By', value: `<@${req.session.currentuser}>`, inline: true }
