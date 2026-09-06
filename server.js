@@ -327,6 +327,11 @@ const getRankChangeType = (oldRank, newRank) => rankOrder.indexOf(newRank) < ran
 const CHANGELOG_ENTRIES = [
     {
         date: '2026-09-06',
+        title: 'Persistent notifications inbox added',
+        changes: ['Added a notification inbox with stored history, unread counts, and mark-as-read controls for personal updates.']
+    },
+    {
+        date: '2026-09-06',
         title: 'House points awards updated',
         changes: ['Removed the automatic doubling of house points for users with more than 10 points.']
     }
@@ -698,11 +703,6 @@ app.use(async (req, res, next) => {
 const BINGO_GOALS = [
     { id: '1', label: '1', target: '3 HP' },
     { id: '2', label: '2', target: '2 HP' },
-    {
-        date: '2026-09-06',
-        title: 'Persistent notifications inbox added',
-        changes: ['Added a notification inbox with stored history, unread counts, and mark-as-read controls for personal updates.']
-    },
     { id: '3', label: '3', target: '2 HP' },
     { id: '4', label: '4', target: '2 HP' },
     { id: '5', label: '5', target: '3 HP' },
