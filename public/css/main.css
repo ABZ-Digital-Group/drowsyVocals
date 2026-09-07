@@ -3544,7 +3544,7 @@ th {
 
 dialog {
     border: none;
-    width: 400px;
+    width: 520px;
     max-width: 90vw;
     max-height: 85vh;
     overflow-y: auto;
@@ -3556,7 +3556,7 @@ dialog {
 }
 
 dialog.dialog-wide {
-    width: 580px;
+    width: 760px;
     max-width: 95vw;
 }
 

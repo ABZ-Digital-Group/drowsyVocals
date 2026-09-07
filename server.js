@@ -1515,7 +1515,7 @@ app.post('/add-user', requireDatabase, async (req, res) => {
 
         await db.collection('users').insertOne(newUser);
         await writeAudit(req, 'Added Staff Member', `${cleanDisplayName} (${cleanDiscordId}) - ${cleanAccountType}`);
-        sendPdLogsWebhook('Staff Added', 0x22C55E, [
+        sendPdLogsWebhook('# 👋 Staff Added 👋', 0x22C55E, [
             { name: 'Staff Member', value: `${cleanDisplayName} (<@${cleanDiscordId}>)`, inline: true },
             { name: 'Rank', value: cleanAccountType || 'Unassigned', inline: true },
             { name: 'Added By', value: `<@${req.session.currentuser}>`, inline: true }
