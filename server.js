@@ -326,6 +326,11 @@ const rankOrder = ['Mr. Sandman', 'Realm God', 'Drowsy Defender', 'Dreamy Defend
 const getRankChangeType = (oldRank, newRank) => rankOrder.indexOf(newRank) < rankOrder.indexOf(oldRank) ? 'promotion' : 'demotion';
 const CHANGELOG_ENTRIES = [
     {
+        date: '2026-09-08',
+        title: 'Roster planner exclusion is now non-destructive',
+        changes: ['The planner exclusion drop zone now removes staff only from the selected future roster plan without deleting their account.']
+    },
+    {
         date: '2026-09-07',
         title: 'Invite whitelist now reads live bot state',
         changes: ['The management bot page now loads invite whitelist IDs from the live bot API, with the local file retained as a fallback.']
@@ -5540,7 +5545,11 @@ app.get('/roster-planner', requireDatabase, async (req, res) => {
 
         users.forEach((user) => {
             const assignment = plannedAssignments.get(user.login.discordId);
-            const plannedRank = rankNames.has(assignment?.accountType) ? assignment.accountType : user.accountType;
+            const plannedRank = rankNames.has(assignment?.accountType)
+                ? assignment.accountType
+                : savedPlan
+                    ? null
+                    : user.accountType;
             const lane = lanesByRank.get(plannedRank);
             if (lane) {
                 lane.users.push({
