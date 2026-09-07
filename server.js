@@ -721,10 +721,6 @@ const BINGO_GOALS = [
 // A USER IS CONSIDERED "ONLINE" IF SEEN WITHIN THIS WINDOW
 const ONLINE_THRESHOLD_MS = 2 * 60 * 1000;
 
-// AVATAR UPLOAD STORAGE
-const AVATAR_UPLOAD_DIR = path.join(__dirname, 'public', 'uploads', 'avatars');
-fs.mkdirSync(AVATAR_UPLOAD_DIR, { recursive: true });
-
 const AVATAR_MIME_EXTENSIONS = {
     'image/png': '.png',
     'image/jpeg': '.jpg',
@@ -732,14 +728,7 @@ const AVATAR_MIME_EXTENSIONS = {
 };
 
 const avatarUpload = multer({
-    storage: multer.diskStorage({
-        destination: (req, file, cb) => cb(null, AVATAR_UPLOAD_DIR),
-        filename: (req, file, cb) => {
-            const extension = AVATAR_MIME_EXTENSIONS[file.mimetype] || '';
-            const safeId = (req.session.currentuser || 'user').replace(/[^a-zA-Z0-9_-]/g, '');
-            cb(null, `${safeId}-${Date.now()}${extension}`);
-        }
-    }),
+    storage: multer.memoryStorage(),
     limits: { fileSize: 2 * 1024 * 1024 },
     fileFilter: (req, file, cb) => {
         if (!AVATAR_MIME_EXTENSIONS[file.mimetype]) {
@@ -3744,6 +3733,21 @@ app.get('/account', requireDatabase, async (req, res) => {
     }
 });
 
+// SERVE AVATARS FROM MONGODB SO DEPLOYMENTS CANNOT REMOVE PROFILE PICTURES.
+app.get('/uploads/avatars/:discordId', requireDatabase, async (req, res) => {
+    try {
+        const avatar = await db.collection('avatars').findOne({ discordId: req.params.discordId });
+        if (!avatar?.data || !avatar.contentType) return res.sendStatus(404);
+
+        res.type(avatar.contentType);
+        res.set('Cache-Control', 'public, max-age=31536000, immutable');
+        res.send(avatar.data.buffer || avatar.data);
+    } catch (error) {
+        console.error('Error loading avatar:', error.message);
+        res.sendStatus(404);
+    }
+});
+
 // UPLOAD OWN PROFILE PICTURE
 app.post('/account/upload-avatar', requireDatabase, (req, res) => {
     if (!req.session.loggedin) return res.redirect('/');
@@ -3761,18 +3765,24 @@ app.post('/account/upload-avatar', requireDatabase, (req, res) => {
 
         try {
             const currentDiscordId = req.session.currentuser;
-            const user = await db.collection('users').findOne({ 'login.discordId': currentDiscordId });
-            const newAvatarUrl = `/uploads/avatars/${req.file.filename}`;
+            const avatarVersion = Date.now();
+            const newAvatarUrl = `/uploads/avatars/${encodeURIComponent(currentDiscordId)}?v=${avatarVersion}`;
+
+            await db.collection('avatars').replaceOne(
+                { discordId: currentDiscordId },
+                {
+                    discordId: currentDiscordId,
+                    data: req.file.buffer,
+                    contentType: req.file.mimetype,
+                    updatedAt: new Date(avatarVersion)
+                },
+                { upsert: true }
+            );
 
             await db.collection('users').updateOne(
                 { 'login.discordId': currentDiscordId },
                 { $set: { avatarUrl: newAvatarUrl } }
             );
-
-            if (user?.avatarUrl) {
-                const oldPath = path.join(__dirname, 'public', user.avatarUrl);
-                fs.unlink(oldPath, () => {});
-            }
 
             req.flash('success_msg', 'Profile picture updated.');
             res.redirect('/account');
