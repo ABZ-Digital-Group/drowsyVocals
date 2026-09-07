@@ -24,7 +24,7 @@ function createBotService({ baseUrl = process.env.BOT_API_URL, secret = process.
                 ...options,
                 headers: {
                     Accept: 'application/json',
-                    'X-Bot-Api-Key': secret,
+                    Authorization: `Bearer ${secret}`,
                     ...(options.headers || {}),
                 },
                 signal: controller.signal,
@@ -52,7 +52,7 @@ function createBotService({ baseUrl = process.env.BOT_API_URL, secret = process.
             return request('/health');
         },
         getBotStatus() {
-            return request('/status');
+            return request('/admin/api/state');
         },
         syncBot(payload) {
             return request('/actions/sync', {
