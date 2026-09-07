@@ -241,6 +241,11 @@
                                 <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender' || userType === 'Dreamy Defender' || userIsDeveloper) { %>
                                 <td><%= (user.strikes || []).reduce((sum, strike) => sum + (Number(strike.count) || 0), 0) %></td>
                                 <td>
+                                    <details class="roster-action-menu">
+                                        <summary class="roster-action-menu-trigger" title="Open actions">
+                                            <span class="material-symbols-outlined">more_horiz</span>
+                                        </summary>
+                                        <div class="roster-action-menu-items">
                                     <button class="viewBtn" type="button"
                                         data-discord-id="<%= user.login.discordId %>"
                                         data-display-name="<%= user.displayName || '' %>"
@@ -304,6 +309,8 @@
                                     <button class="delBtn" type="button" onclick="deleteUser('<%= user.login.discordId %>')">
                                         <span class="material-symbols-outlined">delete</span>
                                     </button> 
+                                        </div>
+                                    </details>
                                 </td>
                                 <% } %>
                             </tr>
