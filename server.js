@@ -327,6 +327,11 @@ const getRankChangeType = (oldRank, newRank) => rankOrder.indexOf(newRank) < ran
 const CHANGELOG_ENTRIES = [
     {
         date: '2026-09-07',
+        title: 'Roster action labels clarified',
+        changes: ['Added text labels to the roster action dropdown, including the corrected Strikes label.']
+    },
+    {
+        date: '2026-09-07',
         title: 'Roster actions grouped into a dropdown',
         changes: ['Grouped per-user roster actions into a compact dropdown while keeping the roster reset control unchanged.']
     },

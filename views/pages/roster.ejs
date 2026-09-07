@@ -271,6 +271,7 @@
                                         data-consecutive-missed="<%= user.consecutiveMissedMeetings || '0' %>"
                                         data-badges="<%= JSON.stringify(user.badges || []) %>">
                                         <span class="material-symbols-outlined">visibility</span>
+                                        <span>View</span>
                                     </button>
                                     <button class="strikeBtn" type="button"
                                         data-discord-id="<%= user.login.discordId %>"
@@ -278,6 +279,7 @@
                                         data-strikes="<%= JSON.stringify(user.strikes || []) %>"
                                         data-suspended="<%= user.suspended ? '1' : '' %>">
                                         <span class="material-symbols-outlined">warning</span>
+                                        <span>Strikes</span>
                                     </button>
                                     <button class="editBtn" type="button"
                                         data-discord-id="<%= user.login.discordId %>"
@@ -293,21 +295,25 @@
                                         data-onboarding-complete="<%= user.onboardingComplete ? '1' : '' %>"
                                         data-host-training-complete="<%= user.hostTrainingComplete ? '1' : '' %>">
                                         <span class="material-symbols-outlined">edit</span>
+                                        <span>Edit</span>
                                     </button>
                                     <button class="promoteBtn" type="button"
                                         data-discord-id="<%= user.login.discordId %>"
                                         data-display-name="<%= user.displayName || user.discordUser || user.login.discordId %>"
                                         data-account-type="<%= user.accountType || '' %>">
                                         <span class="material-symbols-outlined">arrow_upward</span>
+                                        <span>Promote</span>
                                     </button>
                                     <button class="demoteBtn" type="button"
                                         data-discord-id="<%= user.login.discordId %>"
                                         data-display-name="<%= user.displayName || user.discordUser || user.login.discordId %>"
                                         data-account-type="<%= user.accountType || '' %>">
                                         <span class="material-symbols-outlined">arrow_downward</span>
+                                        <span>Demote</span>
                                     </button>
                                     <button class="delBtn" type="button" onclick="deleteUser('<%= user.login.discordId %>')">
                                         <span class="material-symbols-outlined">delete</span>
+                                        <span>Delete</span>
                                     </button> 
                                         </div>
                                     </details>
