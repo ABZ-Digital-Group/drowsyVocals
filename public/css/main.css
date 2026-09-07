@@ -582,7 +582,7 @@ tbody tr:not(.rank-group-header):not(.bingo-rank-header):hover {
 }
 .action-button-secondary {
     background-color: transparent;
-    color: #242320;
+    color: #B7B2A7;
 }
 .action-button:not(:disabled):hover,
 .action-button:not(:disabled):focus-visible {
