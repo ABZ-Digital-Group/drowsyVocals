@@ -326,6 +326,11 @@ const rankOrder = ['Mr. Sandman', 'Realm God', 'Drowsy Defender', 'Dreamy Defend
 const getRankChangeType = (oldRank, newRank) => rankOrder.indexOf(newRank) < rankOrder.indexOf(oldRank) ? 'promotion' : 'demotion';
 const CHANGELOG_ENTRIES = [
     {
+        date: '2026-09-07',
+        title: 'Roster actions grouped into a dropdown',
+        changes: ['Grouped per-user roster actions into a compact dropdown while keeping the roster reset control unchanged.']
+    },
+    {
         date: '2026-09-06',
         title: 'House points reset tool added',
         changes: ['Managers can reset all current house points to zero and automatically publish a bulletin-board announcement.']

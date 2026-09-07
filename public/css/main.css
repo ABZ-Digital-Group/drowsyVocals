@@ -3248,6 +3248,13 @@ th, td {
     padding: 10px;
     text-align: center;
 }
+.roster-content table {
+    font-size: 0.9em;
+}
+.roster-content table th,
+.roster-content table td {
+    padding: 7px 8px;
+}
 .roster-content table td.roster-display-name-cell {
     width: 220px;
     max-width: 220px;
@@ -3282,6 +3289,58 @@ th, td {
     color: #B7B2A7 !important;
     border: 0 !important;
     text-align: left;
+}
+.roster-action-menu {
+    position: relative;
+    display: inline-block;
+}
+.roster-action-menu-trigger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 1px solid #242320;
+    border-radius: 4px;
+    background: #242320;
+    color: #B7B2A7;
+    cursor: pointer;
+    list-style: none;
+}
+.roster-action-menu-trigger::-webkit-details-marker {
+    display: none;
+}
+.roster-action-menu-items {
+    position: absolute;
+    z-index: 10;
+    top: calc(100% + 4px);
+    right: 0;
+    display: grid;
+    gap: 4px;
+    min-width: 144px;
+    padding: 6px;
+    border: 1px solid #242320;
+    border-radius: 4px;
+    background: #d0cdc5;
+    box-shadow: 3px 3px 0 #6f6a60;
+}
+.roster-action-menu-items button {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
+    width: 100%;
+    min-height: 30px;
+    padding: 5px 8px !important;
+    border-radius: 3px !important;
+    font-size: 0.9em !important;
+    text-align: left;
+}
+.roster-action-menu-items button:hover,
+.roster-action-menu-items button:focus-visible {
+    background: #6f6a60;
+    color: #fff;
 }
 .rank-group-header th span:last-child {
     float: right;
@@ -4068,7 +4127,7 @@ dialog button {
     .planner-lanes {
         grid-template-columns: repeat(2, minmax(230px, 1fr));
     }
-    table {
+    .roster-content table {
         min-width: 700px;
     }
 
