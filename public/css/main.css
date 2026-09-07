@@ -138,6 +138,10 @@ main{
     border-radius: 5px;
     outline: none;
 }
+.login-form-actions input[type="date"],
+.settings-input[type="date"] {
+    color-scheme: dark;
+}
 .login-form-actions textarea,
 .login-form-actions select {
     margin-bottom: 20px;
