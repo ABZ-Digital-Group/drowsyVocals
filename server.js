@@ -327,6 +327,11 @@ const getRankChangeType = (oldRank, newRank) => rankOrder.indexOf(newRank) < ran
 const CHANGELOG_ENTRIES = [
     {
         date: '2026-09-07',
+        title: 'Invite whitelist now reads live bot state',
+        changes: ['The management bot page now loads invite whitelist IDs from the live bot API, with the local file retained as a fallback.']
+    },
+    {
+        date: '2026-09-07',
         title: 'Invite whitelist now shows staff names',
         changes: ['The Discord bot control panel now resolves whitelisted Discord IDs to staff names while retaining the ID for verification.']
     },
@@ -2716,7 +2721,10 @@ app.get('/bot', requireDatabase, async (req, res) => {
             activeId: null,
             rotationIntervalMs: null
         });
-        const allowedInviteIds = readBotJson(path.join(BOT_DATA_DIR, 'allowed-invite-users.json'), []);
+        const storedAllowedInviteIds = readBotJson(path.join(BOT_DATA_DIR, 'allowed-invite-users.json'), []);
+        const allowedInviteIds = Array.isArray(botLiveState.allowedInviteUsers)
+            ? botLiveState.allowedInviteUsers
+            : storedAllowedInviteIds;
         const normalizedAllowedInviteIds = Array.isArray(allowedInviteIds)
             ? allowedInviteIds
             : (allowedInviteIds?.users || []);
