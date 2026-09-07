@@ -623,18 +623,10 @@ if (rosterPlanner) {
 
       const discordId = draggedUser.dataset.discordId;
       const displayName = draggedUser.querySelector("strong")?.textContent || discordId;
-      if (!window.confirm(`Remove ${displayName} from staff permanently?`)) return;
+      if (!window.confirm(`Exclude ${displayName} from this planned roster?`)) return;
 
-      const deleteForm = document.createElement("form");
-      deleteForm.method = "POST";
-      deleteForm.action = "/deleteUser";
-      const discordIdInput = document.createElement("input");
-      discordIdInput.type = "hidden";
-      discordIdInput.name = "discordId";
-      discordIdInput.value = discordId;
-      deleteForm.appendChild(discordIdInput);
-      document.body.appendChild(deleteForm);
-      deleteForm.submit();
+      removeDropzone.appendChild(draggedUser);
+      updateLaneCounts();
     });
   }
 
