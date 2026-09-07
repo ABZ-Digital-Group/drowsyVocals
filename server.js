@@ -327,6 +327,16 @@ const getRankChangeType = (oldRank, newRank) => rankOrder.indexOf(newRank) < ran
 const CHANGELOG_ENTRIES = [
     {
         date: '2026-09-07',
+        title: 'Invite whitelist now shows staff names',
+        changes: ['The Discord bot control panel now resolves whitelisted Discord IDs to staff names while retaining the ID for verification.']
+    },
+    {
+        date: '2026-09-07',
+        title: 'Roster planner staff removal drop zone added',
+        changes: ['Authorized roster managers can drag a planner staff card into a confirmation drop zone to remove that account from staff.']
+    },
+    {
+        date: '2026-09-07',
         title: 'Roster action labels clarified',
         changes: ['Added text labels to the roster action dropdown, including the corrected Strikes label.']
     },
@@ -2706,7 +2716,18 @@ app.get('/bot', requireDatabase, async (req, res) => {
             activeId: null,
             rotationIntervalMs: null
         });
-        const allowedInvites = readBotJson(path.join(BOT_DATA_DIR, 'allowed-invite-users.json'), []);
+        const allowedInviteIds = readBotJson(path.join(BOT_DATA_DIR, 'allowed-invite-users.json'), []);
+        const normalizedAllowedInviteIds = Array.isArray(allowedInviteIds)
+            ? allowedInviteIds
+            : (allowedInviteIds?.users || []);
+        const usersByDiscordId = new Map(allUsers.map((user) => [user.login?.discordId, user]));
+        const allowedInvites = normalizedAllowedInviteIds.map((userId) => {
+            const user = usersByDiscordId.get(userId);
+            return {
+                userId,
+                displayName: user?.displayName || user?.discordUser || 'Unknown Discord user'
+            };
+        });
         const guildConfigs = readBotJson(path.join(BOT_DATA_DIR, 'guild-config.json'), {});
 
         res.render('pages/bot', {
@@ -2715,7 +2736,7 @@ app.get('/bot', requireDatabase, async (req, res) => {
             botEnv,
             nowSinging,
             obsAds,
-            allowedInvites: Array.isArray(allowedInvites) ? allowedInvites : (allowedInvites?.users || []),
+            allowedInvites,
             guildConfigs,
             users: allUsers.sort((a, b) => (a.displayName || a.discordUser || '').localeCompare(b.displayName || b.discordUser || '')),
             settings

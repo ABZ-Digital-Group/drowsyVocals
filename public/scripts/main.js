@@ -609,6 +609,35 @@ if (rosterPlanner) {
     });
   });
 
+  const removeDropzone = rosterPlanner.querySelector("[data-remove-dropzone]");
+  if (removeDropzone) {
+    removeDropzone.addEventListener("dragover", (event) => {
+      event.preventDefault();
+      removeDropzone.classList.add("is-drag-over");
+    });
+    removeDropzone.addEventListener("dragleave", () => removeDropzone.classList.remove("is-drag-over"));
+    removeDropzone.addEventListener("drop", (event) => {
+      event.preventDefault();
+      removeDropzone.classList.remove("is-drag-over");
+      if (!draggedUser) return;
+
+      const discordId = draggedUser.dataset.discordId;
+      const displayName = draggedUser.querySelector("strong")?.textContent || discordId;
+      if (!window.confirm(`Remove ${displayName} from staff permanently?`)) return;
+
+      const deleteForm = document.createElement("form");
+      deleteForm.method = "POST";
+      deleteForm.action = "/deleteUser";
+      const discordIdInput = document.createElement("input");
+      discordIdInput.type = "hidden";
+      discordIdInput.name = "discordId";
+      discordIdInput.value = discordId;
+      deleteForm.appendChild(discordIdInput);
+      document.body.appendChild(deleteForm);
+      deleteForm.submit();
+    });
+  }
+
   plannerForm.addEventListener("submit", () => {
     const assignments = [];
     rosterPlanner.querySelectorAll(".planner-dropzone").forEach((zone) => {

@@ -681,19 +681,19 @@
                             <% if (allowedInvites && allowedInvites.length) { %>
                             <div style="margin-top: 10px;">
                                 <div class="settings-dev-grid">
-                                    <% allowedInvites.forEach(function(userId) { %>
+                                    <% allowedInvites.forEach(function(allowedUser) { %>
                                     <div class="settings-dev-card">
                                         <div class="settings-dev-user">
                                             <div class="settings-dev-avatar">
                                                 <span class="material-symbols-outlined" style="background:transparent;color:inherit;">person</span>
                                             </div>
                                             <div class="settings-dev-names">
-                                                <span class="settings-dev-name" style="font-family: monospace;"><%= userId %></span>
-                                                <span class="settings-dev-id">Bypass Allowed</span>
+                                                <span class="settings-dev-name"><%= allowedUser.displayName %></span>
+                                                <span class="settings-dev-id"><%= allowedUser.userId %> · Bypass Allowed</span>
                                             </div>
                                         </div>
-                                        <form action="/bot/invites/remove" method="POST" onsubmit="return confirm('Remove user <%= userId %> from whitelist?');" style="margin: 0;">
-                                            <input type="hidden" name="userId" value="<%= userId %>">
+                                        <form action="/bot/invites/remove" method="POST" onsubmit="return confirm('Remove user <%= allowedUser.displayName %> from whitelist?');" style="margin: 0;">
+                                            <input type="hidden" name="userId" value="<%= allowedUser.userId %>">
                                             <button type="submit" class="settings-btn settings-btn-danger settings-btn-sm" title="Remove User">
                                                 <span class="material-symbols-outlined">delete</span>
                                                 Remove
