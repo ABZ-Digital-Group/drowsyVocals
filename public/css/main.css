@@ -2131,6 +2131,8 @@ tbody tr:not(.rank-group-header):not(.bingo-rank-header):hover {
 /* Hero Profile Card */
 .account-hero-card {
     background: #242320;
+    background-position: center;
+    background-size: cover;
     color: #B7B2A7;
     border-radius: 10px;
     border: 1px solid #383734;
@@ -2153,6 +2155,23 @@ tbody tr:not(.rank-group-header):not(.bingo-rank-header):hover {
 
 .account-hero-avatar-wrap {
     position: relative;
+}
+
+.account-background-preview {
+    display: flex;
+    min-height: 120px;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 14px;
+    padding: 18px;
+    border: 1px solid #383734;
+    border-radius: 6px;
+    background-color: #1a1917;
+    background-position: center;
+    background-size: cover;
+    color: #8e897e;
+    text-align: center;
 }
 
 .account-hero-avatar-wrap .avatar-wrapper {
@@ -3544,7 +3563,7 @@ th {
 
 dialog {
     border: none;
-    width: 520px;
+    width: 620px;
     max-width: 90vw;
     max-height: 85vh;
     overflow-y: auto;
@@ -3556,7 +3575,7 @@ dialog {
 }
 
 dialog.dialog-wide {
-    width: 760px;
+    width: 900px;
     max-width: 95vw;
 }
 
