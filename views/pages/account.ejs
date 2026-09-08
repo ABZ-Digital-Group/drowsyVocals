@@ -441,6 +441,23 @@
                                     <span>Update Background</span>
                                 </button>
                             </form>
+                            <dialog id="backgroundCropDialog" class="dialog-wide account-crop-dialog">
+                                <h3>Crop Profile Background</h3>
+                                <p class="account-crop-help">Adjust the framing before uploading your background.</p>
+                                <canvas id="backgroundCropCanvas" class="account-crop-canvas" width="1200" height="480"></canvas>
+                                <div class="account-crop-controls">
+                                    <label for="backgroundCropZoom">Zoom</label>
+                                    <input id="backgroundCropZoom" type="range" min="1" max="3" step="0.01" value="1">
+                                    <label for="backgroundCropX">Horizontal position</label>
+                                    <input id="backgroundCropX" type="range" min="-100" max="100" step="1" value="0">
+                                    <label for="backgroundCropY">Vertical position</label>
+                                    <input id="backgroundCropY" type="range" min="-100" max="100" step="1" value="0">
+                                </div>
+                                <div class="dialog-buttons">
+                                    <button type="button" id="cancelBackgroundCrop">Cancel</button>
+                                    <button type="button" id="applyBackgroundCrop">Use This Crop</button>
+                                </div>
+                            </dialog>
                         </div>
 
                         <!-- Password Update Card -->
@@ -504,12 +521,74 @@
             }
 
             function updateBackgroundFileLabel(input) {
-                const label = document.getElementById('backgroundFileText');
-                if (input.files && input.files.length > 0) {
-                    label.textContent = input.files[0].name;
-                    label.style.color = '#34d399';
-                }
+                const file = input.files && input.files[0];
+                if (!file) return;
+
+                const cropDialog = document.getElementById('backgroundCropDialog');
+                const canvas = document.getElementById('backgroundCropCanvas');
+                const image = new Image();
+                image.onload = () => {
+                    window.backgroundCropImage = image;
+                    document.getElementById('backgroundCropZoom').value = '1';
+                    document.getElementById('backgroundCropX').value = '0';
+                    document.getElementById('backgroundCropY').value = '0';
+                    drawBackgroundCrop();
+                    cropDialog.showModal();
+                };
+                image.onerror = () => {
+                    input.value = '';
+                    window.backgroundCropImage = null;
+                };
+                image.src = URL.createObjectURL(file);
             }
+
+            function drawBackgroundCrop() {
+                const image = window.backgroundCropImage;
+                const canvas = document.getElementById('backgroundCropCanvas');
+                if (!image || !canvas) return;
+
+                const context = canvas.getContext('2d');
+                const zoom = Number(document.getElementById('backgroundCropZoom').value);
+                const offsetX = Number(document.getElementById('backgroundCropX').value) / 100;
+                const offsetY = Number(document.getElementById('backgroundCropY').value) / 100;
+                const scale = Math.max(canvas.width / image.naturalWidth, canvas.height / image.naturalHeight) * zoom;
+                const drawWidth = image.naturalWidth * scale;
+                const drawHeight = image.naturalHeight * scale;
+                const centeredX = (canvas.width - drawWidth) / 2;
+                const centeredY = (canvas.height - drawHeight) / 2;
+                const maxOffsetX = Math.max(0, (drawWidth - canvas.width) / 2);
+                const maxOffsetY = Math.max(0, (drawHeight - canvas.height) / 2);
+
+                context.clearRect(0, 0, canvas.width, canvas.height);
+                context.drawImage(image, centeredX + offsetX * maxOffsetX, centeredY + offsetY * maxOffsetY, drawWidth, drawHeight);
+            }
+
+            ['backgroundCropZoom', 'backgroundCropX', 'backgroundCropY'].forEach((id) => {
+                document.getElementById(id)?.addEventListener('input', drawBackgroundCrop);
+            });
+
+            document.getElementById('cancelBackgroundCrop')?.addEventListener('click', () => {
+                const input = document.getElementById('backgroundFileInput');
+                input.value = '';
+                window.backgroundCropImage = null;
+                document.getElementById('backgroundCropDialog').close();
+            });
+
+            document.getElementById('applyBackgroundCrop')?.addEventListener('click', () => {
+                const input = document.getElementById('backgroundFileInput');
+                const canvas = document.getElementById('backgroundCropCanvas');
+                canvas.toBlob((blob) => {
+                    if (!blob) return;
+                    const file = new File([blob], 'profile-background.webp', { type: 'image/webp' });
+                    const transfer = new DataTransfer();
+                    transfer.items.add(file);
+                    input.files = transfer.files;
+                    const label = document.getElementById('backgroundFileText');
+                    label.textContent = 'Cropped background ready to upload';
+                    label.style.color = '#34d399';
+                    document.getElementById('backgroundCropDialog').close();
+                }, 'image/webp', 0.9);
+            });
         </script>
     </body>
 </html>

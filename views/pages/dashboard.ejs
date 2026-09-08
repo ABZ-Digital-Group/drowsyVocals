@@ -11,7 +11,7 @@
         <main>
             <section class="dashboard-page">
                 <!-- Welcome Hero Card -->
-                <div class="dashboard-hero-card">
+                <div class="dashboard-hero-card"<% if (user && user.profileBackgroundUrl) { %> style="background-image: linear-gradient(rgba(36, 35, 32, 0.64), rgba(36, 35, 32, 0.84)), url('<%= user.profileBackgroundUrl %>');"<% } %>>
                     <div class="dashboard-hero-identity">
                         <div class="account-hero-avatar-wrap">
                             <%- include('../partials/avatar', {

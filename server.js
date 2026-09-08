@@ -332,6 +332,11 @@ const CHANGELOG_ENTRIES = [
     },
     {
         date: '2026-09-08',
+        title: 'Profile backgrounds added to the dashboard',
+        changes: ['The dashboard welcome panel now displays each member\'s selected profile background.']
+    },
+    {
+        date: '2026-09-08',
         title: 'Roster planner exclusion is now non-destructive',
         changes: ['The planner exclusion drop zone now removes staff only from the selected future roster plan without deleting their account.']
     },

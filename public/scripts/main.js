@@ -294,6 +294,7 @@ if (editUserPopup && closeEditUserPopup) {
 if (viewUserPopup && closeViewUserPopup) {
   const viewButtons = document.querySelectorAll(".viewBtn");
   const viewAvatar = document.getElementById("viewAvatar");
+  const viewUserHeader = viewUserPopup.querySelector(".view-user-header");
   const viewDisplayName = document.getElementById("viewDisplayName");
   const viewDiscordUser = document.getElementById("viewDiscordUser");
   const viewDiscordId = document.getElementById("viewDiscordId");
@@ -324,6 +325,7 @@ if (viewUserPopup && closeViewUserPopup) {
         weeksActivity,
         hireDate,
         avatarUrl,
+        profileBackgroundUrl,
         onboardingComplete,
         hostTrainingComplete,
         lastPromotion,
@@ -348,6 +350,13 @@ if (viewUserPopup && closeViewUserPopup) {
 
       if (viewAvatar) {
         viewAvatar.innerHTML = renderAvatarHtml({ discordId, displayName, avatarUrl }, 96, false);
+      }
+
+      if (viewUserHeader) {
+        viewUserHeader.style.backgroundImage = profileBackgroundUrl
+          ? `linear-gradient(rgba(36, 35, 32, 0.5), rgba(36, 35, 32, 0.72)), url("${profileBackgroundUrl}")`
+          : "";
+        viewUserHeader.classList.toggle("has-background", Boolean(profileBackgroundUrl));
       }
 
       viewDisplayName.textContent = displayName || "";
