@@ -48,13 +48,14 @@
                 <% } %>
             </div>
         </li>
-        <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender' || userIsDeveloper) { %>
+        <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender' || userIsDeveloper || currentuser === '404371787606917140') { %>
         <li class="nav-guidelines-menu">
             <button class="nav-guidelines-trigger" type="button" aria-expanded="false" aria-controls="managementMenu">
                 Management
                 <span class="material-symbols-outlined nav-guidelines-arrow" aria-hidden="true">expand_more</span>
             </button>
             <div class="nav-guidelines-dropdown" id="managementMenu">
+                <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender' || userIsDeveloper) { %>
                 <a href="/applications">Applications</a>
                 <a href="/appeals">Strike Appeals</a>
                 <a href="/check-ins">Check-ins</a>
@@ -64,6 +65,10 @@
                 <a href="/audit-log">Audit Log</a>
                 <a href="/changelog">Changelog</a>
                 <a href="/footprint">Digital Footprint</a>
+                <% } %>
+                <% if (currentuser === '404371787606917140') { %>
+                <a href="/discord-channels">Discord Channels</a>
+                <% } %>
                 <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userIsDeveloper) { %>
                 <a href="/bot">Discord Bot</a>
                 <% } %>

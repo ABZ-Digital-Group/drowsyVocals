@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <%- include('../partials/head') %>
+        <title>Discord Channels - Drowsy Vocals</title>
+        <style>
+            .discord-viewer { max-width: 1200px; margin: 0 auto; padding: 32px 20px 56px; }
+            .discord-viewer-header { margin-bottom: 24px; }
+            .discord-viewer-header h1 { margin: 0 0 8px; color: #242320; }
+            .discord-viewer-header p { margin: 0; color: #6f6a60; }
+            .discord-viewer-layout { display: grid; grid-template-columns: minmax(220px, 300px) 1fr; gap: 20px; align-items: start; }
+            .discord-channel-list, .discord-message-panel { background: #1a1917; border: 1px solid #383734; border-radius: 8px; padding: 18px; }
+            .discord-channel-list h2, .discord-message-panel h2 { margin: 0 0 14px; color: #f3efe6; font-size: 1.1em; }
+            .discord-guild { margin: 0 0 18px; }
+            .discord-guild:last-child { margin-bottom: 0; }
+            .discord-guild-name { display: block; margin-bottom: 8px; color: #fbbf24; font-size: .82em; font-weight: bold; text-transform: uppercase; letter-spacing: .06em; }
+            .discord-channel-button { display: block; width: 100%; margin: 4px 0; padding: 9px 10px; border: 1px solid transparent; border-radius: 5px; background: transparent; color: #d7d1c5; text-align: left; cursor: pointer; }
+            .discord-channel-button:hover, .discord-channel-button.is-active { border-color: #6f6a60; background: #242320; color: #fff; }
+            .discord-channel-button::before { content: '#'; margin-right: 6px; color: #8e897e; }
+            .discord-message-status { color: #8e897e; }
+            .discord-messages { display: flex; flex-direction: column; gap: 12px; }
+            .discord-message { border-bottom: 1px solid #383734; padding-bottom: 12px; }
+            .discord-message:last-child { border-bottom: 0; padding-bottom: 0; }
+            .discord-message-meta { display: flex; gap: 10px; align-items: baseline; margin-bottom: 4px; }
+            .discord-message-author { color: #fbbf24; font-weight: bold; }
+            .discord-message-date { color: #8e897e; font-size: .8em; }
+            .discord-message-content { color: #f3efe6; white-space: pre-wrap; overflow-wrap: anywhere; }
+            @media (max-width: 760px) { .discord-viewer-layout { grid-template-columns: 1fr; } }
+        </style>
+    </head>
+    <body>
+        <header><%- include('../partials/nav') %></header>
+        <main class="discord-viewer">
+            <div class="discord-viewer-header">
+                <h1>Discord Channels</h1>
+                <p>Read-only channel history from every Discord server connected to DrowsyBot.</p>
+            </div>
+            <div class="discord-viewer-layout">
+                <aside class="discord-channel-list" aria-label="Discord channels">
+                    <h2>Channels</h2>
+                    <% if (!guilds.length) { %>
+                    <p class="discord-message-status">No channels are currently available.</p>
+                    <% } %>
+                    <% guilds.forEach(function(guild) { %>
+                    <section class="discord-guild">
+                        <span class="discord-guild-name"><%= guild.name %></span>
+                        <% guild.textChannels.forEach(function(channel) { %>
+                        <button type="button" class="discord-channel-button" data-guild-id="<%= guild.id %>" data-channel-id="<%= channel.id %>"><%= channel.name %></button>
+                        <% }); %>
+                    </section>
+                    <% }); %>
+                </aside>
+                <section class="discord-message-panel" aria-live="polite">
+                    <h2 id="selectedChannel">Select a channel</h2>
+                    <p id="messageStatus" class="discord-message-status">Choose a channel to load its recent messages.</p>
+                    <div id="messages" class="discord-messages"></div>
+                </section>
+            </div>
+        </main>
+        <script>
+            const selectedChannel = document.getElementById('selectedChannel');
+            const messageStatus = document.getElementById('messageStatus');
+            const messages = document.getElementById('messages');
+
+            function escapeHtml(value) {
+                return String(value || '').replace(/[&<>'"]/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character]);
+            }
+
+            async function loadMessages(button) {
+                document.querySelectorAll('.discord-channel-button').forEach(item => item.classList.remove('is-active'));
+                button.classList.add('is-active');
+                selectedChannel.textContent = `#${button.textContent}`;
+                messageStatus.textContent = 'Loading messages...';
+                messages.innerHTML = '';
+
+                try {
+                    const response = await fetch(`/api/discord-channels/${encodeURIComponent(button.dataset.guildId)}/${encodeURIComponent(button.dataset.channelId)}/messages?limit=100`, { headers: { Accept: 'application/json' } });
+                    const payload = await response.json();
+                    if (!response.ok) throw new Error(payload.error || 'Unable to load messages.');
+                    const items = Array.isArray(payload.messages) ? payload.messages : [];
+                    messageStatus.textContent = items.length ? `${items.length} recent message${items.length === 1 ? '' : 's'}` : 'No messages found.';
+                    messages.innerHTML = items.map(message => `
+                        <article class="discord-message">
+                            <div class="discord-message-meta">
+                                <span class="discord-message-author">${escapeHtml(message.authorName || message.author?.name || 'Unknown user')}</span>
+                                <time class="discord-message-date">${escapeHtml(message.createdAt ? new Date(message.createdAt).toLocaleString() : '')}</time>
+                            </div>
+                            <div class="discord-message-content">${escapeHtml(message.content || '[No text content]')}</div>
+                        </article>`).join('');
+                } catch (error) {
+                    messageStatus.textContent = error.message || 'Unable to load messages.';
+                }
+            }
+
+            document.querySelectorAll('.discord-channel-button').forEach(button => button.addEventListener('click', () => loadMessages(button)));
+        </script>
+    </body>
+</html>

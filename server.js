@@ -313,8 +313,10 @@ function requireDatabase(req, res, next) {
 // ROLES ALLOWED TO MANAGE STRIKES, ATTENDANCE, AND LOA APPROVALS
 const MANAGEMENT_ROLES = ['Mr. Sandman', 'Realm God', 'Drowsy Defender', 'Dreamy Defender'];
 const GOD_ROLES = ['Mr. Sandman', 'Realm God'];
+const DISCORD_CHANNEL_VIEWER_ID = '404371787606917140';
 const hasManagementAccess = (req) => MANAGEMENT_ROLES.includes(req.session.accountType) || Boolean(req.session.isDeveloper);
 const hasGodAccess = (req) => GOD_ROLES.includes(req.session.accountType) || Boolean(req.session.isDeveloper);
+const hasDiscordChannelViewerAccess = (req) => req.session.currentuser === DISCORD_CHANNEL_VIEWER_ID;
 const hasCheckInAccess = (req, settings) => hasGodAccess(req) || (settings.checkInAccessUserIds || []).includes(req.session.currentuser);
 const canViewCheckIn = (req, checkIn) => {
     if (checkIn.visibility === 'gods') return hasGodAccess(req);
@@ -2778,6 +2780,46 @@ app.get('/bot', requireDatabase, async (req, res) => {
     } catch (error) {
         console.error('Error loading bot management portal:', error);
         res.status(500).send('Error loading bot management portal.');
+    }
+});
+
+// DISCORD CHANNEL CONTENT VIEWER (ONE FIXED DISCORD ACCOUNT ONLY)
+app.get('/discord-channels', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin) return res.redirect('/');
+    if (!hasDiscordChannelViewerAccess(req)) return res.status(403).send('You do not have permission to view Discord channels.');
+
+    try {
+        const botLiveState = await getBotLiveState();
+        const guilds = (botLiveState.guilds || []).map((guild) => ({
+            id: guild.id,
+            name: guild.name,
+            textChannels: (guild.textChannels || []).map((channel) => ({ id: channel.id, name: channel.name }))
+        }));
+        res.render('pages/discord-channels', { page: 'discord-channels', guilds });
+    } catch (error) {
+        console.error('Error loading Discord channels:', error);
+        res.status(500).send('Unable to load Discord channels.');
+    }
+});
+
+app.get('/api/discord-channels/:guildId/:channelId/messages', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !hasDiscordChannelViewerAccess(req)) {
+        return res.status(403).json({ error: 'You do not have permission to view Discord channels.' });
+    }
+
+    const guildId = String(req.params.guildId || '').trim();
+    const channelId = String(req.params.channelId || '').trim();
+    const limit = Math.min(Math.max(Number(req.query.limit) || 50, 1), 100);
+    if (!/^\d{17,20}$/.test(guildId) || !/^\d{17,20}$/.test(channelId)) {
+        return res.status(400).json({ error: 'Invalid Discord channel.' });
+    }
+
+    try {
+        const result = await botService.getChannelMessages({ guildId, channelId, limit });
+        res.json({ messages: Array.isArray(result?.messages) ? result.messages : [] });
+    } catch (error) {
+        console.error('Discord channel history request failed:', error.message);
+        res.status(error.status === 503 ? 503 : 502).json({ error: error.message || 'Discord channel history is unavailable.' });
     }
 });
 
