@@ -327,6 +327,11 @@ const getRankChangeType = (oldRank, newRank) => rankOrder.indexOf(newRank) < ran
 const CHANGELOG_ENTRIES = [
     {
         date: '2026-09-08',
+        title: 'Account profile backgrounds added',
+        changes: ['Members can now upload a personal background image for their account profile.']
+    },
+    {
+        date: '2026-09-08',
         title: 'Roster planner exclusion is now non-destructive',
         changes: ['The planner exclusion drop zone now removes staff only from the selected future roster plan without deleting their account.']
     },
@@ -760,6 +765,17 @@ const AVATAR_MIME_EXTENSIONS = {
 const avatarUpload = multer({
     storage: multer.memoryStorage(),
     limits: { fileSize: 2 * 1024 * 1024 },
+    fileFilter: (req, file, cb) => {
+        if (!AVATAR_MIME_EXTENSIONS[file.mimetype]) {
+            return cb(new Error('Only PNG, JPEG, or WEBP images are allowed.'));
+        }
+        cb(null, true);
+    }
+});
+
+const profileBackgroundUpload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 5 * 1024 * 1024 },
     fileFilter: (req, file, cb) => {
         if (!AVATAR_MIME_EXTENSIONS[file.mimetype]) {
             return cb(new Error('Only PNG, JPEG, or WEBP images are allowed.'));
@@ -1604,7 +1620,7 @@ app.post('/update-user', requireDatabase, async (req, res) => {
         }
 
         const nextLastPromotion = cleanLastPromotion
-            || (isPromotion ? new Date().toISOString().slice(0, 10) : (existingUser.lastPromotion || cleanHireDate || null));
+            || (isPromotion ? new Date().toISOString().slice(0, 10) : (existingUser.lastPromotion || null));
 
         const updateDoc = {
             $set: {
@@ -3792,6 +3808,21 @@ app.get('/uploads/avatars/:discordId', requireDatabase, async (req, res) => {
     }
 });
 
+// SERVE PROFILE BACKGROUNDS FROM MONGODB.
+app.get('/uploads/profile-backgrounds/:discordId', requireDatabase, async (req, res) => {
+    try {
+        const background = await db.collection('profileBackgrounds').findOne({ discordId: req.params.discordId });
+        if (!background?.data || !background.contentType) return res.sendStatus(404);
+
+        res.type(background.contentType);
+        res.set('Cache-Control', 'public, max-age=31536000, immutable');
+        res.send(background.data.buffer || background.data);
+    } catch (error) {
+        console.error('Error loading profile background:', error.message);
+        res.sendStatus(404);
+    }
+});
+
 // UPLOAD OWN PROFILE PICTURE
 app.post('/account/upload-avatar', requireDatabase, (req, res) => {
     if (!req.session.loggedin) return res.redirect('/');
@@ -3833,6 +3864,52 @@ app.post('/account/upload-avatar', requireDatabase, (req, res) => {
         } catch (error) {
             console.error('Error saving avatar:', error);
             req.flash('error_msg', 'Unable to update profile picture right now.');
+            res.redirect('/account');
+        }
+    });
+});
+
+// UPLOAD OWN PROFILE BACKGROUND
+app.post('/account/upload-background', requireDatabase, (req, res) => {
+    if (!req.session.loggedin) return res.redirect('/');
+
+    profileBackgroundUpload.single('background')(req, res, async (uploadError) => {
+        if (uploadError) {
+            req.flash('error_msg', uploadError.message || 'Unable to upload that background image.');
+            return res.redirect('/account');
+        }
+
+        if (!req.file) {
+            req.flash('error_msg', 'Please choose a background image to upload.');
+            return res.redirect('/account');
+        }
+
+        try {
+            const currentDiscordId = req.session.currentuser;
+            const backgroundVersion = Date.now();
+            const newBackgroundUrl = `/uploads/profile-backgrounds/${encodeURIComponent(currentDiscordId)}?v=${backgroundVersion}`;
+
+            await db.collection('profileBackgrounds').replaceOne(
+                { discordId: currentDiscordId },
+                {
+                    discordId: currentDiscordId,
+                    data: req.file.buffer,
+                    contentType: req.file.mimetype,
+                    updatedAt: new Date(backgroundVersion)
+                },
+                { upsert: true }
+            );
+
+            await db.collection('users').updateOne(
+                { 'login.discordId': currentDiscordId },
+                { $set: { profileBackgroundUrl: newBackgroundUrl } }
+            );
+
+            req.flash('success_msg', 'Profile background updated.');
+            res.redirect('/account');
+        } catch (error) {
+            console.error('Error saving profile background:', error);
+            req.flash('error_msg', 'Unable to update profile background right now.');
             res.redirect('/account');
         }
     });

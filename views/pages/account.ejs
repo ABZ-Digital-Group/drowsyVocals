@@ -11,7 +11,7 @@
         <main>
             <section class="account-page">
                 <!-- Hero Profile Card -->
-                <div class="account-hero-card">
+                <div class="account-hero-card"<% if (user.profileBackgroundUrl) { %> style="background-image: linear-gradient(rgba(36, 35, 32, 0.66), rgba(36, 35, 32, 0.82)), url('<%= user.profileBackgroundUrl %>');"<% } %>>
                     <div class="account-hero-identity">
                         <div class="account-hero-avatar-wrap">
                             <%- include('../partials/avatar', {
@@ -415,6 +415,34 @@
                             </form>
                         </div>
 
+                        <!-- Profile Background Card -->
+                        <div class="account-card">
+                            <div class="account-card-header">
+                                <h3 class="account-card-title">
+                                    <span class="material-symbols-outlined">wallpaper</span>
+                                    <span>Profile Background</span>
+                                </h3>
+                            </div>
+
+                            <form class="account-form" action="/account/upload-background" method="POST" enctype="multipart/form-data">
+                                <div class="account-background-preview"<% if (user.profileBackgroundUrl) { %> style="background-image: url('<%= user.profileBackgroundUrl %>');"<% } %>>
+                                    <% if (!user.profileBackgroundUrl) { %><span class="material-symbols-outlined" aria-hidden="true">image</span><span>No background selected</span><% } %>
+                                </div>
+                                <div class="account-file-box" onclick="document.getElementById('backgroundFileInput').click()">
+                                    <input type="file" id="backgroundFileInput" name="background" accept="image/png, image/jpeg, image/webp" required onchange="updateBackgroundFileLabel(this)">
+                                    <label class="account-file-box-label" for="backgroundFileInput">
+                                        <span class="material-symbols-outlined">cloud_upload</span>
+                                        <span class="account-file-box-text" id="backgroundFileText">Choose a background image</span>
+                                        <span class="account-file-box-hint">Supported formats: PNG, JPEG, WEBP (Max 5MB)</span>
+                                    </label>
+                                </div>
+                                <button type="submit" class="account-btn account-btn-primary">
+                                    <span class="material-symbols-outlined">wallpaper</span>
+                                    <span>Update Background</span>
+                                </button>
+                            </form>
+                        </div>
+
                         <!-- Password Update Card -->
                         <div class="account-card">
                             <div class="account-card-header">
@@ -469,6 +497,14 @@
 
             function updateFileLabel(input) {
                 const label = document.getElementById('avatarFileText');
+                if (input.files && input.files.length > 0) {
+                    label.textContent = input.files[0].name;
+                    label.style.color = '#34d399';
+                }
+            }
+
+            function updateBackgroundFileLabel(input) {
+                const label = document.getElementById('backgroundFileText');
                 if (input.files && input.files.length > 0) {
                     label.textContent = input.files[0].name;
                     label.style.color = '#34d399';
