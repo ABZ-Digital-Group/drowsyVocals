@@ -54,6 +54,10 @@ function createBotService({ baseUrl = process.env.BOT_API_URL, secret = process.
         getBotStatus() {
             return request('/admin/api/state');
         },
+        getChannelMessages({ guildId, channelId, limit = 50 }) {
+            const params = new URLSearchParams({ guildId, channelId, limit: String(limit) });
+            return request(`/admin/api/channel-messages?${params.toString()}`);
+        },
         syncBot(payload) {
             return request('/actions/sync', {
                 method: 'POST',
