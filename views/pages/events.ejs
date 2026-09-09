@@ -190,6 +190,34 @@
                             <% } %>
                         </div>
 
+                        <!-- Pop-up Events -->
+                        <div class="account-card" style="margin-top: 20px;">
+                            <div class="account-card-header">
+                                <h3 class="account-card-title"><span class="material-symbols-outlined">bolt</span><span>Pop-up Events</span></h3>
+                                <span class="account-badge"><%= upcomingPopUps.length %> Upcoming</span>
+                            </div>
+                            <% if (!upcomingPopUps.length) { %>
+                            <div style="background: #1a1917; border: 1px solid #383734; border-radius: 6px; padding: 24px 16px; text-align: center; color: #8e897e;">
+                                <span class="material-symbols-outlined" style="font-size: 2.2em; color: #6f6a60;">event_busy</span>
+                                <h4 style="margin: 8px 0 4px; color: #f3efe6;">No Pop-up Events Scheduled</h4>
+                                <p style="margin: 0; font-size: 0.85em;">Special events will appear here once scheduled.</p>
+                            </div>
+                            <% } else { %>
+                            <div style="display: flex; flex-direction: column; gap: 14px;">
+                                <% upcomingPopUps.forEach(function(event) { %>
+                                <article style="background: #1a1917; border: 1px solid #383734; border-left: 4px solid #fbbf24; border-radius: 6px; padding: 18px;">
+                                    <div style="display: flex; justify-content: space-between; gap: 12px; align-items: flex-start;">
+                                        <div><span class="settings-badge" style="background:#242320;border:1px solid #444;font-size:0.75em;">Pop-up</span><h4 style="margin: 8px 0 0; color: #f3efe6; font-size: 1.2em;"><%= event.title %></h4><span style="display: block; margin-top: 5px; color: #8e897e;">📍 <%= event.location || 'Discord' %></span><% if (event.host) { const hostUser = (users || []).find((user) => user.login?.discordId === event.host); %><span style="display: block; margin-top: 5px; color: #d0cdc5;">Host: <%= hostUser ? (hostUser.displayName || hostUser.discordUser) : event.host %></span><% } %></div>
+                                        <time style="color: #fbbf24; font-weight: bold; text-align: right; white-space: nowrap;"><%= new Date(event.scheduledStartTime).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) %></time>
+                                    </div>
+                                    <% if (event.description) { %><p style="margin: 12px 0 0; color: #d0cdc5; line-height: 1.5; white-space: pre-wrap;"><%= event.description %></p><% } %>
+                                    <% if (isManager) { %><div style="display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid #282724; padding-top: 10px; margin-top: 12px;"><button type="button" class="settings-btn settings-btn-secondary settings-btn-sm editPopupBtn" data-id="<%= event.id || event._id %>" data-title="<%= event.title %>" data-location="<%= event.location || 'Discord' %>" data-host="<%= event.host || '' %>" data-description="<%= event.description || '' %>" data-start="<%= event.scheduledStartTime %>" data-end="<%= event.scheduledEndTime || '' %>"><span class="material-symbols-outlined">edit</span>Edit</button><form action="/pop-up/<%= event.id || event._id %>/delete" method="POST" onsubmit="return confirm('Remove this pop-up event?')"><button type="submit" class="settings-btn settings-btn-danger settings-btn-sm"><span class="material-symbols-outlined">delete</span>Delete</button></form></div><% } %>
+                                </article>
+                                <% }); %>
+                            </div>
+                            <% } %>
+                        </div>
+
                         <!-- Past Events Archive -->
                         <% if (pastEvents && pastEvents.length > 0) { %>
                         <details class="settings-accordion">
@@ -322,6 +350,19 @@
                                 </button>
                             </form>
                         </div>
+                        <div class="account-card" style="margin-top: 20px;">
+                            <div class="account-card-header"><h3 class="account-card-title"><span class="material-symbols-outlined">bolt</span><span>Schedule Pop-up Event</span></h3><span class="account-badge">Manager Tool</span></div>
+                            <form class="account-form popup-event-form" action="/pop-up/create" method="POST">
+                                <input type="hidden" name="startIso"><input type="hidden" name="endIso">
+                                <label for="popupTitle">Event Title</label><input id="popupTitle" name="title" class="settings-input" placeholder="e.g. Surprise Karaoke Night" required>
+                                <label for="popupLocation">Location</label><input id="popupLocation" name="location" class="settings-input" value="Discord" required>
+                                <label for="popupHost">Staff Member Running Event</label><select id="popupHost" name="host" class="settings-input"><option value="">-- Select Staff Member --</option><% (users || []).forEach(function(user) { %><option value="<%= user.login.discordId %>"><%= user.displayName || user.discordUser %> (<%= user.accountType %>)</option><% }); %></select>
+                                <label for="popupStart">Start</label><input id="popupStart" class="settings-input popup-start" type="datetime-local" required>
+                                <label for="popupEnd">End (Optional)</label><input id="popupEnd" class="settings-input popup-end" type="datetime-local">
+                                <label for="popupDescription">Description / Rules</label><textarea id="popupDescription" name="description" class="settings-textarea" rows="4" placeholder="Share the details for this special event..."></textarea>
+                                <button type="submit" class="account-btn account-btn-primary"><span class="material-symbols-outlined">bolt</span>Schedule Pop-up</button>
+                            </form>
+                        </div>
                         <% } else { %>
                         <div class="account-card">
                             <div class="account-card-header">
@@ -339,6 +380,49 @@
                 </div>
             </section>
         </main>
+        <% if (pastPopUps && pastPopUps.length > 0) { %>
+        <section class="settings-page" style="padding-top: 0;">
+            <details class="settings-accordion">
+                <summary><span class="material-symbols-outlined">history</span><span>Past Pop-up Events (<%= pastPopUps.length %>)</span></summary>
+                <div class="settings-accordion-content"><% pastPopUps.forEach(function(event) { %><div style="padding: 10px 0; border-bottom: 1px solid #333;"><strong style="color: #d0cdc5;"><%= event.title %></strong><span style="display: block; color: #8e897e; font-size: .8em;"><%= new Date(event.scheduledStartTime).toLocaleString() %> · <%= event.location || 'Discord' %></span></div><% }); %></div>
+            </details>
+        </section>
+        <% } %>
+        <% if (isManager) { %>
+        <dialog id="editPopupDialog" class="dialog-wide">
+            <form class="account-form" id="editPopupForm" method="POST">
+                <h3>Edit Pop-up Event</h3>
+                <input type="hidden" name="startIso"><input type="hidden" name="endIso">
+                <label>Event Title</label><input name="title" class="settings-input" required>
+                <label>Location</label><input name="location" class="settings-input" required>
+                <label>Staff Member Running Event</label><select name="host" class="settings-input"><option value="">-- Select Staff Member --</option><% (users || []).forEach(function(user) { %><option value="<%= user.login.discordId %>"><%= user.displayName || user.discordUser %> (<%= user.accountType %>)</option><% }); %></select>
+                <label>Start</label><input class="settings-input popup-start" type="datetime-local" required>
+                <label>End (Optional)</label><input class="settings-input popup-end" type="datetime-local">
+                <label>Description / Rules</label><textarea name="description" class="settings-textarea" rows="4"></textarea>
+                <div class="dialog-buttons"><button type="submit">Save Changes</button><button type="button" id="closeEditPopup">Cancel</button></div>
+            </form>
+        </dialog>
+        <script>
+            document.querySelectorAll('.popup-event-form').forEach((form) => form.addEventListener('submit', () => {
+                form.querySelector('[name="startIso"]').value = new Date(form.querySelector('.popup-start').value).toISOString();
+                const end = form.querySelector('.popup-end').value;
+                form.querySelector('[name="endIso"]').value = end ? new Date(end).toISOString() : '';
+            }));
+            document.querySelectorAll('.editPopupBtn').forEach((button) => button.addEventListener('click', () => {
+                const dialog = document.getElementById('editPopupDialog');
+                const form = document.getElementById('editPopupForm');
+                form.action = `/pop-up/${button.dataset.id}/update`;
+                form.title.value = button.dataset.title;
+                form.location.value = button.dataset.location;
+                form.host.value = button.dataset.host;
+                form.description.value = button.dataset.description;
+                form.querySelector('.popup-start').value = new Date(button.dataset.start).toISOString().slice(0, 16);
+                form.querySelector('.popup-end').value = button.dataset.end ? new Date(button.dataset.end).toISOString().slice(0, 16) : '';
+                dialog.showModal();
+            }));
+            document.getElementById('closeEditPopup')?.addEventListener('click', () => document.getElementById('editPopupDialog').close());
+        </script>
+        <% } %>
         <% if (isManager) { %>
         <dialog id="editEventPopup" class="dialog-wide">
             <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #242320; padding-bottom: 12px; margin-bottom: 16px;">

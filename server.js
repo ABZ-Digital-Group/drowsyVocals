@@ -4665,26 +4665,7 @@ app.get('/api/footprint/search', requireDatabase, async (req, res) => {
 // EVENT SCHEDULER & DISCORD EVENT MANAGEMENT
 // ==========================================================================
 
-app.get('/pop-up', requireDatabase, async (req, res) => {
-    if (!req.session.loggedin) return res.redirect('/');
-    try {
-        const [events, users] = await Promise.all([
-            db.collection('popupEvents').find().sort({ scheduledStartTime: 1 }).toArray(),
-            db.collection('users').find({}, { projection: { displayName: 1, discordUser: 1, 'login.discordId': 1, accountType: 1 } }).sort({ displayName: 1 }).toArray()
-        ]);
-        const now = new Date();
-        res.render('pages/popUp', {
-            page: 'pop-up',
-            upcomingEvents: events.filter((event) => new Date(event.scheduledEndTime || event.scheduledStartTime) >= now),
-            pastEvents: events.filter((event) => new Date(event.scheduledEndTime || event.scheduledStartTime) < now).reverse(),
-            users,
-            isManager: hasManagementAccess(req)
-        });
-    } catch (error) {
-        console.error('Error loading pop-up events:', error);
-        res.status(500).send('Error loading pop-up events.');
-    }
-});
+app.get('/pop-up', requireDatabase, (req, res) => res.redirect('/events'));
 
 // VIEW EVENTS SCHEDULE
 app.post('/pop-up/create', requireDatabase, async (req, res) => {
@@ -4758,13 +4739,17 @@ app.get('/events', requireDatabase, async (req, res) => {
     if (!req.session.loggedin) return res.redirect('/');
 
     try {
-        const [events, users] = await Promise.all([
+        const [events, popUpEvents, users] = await Promise.all([
             db.collection('scheduledEvents').find().sort({ scheduledStartTime: 1 }).toArray(),
+            db.collection('popupEvents').find().sort({ scheduledStartTime: 1 }).toArray(),
             db.collection('users').find({}, { projection: { displayName: 1, discordUser: 1, 'login.discordId': 1, accountType: 1, avatarUrl: 1 } }).sort({ displayName: 1 }).toArray()
         ]);
 
-        const upcomingEvents = events.filter(e => new Date(e.scheduledEndTime || e.scheduledStartTime) >= new Date());
-        const pastEvents = events.filter(e => new Date(e.scheduledEndTime || e.scheduledStartTime) < new Date()).reverse();
+        const now = new Date();
+        const upcomingEvents = events.filter(e => new Date(e.scheduledEndTime || e.scheduledStartTime) >= now);
+        const pastEvents = events.filter(e => new Date(e.scheduledEndTime || e.scheduledStartTime) < now).reverse();
+        const upcomingPopUps = popUpEvents.filter(e => new Date(e.scheduledEndTime || e.scheduledStartTime) >= now);
+        const pastPopUps = popUpEvents.filter(e => new Date(e.scheduledEndTime || e.scheduledStartTime) < now).reverse();
 
         const isManager = hasManagementAccess(req);
         const userMap = {};
@@ -4778,6 +4763,8 @@ app.get('/events', requireDatabase, async (req, res) => {
             page: 'events',
             upcomingEvents,
             pastEvents,
+            upcomingPopUps,
+            pastPopUps,
             isManager,
             users,
             userMap
