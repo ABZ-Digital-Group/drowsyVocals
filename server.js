@@ -5653,9 +5653,14 @@ app.get('/roster-planner', requireDatabase, async (req, res) => {
         const rankNames = new Set(ranks.map((rank) => rank.name));
         const lanes = ranks.map((rank) => ({ ...rank, users: [] }));
         const lanesByRank = new Map(lanes.map((lane) => [lane.name, lane]));
+        const excludedUsers = [];
 
         users.forEach((user) => {
             const assignment = plannedAssignments.get(user.login.discordId);
+            if (savedPlan && assignment?.excluded === true) {
+                excludedUsers.push(user);
+                return;
+            }
             const plannedRank = rankNames.has(assignment?.accountType)
                 ? assignment.accountType
                 : savedPlan
@@ -5678,6 +5683,7 @@ app.get('/roster-planner', requireDatabase, async (req, res) => {
             page: 'roster-planner',
             planWeek: requestedWeek,
             lanes,
+            excludedUsers,
             hasSavedPlan: Boolean(savedPlan)
         });
     } catch (error) {
@@ -5704,12 +5710,16 @@ app.post('/roster-planner/save', requireDatabase, async (req, res) => {
         const rankNames = new Set(settings.ranks.map((rank) => rank.name));
         const uniqueIds = new Set();
         const validAssignments = parsedAssignments.map((assignment, position) => {
-            if (!assignment || typeof assignment.discordId !== 'string' || !rankNames.has(assignment.accountType)) {
+            if (!assignment || typeof assignment.discordId !== 'string' || (assignment.excluded !== true && !rankNames.has(assignment.accountType))) {
                 throw new Error('Invalid roster plan assignment.');
             }
             if (uniqueIds.has(assignment.discordId)) throw new Error('Duplicate roster plan assignment.');
             uniqueIds.add(assignment.discordId);
-            return { discordId: assignment.discordId, accountType: assignment.accountType, position };
+            return {
+                discordId: assignment.discordId,
+                ...(assignment.excluded === true ? { excluded: true } : { accountType: assignment.accountType }),
+                position
+            };
         });
 
         const existingUsers = await db.collection('users').countDocuments({

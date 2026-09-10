@@ -63,6 +63,15 @@
                     <div class="planner-remove-dropzone" data-remove-dropzone="true">
                         <span class="material-symbols-outlined" aria-hidden="true">person_remove</span>
                         <span>Drop staff member here to exclude from plan</span>
+                        <% excludedUsers.forEach(function(user) { %>
+                        <article class="planner-user" draggable="true" data-discord-id="<%= user.login.discordId %>">
+                            <span class="material-symbols-outlined planner-drag-handle" aria-hidden="true">drag_indicator</span>
+                            <div>
+                                <strong><%= user.displayName || user.discordUser || user.login.discordId %></strong>
+                                <span><%= user.discordUser || user.login.discordId %></span>
+                            </div>
+                        </article>
+                        <% }); %>
                     </div>
                 </section>
             </form>

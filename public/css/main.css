@@ -1318,6 +1318,7 @@ tbody tr:not(.rank-group-header):not(.bingo-rank-header):hover {
 }
 .planner-remove-dropzone {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: center;
     gap: 8px;
@@ -1328,6 +1329,11 @@ tbody tr:not(.rank-group-header):not(.bingo-rank-header):hover {
     color: #991b1b;
     font-weight: bold;
     text-align: center;
+}
+.planner-remove-dropzone > .planner-user {
+    flex: 1 1 100%;
+    margin-bottom: 0;
+    text-align: left;
 }
 .planner-remove-dropzone.is-drag-over {
     background: #fecaca;
