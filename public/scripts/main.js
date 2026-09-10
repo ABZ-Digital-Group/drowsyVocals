@@ -649,6 +649,14 @@ if (rosterPlanner) {
         });
       });
     });
+    if (removeDropzone) {
+      removeDropzone.querySelectorAll(".planner-user").forEach((user) => {
+        assignments.push({
+          discordId: user.dataset.discordId,
+          excluded: true
+        });
+      });
+    }
     assignmentsInput.value = JSON.stringify(assignments);
   });
 }
