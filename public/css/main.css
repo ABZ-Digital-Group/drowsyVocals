@@ -98,11 +98,7 @@ main{
     align-items: center;
     height: 100vh;
     width: 40%;
-    /* background-color: #242320; */
-    background: linear-gradient(180deg, rgba(36,35,32,.97) 0%, rgba(36,35,32,.78) 42%, rgba(36,35,32,.2) 100%), linear-gradient(0deg, rgba(36,35,32,.66), transparent 62%);
-    background-image: url('/assets/content-6_1.png');
-    background-size: cover;
-    background-position: center;
+    background-color: #242320;
 }
 .Logo img { 
     max-width: 50%;
