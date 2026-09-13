@@ -328,6 +328,11 @@ const rankOrder = ['Mr. Sandman', 'Realm God', 'Drowsy Defender', 'Dreamy Defend
 const getRankChangeType = (oldRank, newRank) => rankOrder.indexOf(newRank) < rankOrder.indexOf(oldRank) ? 'promotion' : 'demotion';
 const CHANGELOG_ENTRIES = [
     {
+        date: '2026-09-13',
+        title: 'Idle presence indicator added',
+        changes: ['Online users now show an orange status dot after five minutes without activity and return to green when active again.']
+    },
+    {
         date: '2026-09-08',
         title: 'Account profile backgrounds added',
         changes: ['Members can now upload a personal background image for their account profile.']
@@ -3036,6 +3041,11 @@ app.post('/bot/invites/add', requireDatabase, async (req, res) => {
         if (!invites.includes(userId)) {
             invites.push(userId);
             writeBotJson(path.join(BOT_DATA_DIR, 'allowed-invite-users.json'), invites);
+            const botResult = await sendBotApiPost('/admin/api/invites', { userId, allowed: 'true' });
+            if (!botResult?.ok) {
+                req.flash('error_msg', 'Saved locally, but DrowsyBot did not accept the whitelist update.');
+                return res.redirect('/bot#invites');
+            }
             await writeAudit(req, 'Added Discord Invite Whitelist Exception', userId);
             req.flash('success_msg', `Added User ID ${userId} to invite whitelist.`);
         } else {
@@ -3064,6 +3074,11 @@ app.post('/bot/invites/remove', requireDatabase, async (req, res) => {
 
         invites = invites.filter(id => id !== userId);
         writeBotJson(path.join(BOT_DATA_DIR, 'allowed-invite-users.json'), invites);
+        const botResult = await sendBotApiPost('/admin/api/invites', { userId, allowed: 'false' });
+        if (!botResult?.ok) {
+            req.flash('error_msg', 'Removed locally, but DrowsyBot did not accept the whitelist update.');
+            return res.redirect('/bot#invites');
+        }
         await writeAudit(req, 'Removed Discord Invite Whitelist Exception', userId);
         req.flash('success_msg', `Removed User ID ${userId} from invite whitelist.`);
     } catch (e) {
@@ -5417,20 +5432,37 @@ app.get('/api/online-users', requireDatabase, async (req, res) => {
         const cutoff = new Date(Date.now() - ONLINE_THRESHOLD_MS);
         const onlineDocs = await db.collection('users')
             .find({ lastSeen: { $gte: cutoff } }, {
-                projection: { displayName: 1, discordUser: 1, avatarUrl: 1, 'login.discordId': 1 }
+                projection: { displayName: 1, discordUser: 1, avatarUrl: 1, presenceStatus: 1, 'login.discordId': 1 }
             })
             .toArray();
 
         const onlineUsers = onlineDocs.map((user) => ({
             discordId: user.login.discordId,
             displayName: user.displayName || user.discordUser || user.login.discordId,
-            avatarUrl: user.avatarUrl || null
+            avatarUrl: user.avatarUrl || null,
+            presenceStatus: user.presenceStatus === 'idle' ? 'idle' : 'active'
         }));
 
         res.json({ onlineUsers });
     } catch (error) {
         console.error('Error fetching online users:', error);
         res.status(500).json({ error: 'Unable to fetch online users.' });
+    }
+});
+
+app.post('/api/presence', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !req.session.currentuser) return res.status(401).json({ error: 'Not authenticated.' });
+
+    const presenceStatus = req.body?.status === 'idle' ? 'idle' : 'active';
+    try {
+        await db.collection('users').updateOne(
+            { 'login.discordId': req.session.currentuser },
+            { $set: { lastSeen: new Date(), presenceStatus } }
+        );
+        res.sendStatus(204);
+    } catch (error) {
+        console.error('Presence status update failed:', error.message);
+        res.status(500).json({ error: 'Unable to update presence.' });
     }
 });
 
@@ -5548,7 +5580,8 @@ app.get('/roster', requireDatabase, async (req, res) => {
                 isInactiveRisk,
                 inactivityReason,
                 attendedThisWeek: attendanceRecord ? attendanceRecord.attended : false,
-                isOnline
+                isOnline,
+                presenceStatus: user.presenceStatus === 'idle' ? 'idle' : 'active'
             };
             userObj.badges = calculateUserBadges(userObj, settings);
 

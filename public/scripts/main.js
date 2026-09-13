@@ -143,16 +143,46 @@ const renderAvatarHtml = (user, size, online) => {
     ? `<img class="avatar-img" src="${escapeHtml(user.avatarUrl)}" alt="${escapeHtml(user.displayName)}" style="width:${size}px;height:${size}px;" onerror="this.style.display='none';if(this.nextElementSibling)this.nextElementSibling.style.display='flex';">`
     : '';
 
-  return `<span class="avatar-wrapper${online ? " is-online" : ""}" data-discord-id="${escapeHtml(user.discordId)}" style="width:${size}px;height:${size}px;" title="${escapeHtml(user.displayName)}">${imgHtml}${initialsHtml}<span class="avatar-online-dot"></span></span>`;
+  const idleClass = online && user.presenceStatus === "idle" ? " is-idle" : "";
+  return `<span class="avatar-wrapper${online ? " is-online" : ""}${idleClass}" data-discord-id="${escapeHtml(user.discordId)}" style="width:${size}px;height:${size}px;" title="${escapeHtml(user.displayName)}">${imgHtml}${initialsHtml}<span class="avatar-online-dot"></span></span>`;
 };
 
 // GLOBAL PRESENCE HEARTBEAT (KEEPS ACTIVE USERS ONLINE ACROSS ALL PAGES)
-const sendPresencePing = () => {
-  fetch("/api/online-users", { cache: "no-store" }).catch(() => {});
+const IDLE_AFTER_MS = 5 * 60 * 1000;
+let presenceStatus = "active";
+let lastPresenceActivity = Date.now();
+
+const sendPresencePing = (status = presenceStatus) => {
+  fetch("/api/presence", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ status }),
+    cache: "no-store"
+  }).catch(() => {});
 };
 
+const markPresenceActive = () => {
+  lastPresenceActivity = Date.now();
+  if (presenceStatus !== "active") {
+    presenceStatus = "active";
+    sendPresencePing();
+  }
+};
+
+["click", "keydown", "input", "mousemove", "scroll", "touchstart"].forEach((eventName) => {
+  document.addEventListener(eventName, markPresenceActive, { passive: true });
+});
+
+setInterval(() => {
+  if (presenceStatus === "active" && Date.now() - lastPresenceActivity >= IDLE_AFTER_MS) {
+    presenceStatus = "idle";
+    sendPresencePing();
+  }
+}, 10000);
+
 // Periodic heartbeat every 45s (well within 2 minute cutoff)
-setInterval(sendPresencePing, 45000);
+sendPresencePing();
+setInterval(() => sendPresencePing(), 45000);
 
 // Ping on tab regain focus / visibility change
 document.addEventListener("visibilitychange", () => {
@@ -191,6 +221,8 @@ if (onlineNowBar) {
         document.querySelectorAll(".roster-content table .avatar-wrapper").forEach((el) => {
           const isOnline = onlineUsers.some((user) => user.discordId === el.dataset.discordId);
           el.classList.toggle("is-online", isOnline);
+          const onlineUser = onlineUsers.find((user) => user.discordId === el.dataset.discordId);
+          el.classList.toggle("is-idle", isOnline && onlineUser?.presenceStatus === "idle");
         });
       })
       .catch(() => {});
