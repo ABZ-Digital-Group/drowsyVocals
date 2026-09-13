@@ -329,8 +329,13 @@ const getRankChangeType = (oldRank, newRank) => rankOrder.indexOf(newRank) < ran
 const CHANGELOG_ENTRIES = [
     {
         date: '2026-09-13',
+        title: 'Roster updates now apply live',
+        changes: ['Existing roster rows and summary counts now update in the background without refreshing the page or clearing active filters and attendance selections.']
+    },
+    {
+        date: '2026-09-13',
         title: 'Idle presence indicator added',
-        changes: ['Online users now show an orange status dot after five minutes without activity and return to green when active again.']
+        changes: ['Online users now show an orange status dot after five minutes without activity and return to green when active again, without requiring a page refresh.']
     },
     {
         date: '2026-09-08',
@@ -5459,7 +5464,7 @@ app.post('/api/presence', requireDatabase, async (req, res) => {
             { 'login.discordId': req.session.currentuser },
             { $set: { lastSeen: new Date(), presenceStatus } }
         );
-        res.sendStatus(204);
+        res.json({ discordId: req.session.currentuser, presenceStatus });
     } catch (error) {
         console.error('Presence status update failed:', error.message);
         res.status(500).json({ error: 'Unable to update presence.' });
