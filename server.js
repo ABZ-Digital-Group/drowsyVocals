@@ -129,6 +129,7 @@ app.use((req, res, next) => {
         if (
             ['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)
             && req.path !== '/login'
+            && req.path !== '/api/presence'
             && res.statusCode < 400
         ) {
             broadcastDataUpdate('app');
@@ -327,6 +328,11 @@ const hasFeedbackManagementAccess = (req) => hasGodAccess(req);
 const rankOrder = ['Mr. Sandman', 'Realm God', 'Drowsy Defender', 'Dreamy Defender', 'Dreamland Guard', 'Nighty Knights', 'Tired Esquire'];
 const getRankChangeType = (oldRank, newRank) => rankOrder.indexOf(newRank) < rankOrder.indexOf(oldRank) ? 'promotion' : 'demotion';
 const CHANGELOG_ENTRIES = [
+    {
+        date: '2026-09-13',
+        title: 'Dashboard refresh loop fixed',
+        changes: ['Presence heartbeats no longer trigger shared live-update refresh events, preventing repeated dashboard refreshes.']
+    },
     {
         date: '2026-09-13',
         title: 'Roster updates now apply live',
