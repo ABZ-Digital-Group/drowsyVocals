@@ -3556,6 +3556,9 @@ dialog .checkbox-label input[type="checkbox"] {
 .avatar-wrapper.is-online .avatar-online-dot {
     display: block;
 }
+.avatar-wrapper.is-online.is-idle .avatar-online-dot {
+    background-color: #f0a43c;
+}
 
 .online-now-bar {
     display: flex;

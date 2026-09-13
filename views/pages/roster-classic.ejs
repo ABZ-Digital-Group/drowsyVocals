@@ -42,7 +42,8 @@
                                 displayName: onlineUser.displayName,
                                 discordId: onlineUser.discordId,
                                 size: 32,
-                                online: true
+                                online: true,
+                                presenceStatus: onlineUser.presenceStatus
                             }) %>
                             <% }); %>
                             <% if (onlineUsers.length === 0) { %>
@@ -152,7 +153,8 @@
                                         displayName: user.displayName || user.discordUser || user.login.discordId,
                                         discordId: user.login.discordId,
                                         size: 32,
-                                        online: user.isOnline
+                                        online: user.isOnline,
+                                        presenceStatus: user.presenceStatus
                                     }) %>
                                     <span><%= user.displayName %></span>
                                     <% if (user.isInactiveRisk) { %>
