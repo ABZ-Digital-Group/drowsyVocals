@@ -105,9 +105,67 @@ const isUserInteracting = () => {
   return isInput || hasOpenDialog || isDragging || typedRecently || savedRecently;
 };
 
+let rosterUpdateInProgress = false;
+
+const refreshRosterWithoutReload = async () => {
+  if (rosterUpdateInProgress) return;
+  rosterUpdateInProgress = true;
+
+  try {
+    const response = await fetch(window.location.href, { cache: "no-store", headers: { "X-Requested-With": "XMLHttpRequest" } });
+    if (!response.ok) throw new Error("Roster update failed");
+
+    const html = await response.text();
+    const parsedDocument = new DOMParser().parseFromString(html, "text/html");
+    const currentContent = document.querySelector(".roster-content");
+    const updatedContent = parsedDocument.querySelector(".roster-content");
+    if (!currentContent || !updatedContent) return;
+
+    const currentRows = new Map();
+    currentContent.querySelectorAll(".roster-user-row").forEach((row) => {
+      const discordId = row.querySelector("[data-discord-id]")?.dataset.discordId;
+      if (discordId) currentRows.set(discordId, row);
+    });
+
+    updatedContent.querySelectorAll(".roster-user-row").forEach((updatedRow) => {
+      const discordId = updatedRow.querySelector("[data-discord-id]")?.dataset.discordId;
+      const currentRow = discordId ? currentRows.get(discordId) : null;
+      if (!currentRow) return;
+
+      const currentCells = currentRow.querySelectorAll(":scope > td");
+      const updatedCells = updatedRow.querySelectorAll(":scope > td");
+      updatedCells.forEach((updatedCell, index) => {
+        const currentCell = currentCells[index];
+        if (!currentCell || currentCell.querySelector("input[name='attendees']")) return;
+        if (currentCell.querySelector(".roster-action-menu")) return;
+        currentCell.innerHTML = updatedCell.innerHTML;
+        for (const attribute of updatedCell.attributes) {
+          currentCell.setAttribute(attribute.name, attribute.value);
+        }
+      });
+
+      for (const attribute of updatedRow.attributes) {
+        currentRow.setAttribute(attribute.name, attribute.value);
+      }
+    });
+
+    const currentStats = document.querySelector(".settings-stats-bar");
+    const updatedStats = parsedDocument.querySelector(".settings-stats-bar");
+    if (currentStats && updatedStats) currentStats.innerHTML = updatedStats.innerHTML;
+  } catch (error) {
+    console.warn("Live roster update failed:", error.message);
+  } finally {
+    rosterUpdateInProgress = false;
+  }
+};
+
 const triggerOrScheduleReload = () => {
   if (isUserInteracting()) {
     pendingLiveReload = true;
+    return;
+  }
+  if (window.location.pathname === "/roster") {
+    refreshRosterWithoutReload();
     return;
   }
   window.location.reload();
@@ -121,7 +179,11 @@ if (window.io && ["/roster", "/events", "/bingo", "/roster-planner", "/settings"
   setInterval(() => {
     if (pendingLiveReload && !isUserInteracting()) {
       pendingLiveReload = false;
-      window.location.reload();
+      if (window.location.pathname === "/roster") {
+        refreshRosterWithoutReload();
+      } else {
+        window.location.reload();
+      }
     }
   }, 2000);
 }
@@ -152,13 +214,23 @@ const IDLE_AFTER_MS = 5 * 60 * 1000;
 let presenceStatus = "active";
 let lastPresenceActivity = Date.now();
 
+const updatePresenceAvatars = (discordId, status) => {
+  if (!discordId) return;
+  document.querySelectorAll(`.avatar-wrapper[data-discord-id="${CSS.escape(discordId)}"]`).forEach((avatar) => {
+    avatar.classList.add("is-online");
+    avatar.classList.toggle("is-idle", status === "idle");
+  });
+};
+
 const sendPresencePing = (status = presenceStatus) => {
   fetch("/api/presence", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ status }),
     cache: "no-store"
-  }).catch(() => {});
+  }).then((response) => (response.ok ? response.json() : Promise.reject(new Error("Presence update failed"))))
+    .then((payload) => updatePresenceAvatars(payload.discordId, payload.presenceStatus))
+    .catch(() => {});
 };
 
 const markPresenceActive = () => {
