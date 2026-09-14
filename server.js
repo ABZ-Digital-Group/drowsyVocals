@@ -5208,6 +5208,13 @@ app.post('/review-loa', requireDatabase, async (req, res) => {
     }
 
     try {
+        const targetUser = await db.collection('users').findOne(
+            { 'login.discordId': discordId },
+            { projection: { displayName: 1, discordUser: 1, activity: 1, loaRequests: 1 } }
+        );
+        const reqDetail = (targetUser?.loaRequests || []).find((r) => r.id === requestId);
+        const todayStr = new Date().toISOString().slice(0, 10);
+
         const updateDoc = {
             $set: {
                 'loaRequests.$[request].status': decision,
@@ -5216,7 +5223,7 @@ app.post('/review-loa', requireDatabase, async (req, res) => {
             }
         };
 
-        if (decision === 'Approved') {
+        if (decision === 'Approved' && reqDetail?.startDate <= todayStr) {
             updateDoc.$set.activity = 'LOA';
         }
 
@@ -5225,12 +5232,6 @@ app.post('/review-loa', requireDatabase, async (req, res) => {
             updateDoc,
             { arrayFilters: [{ 'request.id': requestId }] }
         );
-
-        const targetUser = await db.collection('users').findOne(
-            { 'login.discordId': discordId },
-            { projection: { displayName: 1, discordUser: 1, loaRequests: 1 } }
-        );
-        const reqDetail = (targetUser?.loaRequests || []).find((r) => r.id === requestId);
 
         sendDiscordWebhook({
             title: decision === 'Approved' ? '✅ LOA Request Approved' : '❌ LOA Request Denied',
@@ -5258,22 +5259,29 @@ app.post('/review-loa', requireDatabase, async (req, res) => {
     }
 });
 
-// AUTOMATED LOA EXPIRY & AUTO-RETURN CRON TASK
+// AUTOMATED LOA START & EXPIRY TASK
 async function processExpiredLoas() {
     if (!isDatabaseReady || !db) return;
 
     try {
         const todayStr = new Date().toISOString().slice(0, 10);
-        // Find users currently on LOA whose approved LOAs have an endDate < today
-        const usersOnLoa = await db.collection('users').find({
-            activity: 'LOA',
+        const usersWithApprovedLoas = await db.collection('users').find({
             'loaRequests.status': 'Approved'
         }).toArray();
 
-        for (const user of usersOnLoa) {
-            const activeLoas = (user.loaRequests || []).filter(r => r.status === 'Approved' && r.endDate >= todayStr);
-            // If they have no active/future approved LOAs remaining, auto-return them to Active
-            if (activeLoas.length === 0) {
+        for (const user of usersWithApprovedLoas) {
+            const activeLoas = (user.loaRequests || []).filter(r => (
+                r.status === 'Approved'
+                && r.startDate <= todayStr
+                && r.endDate >= todayStr
+            ));
+
+            if (activeLoas.length > 0 && user.activity !== 'LOA') {
+                await db.collection('users').updateOne(
+                    { 'login.discordId': user.login.discordId },
+                    { $set: { activity: 'LOA' } }
+                );
+            } else if (activeLoas.length === 0 && user.activity === 'LOA') {
                 await db.collection('users').updateOne(
                     { 'login.discordId': user.login.discordId },
                     { $set: { activity: 'Active' } }
@@ -5298,7 +5306,7 @@ async function processExpiredLoas() {
     }
 }
 
-// Check for expired LOAs once on startup and every 30 minutes
+// Check for scheduled LOA starts and expired LOAs every 30 minutes
 setInterval(processExpiredLoas, 30 * 60 * 1000);
 
 // VIEW ALL STAFF APPLICATIONS
