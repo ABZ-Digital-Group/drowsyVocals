@@ -232,7 +232,7 @@ app.use(async (req, res, next) => {
 // MAINTENANCE MODE MIDDLEWARE
 app.use(async (req, res, next) => {
     // Always allow static files, health checks, login/auth pages, logout, and external webhook ingestion
-    const bypassedPaths = ['/health', '/logout', '/login', '/index', '/api/applications/webhook'];
+    const bypassedPaths = ['/health', '/logout', '/login', '/index', '/event-feedback', '/staff-application', '/api/applications/webhook'];
     if (bypassedPaths.includes(req.path) || req.path.startsWith('/css') || req.path.startsWith('/scripts') || req.path.startsWith('/assets') || req.path.startsWith('/uploads')) {
         return next();
     }
@@ -4038,17 +4038,148 @@ app.post('/change-password', requireDatabase, async (req, res) => {
 });
 
 // FEEDBACK
+app.post('/staff-application', requireDatabase, async (req, res) => {
+    const publicApplicationUrl = 'https://drowsyvocals.com/staff-application.html';
+    const requiredFields = [
+        'discordUsername',
+        'age',
+        'timeZone',
+        'vcAvailability',
+        'moderationExperience',
+        'staffMotivation',
+        'goodServer'
+    ];
+    const answers = Object.fromEntries(Object.keys(req.body || {}).map((field) => [field, (req.body[field] || '').toString().trim()]));
+    const missingField = requiredFields.some((field) => !answers[field]);
+    const oversizedAnswer = Object.values(answers).some((answer) => answer.length > 5000);
+    const validDrink = ['Coke', 'Pepsi'].includes(answers.drink);
+
+    if (missingField || oversizedAnswer || !validDrink) {
+        return res.redirect(`${publicApplicationUrl}?application=error`);
+    }
+
+    try {
+        const newApplication = {
+            applicantName: answers.discordUsername,
+            discordUser: answers.discordUsername,
+            answers: {
+                'Discord username ex. mr.smoothie': answers.discordUsername,
+                'How old are you?': answers.age,
+                'What time zone are you in?': answers.timeZone,
+                'Would you be able to be active for 14 hours a week in vc? ( 2 hours a day!)': answers.vcAvailability,
+                'Have you had any past moderation experience? If yes, how was your experience?': answers.moderationExperience,
+                'Why do you want to be staff in Drowsy Vocals? (Please provide at least 3 sentences)': answers.staffMotivation,
+                'In your opinion what makes a good Discord server?': answers.goodServer,
+                'Coke or Pepsi?': answers.drink
+            },
+            status: 'Pending',
+            managerNotes: '',
+            submittedAt: new Date().toISOString().slice(0, 19),
+            source: 'drowsyvocals.com'
+        };
+
+        const result = await db.collection('applications').insertOne(newApplication);
+        broadcastDataUpdate('applications');
+        sendDiscordWebhook({
+            title: 'New Staff Application Received',
+            color: 0xc375be,
+            fields: [
+                { name: 'Discord', value: answers.discordUsername, inline: true },
+                { name: 'Age', value: answers.age, inline: true },
+                { name: 'Status', value: 'Pending', inline: true }
+            ]
+        }, 'applications');
+
+        res.redirect(`${publicApplicationUrl}?application=success&id=${result.insertedId}`);
+    } catch (error) {
+        console.error('Error submitting staff application:', error);
+        res.redirect(`${publicApplicationUrl}?application=error`);
+    }
+});
+
+app.get('/event-feedback', (req, res) => {
+    res.redirect('https://drowsyvocals.com/feedback.html');
+});
+
+app.post('/event-feedback', requireDatabase, async (req, res) => {
+    const publicFeedbackUrl = 'https://drowsyvocals.com/feedback.html';
+    const returnUrl = publicFeedbackUrl;
+    const allowedValues = {
+        overallRating: ['Excellent', 'Good', 'Average', 'Below average', 'Poor'],
+        enjoyment: ['Really enjoyed it', 'Enjoyed it', 'It was alright', "Didn't enjoy it much", "Didn't enjoy it at all"],
+        organisation: ['Excellent', 'Good', 'Average', 'Could be improved', 'Poor'],
+        hosts: ['Excellent', 'Good', 'Average', 'Could be improved', 'Poor', 'Not applicable'],
+        issues: ['No', 'Yes', 'Not sure'],
+        attendance: ['Definitely', 'Probably', 'Maybe', 'Probably not', 'Definitely not']
+    };
+    const answers = Object.fromEntries(Object.keys(allowedValues).map((field) => [field, (req.body[field] || '').toString().trim()]));
+    const textAnswers = {
+        enjoyedWhat: (req.body.enjoyedWhat || '').toString().trim(),
+        improve: (req.body.improve || '').toString().trim(),
+        issueDetails: (req.body.issueDetails || '').toString().trim(),
+        anythingElse: (req.body.anythingElse || '').toString().trim()
+    };
+
+    const hasInvalidChoice = Object.entries(allowedValues).some(([field, choices]) => !choices.includes(answers[field]));
+    const hasOversizedText = Object.values(textAnswers).some((answer) => answer.length > 3000);
+    if (hasInvalidChoice || hasOversizedText) {
+        req.flash('error_msg', 'Please check your answers and try again.');
+        return res.redirect(`${returnUrl}?feedback=error`);
+    }
+
+    try {
+        const user = req.session.loggedin && req.session.currentuser
+            ? await db.collection('users').findOne(
+                { 'login.discordId': req.session.currentuser },
+                { projection: { displayName: 1, discordUser: 1, 'login.discordId': 1 } }
+            )
+            : null;
+        const submittedBy = user?.displayName || user?.discordUser || 'Anonymous guest';
+
+        await db.collection('eventFeedback').insertOne({
+            ...answers,
+            ...textAnswers,
+            status: 'New',
+            submittedBy,
+            submittedByDiscordId: user?.login?.discordId || null,
+            submittedAt: new Date().toISOString().slice(0, 19)
+        });
+
+        sendDiscordWebhook({
+            title: 'New Drowsy Vocals Event Feedback',
+            color: 0xc375be,
+            fields: [
+                { name: 'Submitted by', value: submittedBy, inline: true },
+                { name: 'Overall', value: answers.overallRating, inline: true },
+                { name: 'Would attend again', value: answers.attendance, inline: true }
+            ]
+        }, 'feedback');
+
+        req.flash('success_msg', 'Thank you. Your event feedback has been submitted.');
+    } catch (error) {
+        console.error('Error submitting event feedback:', error);
+        req.flash('error_msg', 'Unable to submit feedback right now. Please try again.');
+        return res.redirect(`${returnUrl}?feedback=error`);
+    }
+    res.redirect(`${returnUrl}?feedback=success`);
+});
+
 app.get('/feedback', requireDatabase, async (req, res) => {
     if (!req.session.loggedin) return res.redirect('/');
 
     try {
-        const feedbackEntries = hasFeedbackManagementAccess(req)
-            ? await db.collection('feedback').find().sort({ submittedAt: -1 }).limit(100).toArray()
-            : [];
+        const canViewFeedback = hasFeedbackManagementAccess(req);
+        const [feedbackEntries, eventFeedbackEntries] = canViewFeedback
+            ? await Promise.all([
+                db.collection('feedback').find().sort({ submittedAt: -1 }).limit(100).toArray(),
+                db.collection('eventFeedback').find().sort({ submittedAt: -1 }).limit(100).toArray()
+            ])
+            : [[], []];
         res.render('pages/feedback', {
             page: 'feedback',
-            canViewFeedback: hasFeedbackManagementAccess(req),
-            feedbackEntries
+            canViewFeedback,
+            feedbackEntries,
+            eventFeedbackEntries
         });
     } catch (error) {
         console.error('Error loading feedback:', error);

@@ -62,6 +62,41 @@
 						</ul>
 						<% } %>
 					</div>
+					<div class="profile-detail-full event-feedback-review">
+						<span>Event Feedback</span>
+						<% if (eventFeedbackEntries.length === 0) { %>
+						<strong>No event feedback submitted yet.</strong>
+						<% } else { %>
+						<ul class="feedback-list">
+							<% eventFeedbackEntries.forEach(function(entry) { %>
+							<li>
+								<div class="feedback-entry-meta">
+									<strong><%= entry.submittedBy %></strong>
+									<small><%= (entry.submittedAt || '').slice(0, 10) %></small>
+								</div>
+								<div class="event-feedback-summary">
+									<strong><%= entry.overallRating %></strong>
+									<span><%= entry.attendance %> likely to attend again</span>
+								</div>
+								<dl class="event-feedback-answers">
+									<div><dt>Enjoyment</dt><dd><%= entry.enjoyment %></dd></div>
+									<div><dt>Organisation</dt><dd><%= entry.organisation %></dd></div>
+									<div><dt>Hosts and staff</dt><dd><%= entry.hosts %></dd></div>
+									<div><dt>Issues</dt><dd><%= entry.issues %></dd></div>
+								</dl>
+								<% if (entry.enjoyedWhat || entry.improve || entry.issueDetails || entry.anythingElse) { %>
+								<div class="event-feedback-comments">
+									<% if (entry.enjoyedWhat) { %><p><strong>Enjoyed:</strong> <%= entry.enjoyedWhat %></p><% } %>
+									<% if (entry.improve) { %><p><strong>Improve:</strong> <%= entry.improve %></p><% } %>
+									<% if (entry.issueDetails) { %><p><strong>Issue details:</strong> <%= entry.issueDetails %></p><% } %>
+									<% if (entry.anythingElse) { %><p><strong>Additional comments:</strong> <%= entry.anythingElse %></p><% } %>
+								</div>
+								<% } %>
+							</li>
+							<% }); %>
+						</ul>
+						<% } %>
+					</div>
 					<% } %>
 				</div>
 			</section>
