@@ -4052,9 +4052,11 @@ app.post('/staff-application', requireDatabase, async (req, res) => {
     const answers = Object.fromEntries(Object.keys(req.body || {}).map((field) => [field, (req.body[field] || '').toString().trim()]));
     const missingField = requiredFields.some((field) => !answers[field]);
     const oversizedAnswer = Object.values(answers).some((answer) => answer.length > 5000);
+    const validAge = /^\d+$/.test(answers.age) && Number(answers.age) >= 13 && Number(answers.age) <= 120;
+    const validVcAvailability = ['Yes', 'No', 'Sometimes'].includes(answers.vcAvailability);
     const validDrink = ['Coke', 'Pepsi'].includes(answers.drink);
 
-    if (missingField || oversizedAnswer || !validDrink) {
+    if (missingField || oversizedAnswer || !validAge || !validVcAvailability || answers.staffMotivation.length < 30 || !validDrink) {
         return res.redirect(`${publicApplicationUrl}?application=error`);
     }
 
