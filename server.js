@@ -4171,15 +4171,19 @@ app.get('/feedback', requireDatabase, async (req, res) => {
 
     try {
         const canViewFeedback = hasFeedbackManagementAccess(req);
-        const [feedbackEntries, eventFeedbackEntries] = canViewFeedback
+        const canViewEventFeedback = hasManagementAccess(req);
+        const [feedbackEntries, eventFeedbackEntries] = canViewEventFeedback
             ? await Promise.all([
-                db.collection('feedback').find().sort({ submittedAt: -1 }).limit(100).toArray(),
+                canViewFeedback
+                    ? db.collection('feedback').find().sort({ submittedAt: -1 }).limit(100).toArray()
+                    : Promise.resolve([]),
                 db.collection('eventFeedback').find().sort({ submittedAt: -1 }).limit(100).toArray()
             ])
             : [[], []];
         res.render('pages/feedback', {
             page: 'feedback',
             canViewFeedback,
+            canViewEventFeedback,
             feedbackEntries,
             eventFeedbackEntries
         });
