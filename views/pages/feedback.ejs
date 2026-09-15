@@ -74,7 +74,15 @@
 							<li>
 								<div class="feedback-entry-meta">
 									<strong><%= entry.submittedBy %></strong>
-									<small><%= (entry.submittedAt || '').slice(0, 10) %></small>
+									<div class="feedback-entry-actions">
+										<small><%= (entry.submittedAt || '').slice(0, 10) %></small>
+										<form action="/event-feedback/<%= entry._id %>/delete" method="POST" onsubmit="return confirm('Delete this event feedback response?');">
+											<button class="feedback-delete-button" type="submit" aria-label="Delete event feedback from <%= entry.submittedBy %>">
+												<span class="material-symbols-outlined" aria-hidden="true">delete</span>
+												Delete
+											</button>
+										</form>
+									</div>
 								</div>
 								<div class="event-feedback-summary">
 									<strong><%= entry.overallRating %></strong>

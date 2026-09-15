@@ -4308,6 +4308,26 @@ app.post('/feedback/:feedbackId/delete', requireDatabase, async (req, res) => {
     res.redirect('/feedback');
 });
 
+// DELETE EVENT FEEDBACK (MANAGEMENT ONLY)
+app.post('/event-feedback/:feedbackId/delete', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin) return res.redirect('/');
+    if (!hasManagementAccess(req)) return res.status(403).send('You do not have permission to delete event feedback.');
+
+    const { feedbackId } = req.params;
+    if (!ObjectId.isValid(feedbackId)) return res.redirect('/feedback');
+
+    try {
+        await db.collection('eventFeedback').deleteOne({ _id: new ObjectId(feedbackId) });
+        await writeAudit(req, 'Deleted event feedback', feedbackId);
+        req.flash('success_msg', 'Event feedback deleted.');
+    } catch (error) {
+        console.error('Error deleting event feedback:', error);
+        req.flash('error_msg', 'Unable to delete event feedback.');
+    }
+
+    res.redirect('/feedback');
+});
+
 app.get('/audit-log', requireDatabase, async (req, res) => {
     if (!req.session.loggedin) return res.redirect('/');
     if (!hasManagementAccess(req)) return res.status(403).send('You do not have permission to view the audit log.');
