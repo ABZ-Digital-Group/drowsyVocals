@@ -824,7 +824,7 @@ const checkInUpload = multer({
 });
 
 // DROWSY DISCORD BOT INTEGRATION PATHS & HELPERS
-const DROWSY_BOT_DIR = process.env.DROWSY_BOT_DIR || path.resolve(__dirname, '..', 'drowsyBot2.0');
+const DROWSY_BOT_DIR = process.env.DROWSY_BOT_DIR || path.resolve(__dirname, '..', 'drowsybot2');
 const BOT_DATA_DIR = path.join(DROWSY_BOT_DIR, 'data');
 const BOT_ASSETS_DIR = path.join(DROWSY_BOT_DIR, 'assets');
 const BOT_ADS_DIR = path.join(BOT_ASSETS_DIR, 'ads');
@@ -958,7 +958,7 @@ async function getBotLiveState() {
             advertisements: adsData.items || [],
             activeAdvertisement: activeAd,
             rotationIntervalMs: adsData.rotationIntervalMs || null,
-            allowedInviteUsers: readBotJson(path.join(BOT_DATA_DIR, 'allowed-invite-users.json'), []) || [],
+            allowedInviteUsers: status.allowedInviteUsers || status.allowedInviteUserIds || readBotJson(path.join(BOT_DATA_DIR, 'allowed-invite-users.json'), []) || [],
             botSettings,
             ...status
         };
