@@ -40,7 +40,12 @@
                                         <td><%= request.reason %></td>
                                         <td><span class="status-badge status-<%= String(request.status || 'Pending').toLowerCase() %>"><%= request.status || 'Pending' %></span></td>
                                         <td><%= (request.requestedAt || '').slice(0, 10) %></td>
-                                        <td><%= request.reviewedBy || 'Awaiting review' %></td>
+                                        <td>
+                                            <%= request.reviewedBy || (request.placedByAdmin ? 'Placed by Admin' : 'Awaiting review') %>
+                                            <% if (request.placedByAdmin) { %>
+                                            <small style="display: block; color: #8e897e;">(Admin placed)</small>
+                                            <% } %>
+                                        </td>
                                     </tr>
                                     <% }); %>
                                 </tbody>

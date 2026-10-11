@@ -5266,25 +5266,49 @@ app.get('/loa', requireDatabase, async (req, res) => {
             .sort((a, b) => new Date(b.requestedAt) - new Date(a.requestedAt));
 
         let pendingRequests = [];
+        let activeLoaUsers = [];
+        let staffUsers = [];
 
         if (hasManagementAccess(req)) {
-            const usersWithLoa = await db.collection('users')
-                .find({ 'loaRequests.status': 'Pending' })
-                .toArray();
+            const todayStr = new Date().toISOString().slice(0, 10);
+            const [usersWithLoa, allStaff] = await Promise.all([
+                db.collection('users')
+                    .find({ 'loaRequests.0': { $exists: true } })
+                    .toArray(),
+                db.collection('users')
+                    .find({}, { projection: { displayName: 1, discordUser: 1, accountType: 1, 'login.discordId': 1 } })
+                    .toArray()
+            ]);
 
             pendingRequests = usersWithLoa.flatMap((loaUser) => (loaUser.loaRequests || [])
                 .filter((request) => request.status === 'Pending')
                 .map((request) => ({
                     ...request,
-                    discordId: loaUser.login.discordId,
-                    displayName: loaUser.displayName || loaUser.discordUser || loaUser.login.discordId
+                    discordId: loaUser.login?.discordId,
+                    displayName: loaUser.displayName || loaUser.discordUser || loaUser.login?.discordId
                 })));
+
+            activeLoaUsers = usersWithLoa.flatMap((loaUser) => (loaUser.loaRequests || [])
+                .filter((request) => request.status === 'Approved' && request.startDate <= todayStr && request.endDate >= todayStr)
+                .map((request) => ({
+                    ...request,
+                    discordId: loaUser.login?.discordId,
+                    displayName: loaUser.displayName || loaUser.discordUser || loaUser.login?.discordId,
+                    accountType: loaUser.accountType
+                })));
+
+            staffUsers = allStaff
+                .filter(u => u.login?.discordId)
+                .sort((a, b) => (a.displayName || a.discordUser || '').localeCompare(b.displayName || b.discordUser || ''));
         }
 
         res.render('pages/loa', {
             page: 'loa',
             loaHistory,
             pendingRequests,
+            activeLoaUsers,
+            staffUsers,
+            canManageLoa: hasManagementAccess(req),
             canViewLoaHistory: hasManagementAccess(req)
         });
     } catch (error) {
@@ -5440,6 +5464,170 @@ app.post('/review-loa', requireDatabase, async (req, res) => {
         res.redirect('/loa');
     } catch (error) {
         console.error('Error reviewing LOA request:', error);
+        res.redirect('/loa');
+    }
+});
+
+// PLACE STAFF ON LOA (MANAGEMENT ACTION)
+app.post('/admin/place-loa', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin) return res.redirect('/');
+
+    if (!hasManagementAccess(req)) {
+        req.flash('error_msg', 'You are not authorized to place staff on LOA.');
+        return res.redirect('/loa');
+    }
+
+    const { targetDiscordId, startDate, endDate, reason, autoApprove } = req.body;
+    const trimmedReason = (reason || '').toString().trim();
+
+    if (!targetDiscordId || !startDate || !endDate || !trimmedReason) {
+        req.flash('error_msg', 'Staff member, start date, end date, and reason are required.');
+        return res.redirect('/loa');
+    }
+
+    if (new Date(endDate) < new Date(startDate)) {
+        req.flash('error_msg', 'End date cannot be before the start date.');
+        return res.redirect('/loa');
+    }
+
+    try {
+        const targetUser = await db.collection('users').findOne({ 'login.discordId': targetDiscordId });
+        if (!targetUser) {
+            req.flash('error_msg', 'Selected staff member could not be found.');
+            return res.redirect('/loa');
+        }
+
+        const isApproved = autoApprove === 'true' || autoApprove === 'on' || autoApprove === true;
+        const status = isApproved ? 'Approved' : 'Pending';
+        const nowIso = new Date().toISOString().slice(0, 19);
+        const todayStr = new Date().toISOString().slice(0, 10);
+
+        const request = {
+            id: crypto.randomUUID(),
+            startDate,
+            endDate,
+            reason: trimmedReason,
+            status,
+            requestedAt: nowIso,
+            placedByAdmin: true,
+            placedBy: req.session.currentuser,
+            ...(isApproved ? {
+                reviewedBy: req.session.currentuser,
+                reviewedAt: nowIso
+            } : {})
+        };
+
+        const updateDoc = {
+            $push: { loaRequests: request }
+        };
+
+        if (isApproved && startDate <= todayStr && endDate >= todayStr) {
+            updateDoc.$set = { activity: 'LOA' };
+        }
+
+        await db.collection('users').updateOne(
+            { 'login.discordId': targetDiscordId },
+            updateDoc
+        );
+
+        const adminUser = await db.collection('users').findOne(
+            { 'login.discordId': req.session.currentuser },
+            { projection: { displayName: 1, discordUser: 1 } }
+        );
+        const adminName = adminUser?.displayName || adminUser?.discordUser || req.session.currentuser;
+        const targetName = targetUser.displayName || targetUser.discordUser || targetDiscordId;
+
+        await writeAudit(
+            req,
+            'Admin Placed Staff on LOA',
+            `${adminName} placed ${targetName} (${targetDiscordId}) on LOA from ${startDate} to ${endDate} (${status}). Reason: ${trimmedReason}`
+        );
+
+        sendDiscordWebhook({
+            title: isApproved ? '🏖️ Staff Member Placed on LOA' : '🏖️ New LOA Request Submitted by Admin',
+            color: isApproved ? 0x10B981 : 0xF59E0B,
+            fields: [
+                { name: 'Staff Member', value: `${targetName} (<@${targetDiscordId}>)`, inline: true },
+                { name: 'Placed By', value: `${adminName} (<@${req.session.currentuser}>)`, inline: true },
+                { name: 'Status', value: status, inline: true },
+                { name: 'Dates', value: `${startDate} to ${endDate}`, inline: true },
+                { name: 'Reason', value: trimmedReason }
+            ]
+        }, 'loa');
+
+        createNotification(
+            targetDiscordId,
+            `Placed on LOA by Management`,
+            `You have been placed on LOA from ${startDate} to ${endDate} by ${adminName}.`,
+            '/loa'
+        ).catch((error) => console.error('Failed to create LOA notification:', error.message));
+
+        req.flash('success_msg', `Successfully placed ${targetName} on LOA (${status}).`);
+        res.redirect('/loa');
+    } catch (error) {
+        console.error('Error placing staff on LOA:', error);
+        req.flash('error_msg', 'Failed to place staff on LOA.');
+        res.redirect('/loa');
+    }
+});
+
+// END LOA EARLY (MANAGEMENT ACTION)
+app.post('/admin/end-loa', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin) return res.redirect('/');
+
+    if (!hasManagementAccess(req)) {
+        req.flash('error_msg', 'You are not authorized to end LOAs early.');
+        return res.redirect('/loa');
+    }
+
+    const { discordId, requestId } = req.body;
+    if (!discordId || !requestId) return res.redirect('/loa');
+
+    try {
+        const targetUser = await db.collection('users').findOne({ 'login.discordId': discordId });
+        if (!targetUser) {
+            req.flash('error_msg', 'Staff member could not be found.');
+            return res.redirect('/loa');
+        }
+
+        const nowIso = new Date().toISOString().slice(0, 19);
+        await db.collection('users').updateOne(
+            { 'login.discordId': discordId },
+            {
+                $set: {
+                    'loaRequests.$[request].status': 'Concluded',
+                    'loaRequests.$[request].endedEarlyBy': req.session.currentuser,
+                    'loaRequests.$[request].endedAt': nowIso,
+                    activity: 'Active'
+                }
+            },
+            { arrayFilters: [{ 'request.id': requestId }] }
+        );
+
+        const targetName = targetUser.displayName || targetUser.discordUser || discordId;
+        await writeAudit(req, 'Ended LOA Early', `Ended LOA for ${targetName} (${discordId}) early.`);
+
+        sendDiscordWebhook({
+            title: '🏖️ Staff Member Returned from LOA Early',
+            color: 0x3B82F6,
+            fields: [
+                { name: 'Staff Member', value: `${targetName} (<@${discordId}>)`, inline: true },
+                { name: 'Concluded By', value: `<@${req.session.currentuser}>`, inline: true }
+            ]
+        }, 'loa');
+
+        createNotification(
+            discordId,
+            `LOA Concluded Early`,
+            `Your LOA has been ended early by management. Your activity status is now Active.`,
+            '/loa'
+        ).catch((error) => console.error('Failed to create LOA notification:', error.message));
+
+        req.flash('success_msg', `Concluded LOA early for ${targetName}. Activity restored to Active.`);
+        res.redirect('/loa');
+    } catch (error) {
+        console.error('Error ending LOA early:', error);
+        req.flash('error_msg', 'Failed to end LOA early.');
         res.redirect('/loa');
     }
 });
