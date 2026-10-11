@@ -2752,7 +2752,7 @@ app.get('/bot', requireDatabase, async (req, res) => {
         const [botLiveState, settings, allUsers] = await Promise.all([
             getBotLiveState(),
             getSettings(),
-            db.collection('users').find({}, { projection: { displayName: 1, discordUser: 1, accountType: 1, house: 1, 'login.discordId': 1 } }).toArray()
+            db.collection('users').find({}, { projection: { displayName: 1, discordUser: 1, accountType: 1, house: 1, avatarUrl: 1, 'login.discordId': 1 } }).toArray()
         ]);
 
         const botEnv = parseBotEnv(BOT_ENV_FILE);
@@ -2766,20 +2766,40 @@ app.get('/bot', requireDatabase, async (req, res) => {
             rotationIntervalMs: null
         });
         const storedAllowedInviteIds = readBotJson(path.join(BOT_DATA_DIR, 'allowed-invite-users.json'), []);
-        const allowedInviteIds = Array.isArray(botLiveState.allowedInviteUsers)
+        const rawAllowedInviteData = (botLiveState.allowedInviteUsers && botLiveState.allowedInviteUsers.length > 0)
             ? botLiveState.allowedInviteUsers
-            : storedAllowedInviteIds;
-        const normalizedAllowedInviteIds = Array.isArray(allowedInviteIds)
-            ? allowedInviteIds
-            : (allowedInviteIds?.users || []);
-        const usersByDiscordId = new Map(allUsers.map((user) => [user.login?.discordId, user]));
-        const allowedInvites = normalizedAllowedInviteIds.map((userId) => {
+            : (botLiveState.allowedInviteUserIds && botLiveState.allowedInviteUserIds.length > 0
+                ? botLiveState.allowedInviteUserIds
+                : storedAllowedInviteIds);
+        const inviteItems = Array.isArray(rawAllowedInviteData)
+            ? rawAllowedInviteData
+            : (rawAllowedInviteData?.users || []);
+        const usersByDiscordId = new Map(
+            allUsers
+                .filter(u => u.login?.discordId)
+                .map(u => [String(u.login.discordId).trim(), u])
+        );
+        const allowedInvites = inviteItems.map((item) => {
+            const isObj = typeof item === 'object' && item !== null;
+            const userId = String(isObj ? (item.userId || item.id || '') : item).trim();
             const user = usersByDiscordId.get(userId);
+
+            let displayName = user?.displayName || user?.discordUser;
+            if (!displayName && isObj && item.displayName && item.displayName !== userId) {
+                displayName = item.displayName;
+            }
+            if (!displayName) {
+                displayName = userId ? `Discord User (${userId})` : 'Unknown Discord user';
+            }
+
+            const avatarUrl = user?.avatarUrl || (isObj ? item.avatarUrl : null) || null;
+
             return {
                 userId,
-                displayName: user?.displayName || user?.discordUser || 'Unknown Discord user'
+                displayName,
+                avatarUrl
             };
-        });
+        }).filter(item => Boolean(item.userId));
         const guildConfigs = readBotJson(path.join(BOT_DATA_DIR, 'guild-config.json'), {});
 
         res.render('pages/bot', {
@@ -3049,7 +3069,12 @@ app.post('/bot/invites/add', requireDatabase, async (req, res) => {
         let invites = readBotJson(path.join(BOT_DATA_DIR, 'allowed-invite-users.json'), []);
         if (!Array.isArray(invites)) invites = invites?.users || [];
 
-        if (!invites.includes(userId)) {
+        const hasUser = invites.some((entry) => {
+            const id = typeof entry === 'object' && entry !== null ? (entry.userId || entry.id) : entry;
+            return String(id).trim() === userId;
+        });
+
+        if (!hasUser) {
             invites.push(userId);
             writeBotJson(path.join(BOT_DATA_DIR, 'allowed-invite-users.json'), invites);
             const botResult = await sendBotApiPost('/admin/api/invites', { userId, allowed: 'true' });
@@ -3083,7 +3108,10 @@ app.post('/bot/invites/remove', requireDatabase, async (req, res) => {
         let invites = readBotJson(path.join(BOT_DATA_DIR, 'allowed-invite-users.json'), []);
         if (!Array.isArray(invites)) invites = invites?.users || [];
 
-        invites = invites.filter(id => id !== userId);
+        invites = invites.filter(entry => {
+            const id = typeof entry === 'object' && entry !== null ? (entry.userId || entry.id) : entry;
+            return String(id).trim() !== userId;
+        });
         writeBotJson(path.join(BOT_DATA_DIR, 'allowed-invite-users.json'), invites);
         const botResult = await sendBotApiPost('/admin/api/invites', { userId, allowed: 'false' });
         if (!botResult?.ok) {
