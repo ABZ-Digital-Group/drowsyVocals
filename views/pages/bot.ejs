@@ -700,7 +700,7 @@
                                                 <span class="settings-dev-id"><%= allowedUser.userId %> · Bypass Allowed</span>
                                             </div>
                                         </div>
-                                        <form action="/bot/invites/remove" method="POST" onsubmit="return confirm('Remove user <%= (allowedUser.displayName || allowedUser.userId || '').replace(/'/g, &quot;\\'&quot;) %> from whitelist?');" style="margin: 0;">
+                                        <form action="/bot/invites/remove" method="POST" data-username="<%= allowedUser.displayName %>" onsubmit="return confirm('Remove ' + this.dataset.username + ' from whitelist?');" style="margin: 0;">
                                             <input type="hidden" name="userId" value="<%= allowedUser.userId %>">
                                             <button type="submit" class="settings-btn settings-btn-danger settings-btn-sm" title="Remove User">
                                                 <span class="material-symbols-outlined">delete</span>
