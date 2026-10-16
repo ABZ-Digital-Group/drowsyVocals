@@ -41,6 +41,46 @@
                     </div>
                 </div>
 
+                <% if (canManageBingo) { %>
+                <div style="margin-top: 18px; padding: 16px; border: 1px solid #ece7dc; border-radius: 14px; background: #fffdfa;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin-bottom: 14px;">
+                        <div>
+                            <div style="font-size: 0.85em; color: #8e897e; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;">Template Management</div>
+                            <div style="font-size: 1em; color: #242320; font-weight: 700;">Active Template: <span style="color: #7c3aed;"><%= activeBingoTemplateName %></span></div>
+                        </div>
+                        <form action="/bingo/templates/activate" method="POST" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 0;" onsubmit="return confirm('Switching bingo templates will reset all weekly bingo progress and totals. Continue?');">
+                            <select name="templateId" class="bingo-search-input" style="min-width: 240px;" aria-label="Select active bingo template">
+                                <% bingoTemplates.forEach(function(template) { %>
+                                <option value="<%= template.id %>" <%= template.id === activeBingoTemplateId ? 'selected' : '' %>><%= template.name %> (<%= template.goals.length %> goals)</option>
+                                <% }); %>
+                            </select>
+                            <button type="submit" class="settings-btn settings-btn-secondary">
+                                <span class="material-symbols-outlined">swap_horiz</span>
+                                <span>Activate Template</span>
+                            </button>
+                        </form>
+                    </div>
+
+                    <form action="/bingo/templates" method="POST" style="display: grid; gap: 10px;">
+                        <div style="display: grid; gap: 8px;">
+                            <label for="templateName" style="font-weight: 700; color: #242320;">Create New Template</label>
+                            <input id="templateName" name="templateName" maxlength="80" required class="bingo-search-input" placeholder="Example: Halloween Week Board">
+                        </div>
+                        <div style="display: grid; gap: 8px;">
+                            <label for="goalsText" style="font-weight: 700; color: #242320;">Goals (one per line)</label>
+                            <textarea id="goalsText" name="goalsText" required rows="8" class="bingo-search-input" style="resize: vertical;" placeholder="3 HP&#10;2 HP&#10;2500 CC"></textarea>
+                            <span style="font-size: 0.82em; color: #8e897e;">Use 1-30 lines. Include “HP” or “CC” in each goal text so the board groups goals correctly.</span>
+                        </div>
+                        <div>
+                            <button type="submit" class="settings-btn settings-btn-primary">
+                                <span class="material-symbols-outlined">add</span>
+                                <span>Save Template</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                <% } %>
+
                 <!-- Top Stats Summary Bar -->
                 <div class="settings-stats-bar" style="margin-top: 20px;">
                     <div class="settings-stat-item">
@@ -119,22 +159,42 @@
             <% } %>
 
             <!-- Interactive Board Container -->
+            <%
+                const hpGoalCount = bingoGoals.filter(goal => goal.group === 'hp').length;
+                const ccGoalCount = bingoGoals.filter(goal => goal.group === 'cc').length;
+                const miscGoalCount = bingoGoals.filter(goal => goal.group === 'misc').length;
+                const totalBoardColumns = bingoGoals.length + 5;
+                const firstHpGoal = bingoGoals.find(goal => goal.group === 'hp');
+                const firstCcGoal = bingoGoals.find(goal => goal.group === 'cc');
+                const firstMiscGoal = bingoGoals.find(goal => goal.group === 'misc');
+            %>
             <section class="bingo-board-container" aria-label="Staff Bingo board">
                 <table class="bingo-table">
                     <thead>
                         <!-- Super Category Row -->
                         <tr class="bingo-super-header">
                             <th colspan="2">Staff Member Information</th>
-                            <th colspan="5" class="bingo-super-hp">🏆 House Points Goals (1 - 5)</th>
-                            <th colspan="5" class="bingo-super-cc">🪙 Casino Coins Goals (6 - 10)</th>
+                            <% if (hpGoalCount > 0) { %>
+                            <th colspan="<%= hpGoalCount %>" class="bingo-super-hp">🏆 House Points Goals</th>
+                            <% } %>
+                            <% if (ccGoalCount > 0) { %>
+                            <th colspan="<%= ccGoalCount %>" class="bingo-super-cc">🪙 Casino Coins Goals</th>
+                            <% } %>
+                            <% if (miscGoalCount > 0) { %>
+                            <th colspan="<%= miscGoalCount %>">🎯 Other Goals</th>
+                            <% } %>
                             <th colspan="3" class="bingo-super-summary">📊 Weekly Summary & Progress</th>
                         </tr>
                         <!-- Column Labels Row -->
                         <tr>
                             <th class="bingo-th-member">Staff Member</th>
                             <th class="bingo-th-rank">Rank</th>
-                            <% bingoGoals.forEach(function(goal, idx) { %>
-                            <th class="<%= idx === 0 ? 'bingo-divider-hp-start' : idx === 5 ? 'bingo-divider-cc-start' : '' %>" title="Goal <%= goal.label %>: <%= goal.target %>">
+                            <% bingoGoals.forEach(function(goal) {
+                                const dividerClass = goal.id === (firstHpGoal && firstHpGoal.id)
+                                    ? 'bingo-divider-hp-start'
+                                    : (goal.id === (firstCcGoal && firstCcGoal.id) || goal.id === (firstMiscGoal && firstMiscGoal.id)) ? 'bingo-divider-cc-start' : '';
+                            %>
+                            <th class="<%= dividerClass %>" title="Goal <%= goal.label %>: <%= goal.target %>">
                                 <span>Goal <%= goal.label %></span>
                             </th>
                             <% }); %>
@@ -146,14 +206,14 @@
                     <tbody>
                         <% if (!groups || groups.length === 0) { %>
                         <tr>
-                            <td colspan="15" style="text-align: center; color: #8e897e; padding: 36px;">
+                            <td colspan="<%= totalBoardColumns %>" style="text-align: center; color: #8e897e; padding: 36px;">
                                 No staff members currently in eligible bingo ranks (Dreamland Guard and above).
                             </td>
                         </tr>
                         <% } else { %>
                         <% groups.forEach(function(group) { %>
                         <tr class="bingo-rank-header" data-rank-group="<%= group.name.toLowerCase() %>">
-                            <th colspan="15">
+                            <th colspan="<%= totalBoardColumns %>">
                                 <div class="bingo-rank-header-content">
                                     <div style="display: flex; align-items: center; gap: 8px;">
                                         <span class="material-symbols-outlined" style="font-size: 1.2em; color: #fbbf24; background: transparent; padding: 0;">military_tech</span>
@@ -165,7 +225,7 @@
                         </tr>
                         <% group.users.forEach(function(user) {
                             const completedCount = bingoGoals.filter(g => user.bingoProgress && user.bingoProgress[g.id]).length;
-                            const percent = Math.round((completedCount / bingoGoals.length) * 100);
+                            const percent = bingoGoals.length ? Math.round((completedCount / bingoGoals.length) * 100) : 0;
                             const userSearchText = `${user.displayName || ''} ${user.discordUser || ''} ${user.login.discordId} ${user.accountType || ''} ${user.house || ''}`.toLowerCase();
                         %>
                         <tr class="bingo-user-row" data-search="<%= userSearchText %>" data-rank="<%= (user.accountType || '').toLowerCase() %>" data-discord-id="<%= user.login.discordId %>">
@@ -200,10 +260,13 @@
                             </td>
 
                             <!-- 10 Bingo Goals -->
-                            <% bingoGoals.forEach(function(goal, idx) {
+                            <% bingoGoals.forEach(function(goal) {
                                 const completed = Boolean(user.bingoProgress && user.bingoProgress[goal.id]);
+                                const dividerClass = goal.id === (firstHpGoal && firstHpGoal.id)
+                                    ? 'bingo-divider-hp-start'
+                                    : (goal.id === (firstCcGoal && firstCcGoal.id) || goal.id === (firstMiscGoal && firstMiscGoal.id)) ? 'bingo-divider-cc-start' : '';
                             %>
-                            <td class="bingo-cell <%= idx === 0 ? 'bingo-divider-hp-start' : idx === 5 ? 'bingo-divider-cc-start' : '' %> <%= completed ? 'is-complete' : 'is-pending' %>" data-goal-id="<%= goal.id %>">
+                            <td class="bingo-cell <%= dividerClass %> <%= completed ? 'is-complete' : 'is-pending' %>" data-goal-id="<%= goal.id %>">
                                 <% if (canManageBingo) { %>
                                 <form action="/bingo/toggle" method="POST" class="bingo-toggle-form" style="margin: 0;">
                                     <input type="hidden" name="discordId" value="<%= user.login.discordId %>">
@@ -248,7 +311,7 @@
                             <td class="bingo-progress-cell">
                                 <div class="bingo-progress-wrap">
                                     <div class="bingo-progress-labels">
-                                        <span class="bingo-progress-fraction"><%= completedCount %>/10</span>
+                                        <span class="bingo-progress-fraction"><%= completedCount %>/<%= bingoGoals.length %></span>
                                         <span class="bingo-progress-pct" style="color: <%= percent === 100 ? '#34d399' : percent >= 50 ? '#fbbf24' : '#8e897e' %>;"><%= percent %>%</span>
                                     </div>
                                     <div class="bingo-progress-bar">
@@ -348,7 +411,7 @@
 
             function updateRowProgress(row) {
                 if (!row) return;
-                const totalGoals = 10;
+                const totalGoals = row.querySelectorAll('.bingo-cell').length || 1;
                 const completedGoals = row.querySelectorAll('.bingo-cell.is-complete').length;
                 const pct = Math.round((completedGoals / totalGoals) * 100);
 
