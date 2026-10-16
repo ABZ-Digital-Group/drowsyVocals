@@ -774,8 +774,11 @@
                             </div>
                             <%
                                 const activeGoalTargets = ((activeBingoTemplate && activeBingoTemplate.goals) || []).map(function(goal) { return goal.target || ''; });
+                                const activeGoalChallenges = ((activeBingoTemplate && activeBingoTemplate.goals) || []).map(function(goal) { return goal.challenge || ''; });
                                 while (activeGoalTargets.length < 12) activeGoalTargets.push('');
+                                while (activeGoalChallenges.length < 12) activeGoalChallenges.push('');
                                 const goalInputValues = activeGoalTargets.slice(0, 12);
+                                const goalChallengeValues = activeGoalChallenges.slice(0, 12);
                             %>
                             <form action="/bingo/templates" method="POST" style="display: flex; flex-direction: column; gap: 16px;">
                                 <input type="hidden" name="returnTo" value="/bot#bingo-templates">
@@ -783,11 +786,17 @@
                                     <label for="newTemplateName">Template Name</label>
                                     <input id="newTemplateName" name="templateName" class="settings-input" maxlength="80" required placeholder="e.g. Winter Event Week">
                                 </div>
-                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px;">
+                                <div style="display: grid; grid-template-columns: 1fr; gap: 10px;">
                                     <% goalInputValues.forEach(function(goalValue, goalIndex) { %>
-                                    <div class="settings-form-group" style="margin-bottom: 0;">
-                                        <label for="goalTarget<%= goalIndex + 1 %>">Goal <%= goalIndex + 1 %></label>
-                                        <input id="goalTarget<%= goalIndex + 1 %>" type="text" name="goalTargets" class="settings-input" maxlength="120" value="<%= goalValue %>" placeholder="e.g. 3 HP">
+                                    <div style="display: grid; grid-template-columns: minmax(130px, 0.9fr) minmax(260px, 1.1fr); gap: 10px;">
+                                        <div class="settings-form-group" style="margin-bottom: 0;">
+                                            <label for="goalTarget<%= goalIndex + 1 %>">Goal <%= goalIndex + 1 %> Target</label>
+                                            <input id="goalTarget<%= goalIndex + 1 %>" type="text" name="goalTargets" class="settings-input" maxlength="120" value="<%= goalValue %>" placeholder="e.g. 3 HP">
+                                        </div>
+                                        <div class="settings-form-group" style="margin-bottom: 0;">
+                                            <label for="goalChallenge<%= goalIndex + 1 %>">Goal <%= goalIndex + 1 %> Challenge</label>
+                                            <input id="goalChallenge<%= goalIndex + 1 %>" type="text" name="goalChallenges" class="settings-input" maxlength="220" value="<%= goalChallengeValues[goalIndex] %>" placeholder="e.g. Earn 3 house points from events or duties">
+                                        </div>
                                     </div>
                                     <% }); %>
                                 </div>
@@ -824,7 +833,10 @@
                                     <p style="font-size: 0.82em; color: #8e897e; margin: 6px 0 10px;"><%= (template.goals || []).length %> goal<%= (template.goals || []).length === 1 ? '' : 's' %></p>
                                     <ol style="margin: 0 0 12px 18px; padding: 0; color: #d7d2c7; max-height: 120px; overflow: auto; font-size: 0.85em;">
                                         <% (template.goals || []).forEach(function(goal) { %>
-                                        <li style="margin-bottom: 4px;"><%= goal.target %></li>
+                                        <li style="margin-bottom: 6px;">
+                                            <div><strong><%= goal.target %></strong></div>
+                                            <div style="font-size: 0.9em; color: #a59f94;"><%= goal.challenge || ('Complete: ' + goal.target) %></div>
+                                        </li>
                                         <% }); %>
                                     </ol>
                                     <% if (template.id !== activeBingoTemplateId) { %>
