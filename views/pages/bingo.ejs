@@ -311,8 +311,8 @@
                             const percent = bingoGoals.length ? Math.round((completedCount / bingoGoals.length) * 100) : 0;
                             const userSearchText = `${user.displayName || ''} ${user.discordUser || ''} ${user.login.discordId} ${user.accountType || ''} ${user.house || ''}`.toLowerCase();
                         %>
-                        <article class="bingo-admin-card bingo-user-row" data-search="<%= userSearchText %>" data-rank="<%= (user.accountType || '').toLowerCase() %>" data-discord-id="<%= user.login.discordId %>">
-                            <button type="button" class="bingo-admin-toggle" aria-expanded="false">
+                        <details class="bingo-admin-card bingo-user-row" data-search="<%= userSearchText %>" data-rank="<%= (user.accountType || '').toLowerCase() %>" data-discord-id="<%= user.login.discordId %>">
+                            <summary class="bingo-admin-toggle" aria-expanded="false">
                                 <div class="bingo-admin-summary-main">
                                     <%- include('../partials/avatar', {
                                         avatarUrl: user.avatarUrl,
@@ -346,7 +346,7 @@
                                     </div>
                                     <span class="material-symbols-outlined bingo-admin-chevron">expand_more</span>
                                 </div>
-                            </button>
+                            </summary>
 
                             <div class="bingo-admin-details" hidden>
                                 <div class="bingo-admin-goals-grid">
@@ -380,7 +380,7 @@
                                     </label>
                                 </div>
                             </div>
-                        </article>
+                        </details>
                         <% }); %>
                     </div>
                 </section>
@@ -425,16 +425,20 @@
             if (searchInput) searchInput.addEventListener('input', applyBingoFilters);
             if (rankFilter) rankFilter.addEventListener('change', applyBingoFilters);
 
-            document.querySelectorAll('.bingo-admin-toggle').forEach(toggle => {
-                toggle.addEventListener('click', () => {
-                    const card = toggle.closest('.bingo-admin-card');
-                    const details = card?.querySelector('.bingo-admin-details');
-                    if (!card || !details) return;
-                    const expanded = toggle.getAttribute('aria-expanded') === 'true';
-                    toggle.setAttribute('aria-expanded', expanded ? 'false' : 'true');
-                    details.hidden = expanded;
-                    card.classList.toggle('is-open', !expanded);
-                });
+            document.querySelectorAll('.bingo-admin-card').forEach(card => {
+                const toggle = card.querySelector('.bingo-admin-toggle');
+                const details = card.querySelector('.bingo-admin-details');
+                if (!toggle || !details) return;
+
+                const syncCardState = () => {
+                    const isOpen = card.open;
+                    toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+                    details.hidden = !isOpen;
+                    card.classList.toggle('is-open', isOpen);
+                };
+
+                syncCardState();
+                card.addEventListener('toggle', syncCardState);
             });
 
             function setGoalCellState(cell, icon, isComplete) {

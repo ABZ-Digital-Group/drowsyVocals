@@ -1042,6 +1042,14 @@ tbody tr:not(.rank-group-header):not(.bingo-rank-header):hover {
     text-align: left;
 }
 
+.bingo-admin-toggle::-webkit-details-marker {
+    display: none;
+}
+
+.bingo-admin-toggle::marker {
+    content: '';
+}
+
 .bingo-admin-summary-main {
     display: flex;
     align-items: center;
