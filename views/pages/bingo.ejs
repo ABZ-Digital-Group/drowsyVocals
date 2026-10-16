@@ -352,14 +352,16 @@
                                 <div class="bingo-admin-goals-grid">
                                     <% bingoGoals.forEach(function(goal) {
                                         const completed = Boolean(user.bingoProgress && user.bingoProgress[goal.id]);
+                                        const rewardMatch = (goal.target || '').match(/-?\d[\d,]*/);
+                                        const rewardValue = rewardMatch ? Number((rewardMatch[0] || '0').replace(/,/g, '')) || 0 : 0;
                                     %>
-                                    <div class="bingo-cell <%= completed ? 'is-complete' : 'is-pending' %>" data-goal-id="<%= goal.id %>">
+                                    <div class="bingo-cell <%= completed ? 'is-complete' : 'is-pending' %>" data-goal-id="<%= goal.id %>" data-goal-group="<%= goal.group %>" data-goal-value="<%= rewardValue %>">
                                         <form action="/bingo/toggle" method="POST" class="bingo-toggle-form" style="margin: 0;">
                                             <input type="hidden" name="discordId" value="<%= user.login.discordId %>">
                                             <input type="hidden" name="goalId" value="<%= goal.id %>">
-                                            <button type="submit" class="bingo-goal-btn" title="Goal <%= goal.label %>: <%= goal.target %> — <%= goal.challenge || ('Complete: ' + goal.target) %>">
+                                            <button type="submit" class="bingo-goal-btn" title="Goal <%= goal.label %>">
                                                 <span class="material-symbols-outlined bingo-goal-icon"><%= completed ? 'check_circle' : 'circle' %></span>
-                                                <span><%= goal.target %></span>
+                                                <span>Goal <%= goal.label %></span>
                                             </button>
                                         </form>
                                     </div>
@@ -369,13 +371,13 @@
                                     <label class="bingo-total-cell">
                                         <span class="bingo-admin-total-label">Total HP</span>
                                         <div class="bingo-total-box">
-                                            <input type="text" value="<%= user.bingoTotals?.hp ?? 0 %>" aria-label="Total HP for <%= user.displayName || user.login.discordId %>" class="bingo-total-input bingo-hp-input" data-discord-id="<%= user.login.discordId %>" title="Edit total HP">
+                                            <input type="text" value="<%= user.calculatedBingoTotals?.hp ?? 0 %>" aria-label="Total HP for <%= user.displayName || user.login.discordId %>" class="bingo-hp-input" title="Auto-calculated from completed HP goals" readonly>
                                         </div>
                                     </label>
                                     <label class="bingo-total-cell">
                                         <span class="bingo-admin-total-label">Total CC</span>
                                         <div class="bingo-total-box">
-                                            <input type="text" value="<%= user.bingoTotals?.cc ?? 0 %>" aria-label="Total CC for <%= user.displayName || user.login.discordId %>" class="bingo-total-input bingo-cc-input" data-discord-id="<%= user.login.discordId %>" title="Edit total CC">
+                                            <input type="text" value="<%= user.calculatedBingoTotals?.cc ?? 0 %>" aria-label="Total CC for <%= user.displayName || user.login.discordId %>" class="bingo-cc-input" title="Auto-calculated from completed CC goals" readonly>
                                         </div>
                                     </label>
                                 </div>
@@ -633,6 +635,20 @@
                     pctEl.style.color = pct === 100 ? '#34d399' : pct >= 50 ? '#fbbf24' : '#8e897e';
                 }
                 if (fillEl) fillEl.style.width = `${pct}%`;
+
+                const completedCells = row.querySelectorAll('.bingo-cell.is-complete');
+                let hpTotal = 0;
+                let ccTotal = 0;
+                completedCells.forEach((cell) => {
+                    const value = Number(cell.dataset.goalValue || 0) || 0;
+                    const group = (cell.dataset.goalGroup || '').toLowerCase();
+                    if (group === 'hp') hpTotal += value;
+                    if (group === 'cc') ccTotal += value;
+                });
+                const hpInput = row.querySelector('.bingo-hp-input');
+                const ccInput = row.querySelector('.bingo-cc-input');
+                if (hpInput) hpInput.value = String(hpTotal);
+                if (ccInput) ccInput.value = String(ccTotal);
             }
 
             function updatePlayerCardProgress() {

@@ -836,6 +836,15 @@ function normalizeBingoGoal(goal, index) {
     };
 }
 
+function getBingoGoalRewardValue(goal = {}) {
+    if (!goal || !['hp', 'cc'].includes(goal.group)) return 0;
+    const targetText = (goal.target ?? '').toString();
+    const numberMatch = targetText.match(/-?\d[\d,]*/);
+    if (!numberMatch) return 0;
+    const parsed = Number.parseInt(numberMatch[0].replace(/,/g, ''), 10);
+    return Number.isFinite(parsed) ? parsed : 0;
+}
+
 function normalizeBingoTemplate(template, index) {
     const rawGoals = Array.isArray(template?.goals) ? template.goals : [];
     const goals = rawGoals
@@ -6424,13 +6433,20 @@ app.get('/bingo', requireDatabase, async (req, res) => {
 
         groups.forEach(g => {
             g.users.forEach(u => {
+                let userHpTotal = 0;
+                let userCcTotal = 0;
                 if (u.bingoProgress) {
                     bingoGoals.forEach(goal => {
-                        if (u.bingoProgress[goal.id]) totalCompletedTasks += 1;
+                        if (!u.bingoProgress[goal.id]) return;
+                        totalCompletedTasks += 1;
+                        const rewardValue = getBingoGoalRewardValue(goal);
+                        if (goal.group === 'hp') userHpTotal += rewardValue;
+                        if (goal.group === 'cc') userCcTotal += rewardValue;
                     });
                 }
-                if (u.bingoTotals?.hp) totalBingoHp += Number(u.bingoTotals.hp) || 0;
-                if (u.bingoTotals?.cc) totalBingoCc += Number(u.bingoTotals.cc) || 0;
+                u.calculatedBingoTotals = { hp: userHpTotal, cc: userCcTotal };
+                totalBingoHp += userHpTotal;
+                totalBingoCc += userCcTotal;
             });
         });
 
