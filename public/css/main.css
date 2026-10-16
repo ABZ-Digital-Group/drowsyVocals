@@ -974,6 +974,145 @@ tbody tr:not(.rank-group-header):not(.bingo-rank-header):hover {
     padding: 0;
 }
 
+.bingo-admin-tracker {
+    margin-top: 16px;
+    display: grid;
+    gap: 14px;
+}
+
+.bingo-admin-empty {
+    background: #1a1917;
+    border: 1px solid #3d3933;
+    border-radius: 10px;
+    color: #8e897e;
+    padding: 20px;
+    text-align: center;
+}
+
+.bingo-admin-group {
+    border: 1px solid #3d3933;
+    border-radius: 10px;
+    background: linear-gradient(180deg, #23211d 0%, #1a1917 100%);
+    overflow: hidden;
+}
+
+.bingo-admin-rank-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 14px;
+    border-bottom: 1px solid #322f2a;
+    background: #161513;
+    color: #f3efe6;
+    font-size: 0.92em;
+    font-weight: 700;
+}
+
+.bingo-admin-list {
+    display: grid;
+    gap: 8px;
+    padding: 10px;
+}
+
+.bingo-admin-card {
+    border: 1px solid #3d3933;
+    border-radius: 8px;
+    background: #211f1b;
+    transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.bingo-admin-card.is-open {
+    border-color: #5d574d;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.22);
+}
+
+.bingo-admin-toggle {
+    width: 100%;
+    border: none;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 12px;
+    text-align: left;
+}
+
+.bingo-admin-summary-main {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.bingo-admin-summary-names {
+    min-width: 0;
+}
+
+.bingo-admin-summary-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 240px;
+    justify-content: flex-end;
+}
+
+.bingo-admin-progress-wrap {
+    min-width: 160px;
+    max-width: 220px;
+    width: 100%;
+}
+
+.bingo-admin-chevron {
+    color: #a7a193;
+    transition: transform 180ms ease;
+}
+
+.bingo-admin-toggle[aria-expanded="true"] .bingo-admin-chevron {
+    transform: rotate(180deg);
+}
+
+.bingo-admin-details {
+    border-top: 1px solid #34312b;
+    padding: 12px;
+    display: grid;
+    gap: 12px;
+}
+
+.bingo-admin-goals-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(125px, 1fr));
+    gap: 8px;
+}
+
+.bingo-admin-totals-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.bingo-admin-totals-row .bingo-total-cell {
+    min-width: 120px;
+    max-width: 160px;
+    flex: 1 1 140px;
+    text-align: left !important;
+    padding: 0 !important;
+}
+
+.bingo-admin-total-label {
+    display: block;
+    font-size: 0.75em;
+    color: #9f998c;
+    margin-bottom: 4px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
 .bingo-board-container {
     background: linear-gradient(180deg, #242320 0%, #1f1d1a 100%);
     border-radius: 12px;
@@ -4656,6 +4795,21 @@ dialog button {
     .bingo-player-cell.is-empty {
         min-height: 92px;
     }
+    .bingo-admin-toggle {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+    .bingo-admin-summary-right {
+        min-width: 0;
+        width: 100%;
+        justify-content: space-between;
+    }
+    .bingo-admin-progress-wrap {
+        max-width: none;
+    }
+    .bingo-admin-goals-grid {
+        grid-template-columns: repeat(2, minmax(120px, 1fr));
+    }
     .planner-page {
         width: auto;
         margin: 18px 12px;
@@ -4725,6 +4879,9 @@ dialog button {
         grid-template-columns: 1fr;
     }
     .bingo-player-grid {
+        grid-template-columns: 1fr;
+    }
+    .bingo-admin-goals-grid {
         grid-template-columns: 1fr;
     }
     .event-feedback-page { margin: 30px auto 50px; }
