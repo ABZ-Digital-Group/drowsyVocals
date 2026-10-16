@@ -78,6 +78,11 @@
 
                 <% if (canManageBingo) { %>
                 <div style="margin-top: 18px; padding: 16px; border: 1px solid #ece7dc; border-radius: 14px; background: #fffdfa;">
+                    <%
+                        const activeTemplateGoalsText = (bingoGoals || []).map(function(goal) {
+                            return `${goal.target} | ${goal.challenge || ('Complete: ' + goal.target)}`;
+                        }).join('\n');
+                    %>
                     <div style="display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin-bottom: 14px;">
                         <div>
                             <div style="font-size: 0.85em; color: #8e897e; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;">Template Management</div>
@@ -95,6 +100,26 @@
                             </button>
                         </form>
                     </div>
+
+                    <form action="/bingo/templates/update" method="POST" style="display: grid; gap: 10px; margin-bottom: 18px; padding: 12px; border: 1px solid #ece7dc; border-radius: 10px; background: #ffffff;">
+                        <input type="hidden" name="returnTo" value="/bingo">
+                        <input type="hidden" name="templateId" value="<%= activeBingoTemplateId %>">
+                        <div style="display: grid; gap: 8px;">
+                            <label for="activeTemplateName" style="font-weight: 700; color: #242320;">Edit Active Template Name</label>
+                            <input id="activeTemplateName" name="templateName" maxlength="80" required class="bingo-search-input" value="<%= activeBingoTemplateName %>">
+                        </div>
+                        <div style="display: grid; gap: 8px;">
+                            <label for="activeGoalsText" style="font-weight: 700; color: #242320;">Edit Active Template Goals</label>
+                            <textarea id="activeGoalsText" name="goalsText" required rows="8" class="bingo-search-input" style="resize: vertical;"><%= activeTemplateGoalsText %></textarea>
+                            <span style="font-size: 0.82em; color: #8e897e;">One goal per line using: <code>Target | Challenge description</code>.</span>
+                        </div>
+                        <div>
+                            <button type="submit" class="settings-btn settings-btn-secondary" onclick="return confirm('Update the active template with these new goals?');">
+                                <span class="material-symbols-outlined">edit</span>
+                                <span>Save Active Template Changes</span>
+                            </button>
+                        </div>
+                    </form>
 
                     <form action="/bingo/templates" method="POST" style="display: grid; gap: 10px;">
                         <div style="display: grid; gap: 8px;">

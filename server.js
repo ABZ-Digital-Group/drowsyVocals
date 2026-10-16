@@ -897,6 +897,48 @@ function resolveBingoReturnPath(rawReturnTo, fallback = '/bingo') {
     return fallback;
 }
 
+function parseBingoGoalsFromTemplateRequest(body = {}) {
+    const goalTargetsInput = Array.isArray(body.goalTargets)
+        ? body.goalTargets
+        : (body.goalTargets ? [body.goalTargets] : []);
+    const goalChallengesInput = Array.isArray(body.goalChallenges)
+        ? body.goalChallenges
+        : (body.goalChallenges ? [body.goalChallenges] : []);
+    const goalsFromInputs = goalTargetsInput
+        .map((targetValue, index) => {
+            const target = (targetValue ?? '').toString().trim().replace(/^(\d+[\).\-\s]+|[-*•]\s*)/, '').trim();
+            const challenge = (goalChallengesInput[index] ?? '').toString().trim();
+            if (!target) return null;
+            return {
+                target,
+                challenge: challenge || `Complete: ${target}`
+            };
+        })
+        .filter(Boolean);
+
+    const goalsText = (body.goalsText ?? '').toString();
+    const goalsFromText = goalsText
+        .split(/[\r\n;,]+/)
+        .map((line) => line.trim())
+        .filter(Boolean);
+    const parsedGoalsFromText = goalsFromText
+        .map((line) => {
+            const cleanedLine = line.replace(/^(\d+[\).\-\s]+|[-*•]\s*)/, '').trim();
+            if (!cleanedLine) return null;
+            const [rawTarget, ...rawChallengeParts] = cleanedLine.split('|');
+            const target = (rawTarget ?? '').trim();
+            const challenge = rawChallengeParts.join('|').trim();
+            if (!target) return null;
+            return {
+                target,
+                challenge: challenge || `Complete: ${target}`
+            };
+        })
+        .filter(Boolean);
+
+    return goalsFromInputs.length ? goalsFromInputs : parsedGoalsFromText;
+}
+
 function getBingoEligibilityOrder(settings = {}) {
     const normalizeRank = (rank) => (rank || '').toString().toLowerCase().replace(/\./g, '').trim();
     const ranks = Array.isArray(settings.ranks) ? settings.ranks : [];
@@ -6628,44 +6670,7 @@ app.post('/bingo/templates', requireDatabase, async (req, res) => {
     }
 
     const templateName = (req.body.templateName ?? '').toString().trim();
-    const goalTargetsInput = Array.isArray(req.body.goalTargets)
-        ? req.body.goalTargets
-        : (req.body.goalTargets ? [req.body.goalTargets] : []);
-    const goalChallengesInput = Array.isArray(req.body.goalChallenges)
-        ? req.body.goalChallenges
-        : (req.body.goalChallenges ? [req.body.goalChallenges] : []);
-    const goalsFromInputs = goalTargetsInput
-        .map((targetValue, index) => {
-            const target = (targetValue ?? '').toString().trim().replace(/^(\d+[\).\-\s]+|[-*•]\s*)/, '').trim();
-            const challenge = (goalChallengesInput[index] ?? '').toString().trim();
-            if (!target) return null;
-            return {
-                target,
-                challenge: challenge || `Complete: ${target}`
-            };
-        })
-        .filter(Boolean);
-
-    const goalsText = (req.body.goalsText ?? '').toString();
-    const goalsFromText = goalsText
-        .split(/[\r\n;,]+/)
-        .map((line) => line.trim())
-        .filter(Boolean);
-    const parsedGoalsFromText = goalsFromText
-        .map((line) => {
-            const cleanedLine = line.replace(/^(\d+[\).\-\s]+|[-*•]\s*)/, '').trim();
-            if (!cleanedLine) return null;
-            const [rawTarget, ...rawChallengeParts] = cleanedLine.split('|');
-            const target = (rawTarget ?? '').trim();
-            const challenge = rawChallengeParts.join('|').trim();
-            if (!target) return null;
-            return {
-                target,
-                challenge: challenge || `Complete: ${target}`
-            };
-        })
-        .filter(Boolean);
-    const parsedGoals = goalsFromInputs.length ? goalsFromInputs : parsedGoalsFromText;
+    const parsedGoals = parseBingoGoalsFromTemplateRequest(req.body);
 
     if (!templateName || templateName.length > 80) {
         req.flash('error_msg', 'Template name is required and must be 80 characters or fewer.');
@@ -6708,6 +6713,73 @@ app.post('/bingo/templates', requireDatabase, async (req, res) => {
     } catch (error) {
         console.error('Error creating Bingo template:', error);
         req.flash('error_msg', 'Unable to create Bingo template.');
+        res.redirect(redirectPath);
+    }
+});
+
+// UPDATE AN EXISTING BINGO TEMPLATE
+app.post('/bingo/templates/update', requireDatabase, async (req, res) => {
+    const redirectPath = resolveBingoReturnPath(req.body.returnTo, '/bingo');
+    if (!req.session.loggedin || !hasManagementAccess(req)) {
+        req.flash('error_msg', 'You are not authorized to edit Bingo templates.');
+        return res.redirect(redirectPath);
+    }
+
+    const templateId = (req.body.templateId ?? '').toString().trim();
+    const templateName = (req.body.templateName ?? '').toString().trim();
+    const parsedGoals = parseBingoGoalsFromTemplateRequest(req.body);
+
+    if (!templateId) {
+        req.flash('error_msg', 'Template selection is required.');
+        return res.redirect(redirectPath);
+    }
+    if (!templateName || templateName.length > 80) {
+        req.flash('error_msg', 'Template name is required and must be 80 characters or fewer.');
+        return res.redirect(redirectPath);
+    }
+    if (parsedGoals.length < 1 || parsedGoals.length > 30) {
+        req.flash('error_msg', 'Template must contain between 1 and 30 goals (one goal per line).');
+        return res.redirect(redirectPath);
+    }
+
+    const goals = parsedGoals.map((goal, index) => ({
+        id: String(index + 1),
+        label: String(index + 1),
+        target: goal.target,
+        challenge: goal.challenge,
+        group: inferBingoGoalGroup(goal.target)
+    }));
+
+    try {
+        const settings = await getSettings();
+        const currentConfig = getBingoTemplateConfig(settings);
+        const existingTemplate = currentConfig.templates.find((template) => template.id === templateId);
+        if (!existingTemplate) {
+            req.flash('error_msg', 'Selected Bingo template was not found.');
+            return res.redirect(redirectPath);
+        }
+
+        const nextTemplates = currentConfig.templates.map((template) => (
+            template.id === templateId
+                ? { ...template, name: templateName, goals }
+                : template
+        ));
+
+        await db.collection('settings').updateOne(
+            { _id: 'appSettings' },
+            {
+                $set: {
+                    bingoTemplates: nextTemplates,
+                    activeBingoTemplateId: currentConfig.activeTemplateId
+                }
+            }
+        );
+
+        req.flash('success_msg', `Updated bingo template "${templateName}".`);
+        res.redirect(redirectPath);
+    } catch (error) {
+        console.error('Error updating Bingo template:', error);
+        req.flash('error_msg', 'Unable to update Bingo template.');
         res.redirect(redirectPath);
     }
 });

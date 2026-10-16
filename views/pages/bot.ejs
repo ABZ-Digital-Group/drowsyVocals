@@ -766,6 +766,43 @@
                             <div class="settings-card-header">
                                 <div class="settings-card-title-wrap">
                                     <h3 class="settings-card-title">
+                                        <span class="material-symbols-outlined">edit_note</span>
+                                        <span>Edit Active Bingo Template</span>
+                                    </h3>
+                                    <p class="settings-card-desc">Update the currently active template name and goal list in place.</p>
+                                </div>
+                            </div>
+                            <%
+                                const activeTemplateEditName = (activeBingoTemplate && activeBingoTemplate.name) || '';
+                                const activeTemplateEditGoalsText = ((activeBingoTemplate && activeBingoTemplate.goals) || []).map(function(goal) {
+                                    return `${goal.target || ''} | ${goal.challenge || ('Complete: ' + (goal.target || ''))}`;
+                                }).join('\n');
+                            %>
+                            <form action="/bingo/templates/update" method="POST" style="display: flex; flex-direction: column; gap: 16px;" onsubmit="return confirm('Update the active bingo template with these changes?');">
+                                <input type="hidden" name="returnTo" value="/bot#bingo-templates">
+                                <input type="hidden" name="templateId" value="<%= activeBingoTemplateId %>">
+                                <div class="settings-form-group" style="margin-bottom: 0; max-width: 460px;">
+                                    <label for="activeTemplateEditName">Template Name</label>
+                                    <input id="activeTemplateEditName" name="templateName" class="settings-input" maxlength="80" required value="<%= activeTemplateEditName %>">
+                                </div>
+                                <div class="settings-form-group" style="margin-bottom: 0;">
+                                    <label for="activeTemplateEditGoals">Goals (one per line)</label>
+                                    <textarea id="activeTemplateEditGoals" name="goalsText" class="settings-input" rows="10" required style="resize: vertical;"><%= activeTemplateEditGoalsText %></textarea>
+                                    <small style="color: #8e897e;">Format each line as <code>Target | Challenge description</code>.</small>
+                                </div>
+                                <div style="display: flex; justify-content: flex-start;">
+                                    <button type="submit" class="settings-btn settings-btn-secondary">
+                                        <span class="material-symbols-outlined">save</span>
+                                        <span>Save Active Template Changes</span>
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <div class="settings-card">
+                            <div class="settings-card-header">
+                                <div class="settings-card-title-wrap">
+                                    <h3 class="settings-card-title">
                                         <span class="material-symbols-outlined">post_add</span>
                                         <span>Create New Bingo Template</span>
                                     </h3>
