@@ -762,19 +762,83 @@ app.use(async (req, res, next) => {
     next();
 });
 
-// TARGETS DISPLAYED ON THE STAFF BINGO BOARD.
-const BINGO_GOALS = [
-    { id: '1', label: '1', target: '3 HP' },
-    { id: '2', label: '2', target: '2 HP' },
-    { id: '3', label: '3', target: '2 HP' },
-    { id: '4', label: '4', target: '2 HP' },
-    { id: '5', label: '5', target: '3 HP' },
-    { id: '6', label: '6', target: '2500 CC' },
-    { id: '7', label: '7', target: '2500 CC' },
-    { id: '8', label: '8', target: '6000 CC' },
-    { id: '9', label: '9', target: '1000 CC' },
-    { id: '10', label: '10', target: '1000 CC' }
+// DEFAULT TARGETS DISPLAYED ON THE STAFF BINGO BOARD.
+const DEFAULT_BINGO_GOALS = [
+    { id: '1', label: '1', target: '3 HP', group: 'hp' },
+    { id: '2', label: '2', target: '2 HP', group: 'hp' },
+    { id: '3', label: '3', target: '2 HP', group: 'hp' },
+    { id: '4', label: '4', target: '2 HP', group: 'hp' },
+    { id: '5', label: '5', target: '3 HP', group: 'hp' },
+    { id: '6', label: '6', target: '2500 CC', group: 'cc' },
+    { id: '7', label: '7', target: '2500 CC', group: 'cc' },
+    { id: '8', label: '8', target: '6000 CC', group: 'cc' },
+    { id: '9', label: '9', target: '1000 CC', group: 'cc' },
+    { id: '10', label: '10', target: '1000 CC', group: 'cc' }
 ];
+
+const DEFAULT_BINGO_TEMPLATE = Object.freeze({
+    id: 'default-weekly',
+    name: 'Default Weekly Board',
+    goals: DEFAULT_BINGO_GOALS
+});
+
+function inferBingoGoalGroup(target = '') {
+    const normalized = target.toString().toLowerCase();
+    if (normalized.includes('hp') || normalized.includes('house point')) return 'hp';
+    if (normalized.includes('cc') || normalized.includes('coin')) return 'cc';
+    return 'misc';
+}
+
+function normalizeBingoGoal(goal, index) {
+    const target = (goal?.target ?? '').toString().trim();
+    if (!target) return null;
+    const safeIndex = index + 1;
+    return {
+        id: (goal?.id ?? String(safeIndex)).toString(),
+        label: (goal?.label ?? String(safeIndex)).toString(),
+        target,
+        group: ['hp', 'cc', 'misc'].includes(goal?.group) ? goal.group : inferBingoGoalGroup(target)
+    };
+}
+
+function normalizeBingoTemplate(template, index) {
+    const rawGoals = Array.isArray(template?.goals) ? template.goals : [];
+    const goals = rawGoals
+        .map((goal, goalIndex) => normalizeBingoGoal(goal, goalIndex))
+        .filter(Boolean);
+    if (!goals.length) return null;
+    return {
+        id: (template?.id ?? `template-${index + 1}`).toString(),
+        name: (template?.name ?? `Bingo Template ${index + 1}`).toString().trim() || `Bingo Template ${index + 1}`,
+        goals
+    };
+}
+
+function getBingoTemplateConfig(settings = {}) {
+    const rawTemplates = Array.isArray(settings.bingoTemplates) && settings.bingoTemplates.length
+        ? settings.bingoTemplates
+        : [DEFAULT_BINGO_TEMPLATE];
+    const templates = rawTemplates
+        .map((template, index) => normalizeBingoTemplate(template, index))
+        .filter(Boolean);
+
+    if (!templates.length) {
+        templates.push(normalizeBingoTemplate(DEFAULT_BINGO_TEMPLATE, 0));
+    }
+
+    let activeTemplateId = (settings.activeBingoTemplateId ?? '').toString();
+    if (!templates.some((template) => template.id === activeTemplateId)) {
+        activeTemplateId = templates[0].id;
+    }
+
+    const activeTemplate = templates.find((template) => template.id === activeTemplateId) || templates[0];
+    return {
+        templates,
+        activeTemplateId: activeTemplate.id,
+        activeTemplate,
+        bingoGoals: activeTemplate.goals
+    };
+}
 
 // A USER IS CONSIDERED "ONLINE" IF SEEN WITHIN THIS WINDOW
 const ONLINE_THRESHOLD_MS = 2 * 60 * 1000;
@@ -6257,6 +6321,12 @@ app.get('/bingo', requireDatabase, async (req, res) => {
             getSettings(),
             db.collection('users').find({}, { projection: { 'login.password': 0 } }).toArray()
         ]);
+        const {
+            templates: bingoTemplates,
+            activeTemplateId: activeBingoTemplateId,
+            activeTemplate,
+            bingoGoals
+        } = getBingoTemplateConfig(settings);
 
         const normalizeRank = (rank) => (rank || '').toString().toLowerCase().replace(/\./g, '').trim();
         const sortedRanks = settings.ranks.slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
@@ -6273,14 +6343,14 @@ app.get('/bingo', requireDatabase, async (req, res) => {
 
         const totalParticipants = groups.reduce((acc, g) => acc + g.users.length, 0);
         let totalCompletedTasks = 0;
-        let totalPossibleTasks = totalParticipants * BINGO_GOALS.length;
+        let totalPossibleTasks = totalParticipants * bingoGoals.length;
         let totalBingoHp = 0;
         let totalBingoCc = 0;
 
         groups.forEach(g => {
             g.users.forEach(u => {
                 if (u.bingoProgress) {
-                    BINGO_GOALS.forEach(goal => {
+                    bingoGoals.forEach(goal => {
                         if (u.bingoProgress[goal.id]) totalCompletedTasks += 1;
                     });
                 }
@@ -6295,7 +6365,10 @@ app.get('/bingo', requireDatabase, async (req, res) => {
         res.render('pages/bingo', {
             page: 'bingo',
             groups,
-            bingoGoals: BINGO_GOALS,
+            bingoGoals,
+            bingoTemplates,
+            activeBingoTemplateId,
+            activeBingoTemplateName: activeTemplate.name,
             totalParticipants,
             totalCompletedTasks,
             totalPossibleTasks,
@@ -6322,7 +6395,7 @@ app.post('/bingo/toggle', requireDatabase, async (req, res) => {
     }
 
     const { discordId, goalId } = req.body;
-    if (!discordId || !BINGO_GOALS.some((goal) => goal.id === goalId)) {
+    if (!discordId || !goalId) {
         if (req.xhr || req.headers['x-requested-with'] === 'XMLHttpRequest') {
             return res.status(400).json({ error: 'Invalid parameters.' });
         }
@@ -6337,6 +6410,13 @@ app.post('/bingo/toggle', requireDatabase, async (req, res) => {
                 { projection: { accountType: 1, bingoProgress: 1 } }
             )
         ]);
+        const { bingoGoals } = getBingoTemplateConfig(settings);
+        if (!bingoGoals.some((goal) => goal.id === goalId)) {
+            if (req.xhr || req.headers['x-requested-with'] === 'XMLHttpRequest') {
+                return res.status(400).json({ error: 'Invalid goal.' });
+            }
+            return res.redirect('/bingo');
+        }
         if (!user) {
             if (req.xhr || req.headers['x-requested-with'] === 'XMLHttpRequest') {
                 return res.status(404).json({ error: 'User not found.' });
@@ -6439,6 +6519,103 @@ app.post('/bingo/reset', requireDatabase, async (req, res) => {
     } catch (error) {
         console.error('Error resetting Bingo board:', error);
         req.flash('error_msg', 'Unable to reset the Bingo board.');
+        res.redirect('/bingo');
+    }
+});
+
+// CREATE A NEW BINGO TEMPLATE
+app.post('/bingo/templates', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !hasManagementAccess(req)) {
+        req.flash('error_msg', 'You are not authorized to create Bingo templates.');
+        return res.redirect('/bingo');
+    }
+
+    const templateName = (req.body.templateName ?? '').toString().trim();
+    const goalsText = (req.body.goalsText ?? '').toString();
+    const goalLines = goalsText
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean);
+
+    if (!templateName || templateName.length > 80) {
+        req.flash('error_msg', 'Template name is required and must be 80 characters or fewer.');
+        return res.redirect('/bingo');
+    }
+    if (goalLines.length < 1 || goalLines.length > 30) {
+        req.flash('error_msg', 'Template must contain between 1 and 30 goals (one goal per line).');
+        return res.redirect('/bingo');
+    }
+
+    const goals = goalLines.map((target, index) => ({
+        id: String(index + 1),
+        label: String(index + 1),
+        target,
+        group: inferBingoGoalGroup(target)
+    }));
+    const templateId = `template-${Date.now()}-${crypto.randomBytes(3).toString('hex')}`;
+
+    try {
+        const settings = await getSettings();
+        const currentConfig = getBingoTemplateConfig(settings);
+        const nextTemplates = [
+            ...currentConfig.templates,
+            { id: templateId, name: templateName, goals }
+        ];
+
+        await db.collection('settings').updateOne(
+            { _id: 'appSettings' },
+            {
+                $set: {
+                    bingoTemplates: nextTemplates,
+                    activeBingoTemplateId: currentConfig.activeTemplateId
+                }
+            }
+        );
+
+        req.flash('success_msg', `Created bingo template "${templateName}".`);
+        res.redirect('/bingo');
+    } catch (error) {
+        console.error('Error creating Bingo template:', error);
+        req.flash('error_msg', 'Unable to create Bingo template.');
+        res.redirect('/bingo');
+    }
+});
+
+// ACTIVATE A BINGO TEMPLATE AND RESET WEEKLY PROGRESS
+app.post('/bingo/templates/activate', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !hasManagementAccess(req)) {
+        req.flash('error_msg', 'You are not authorized to switch Bingo templates.');
+        return res.redirect('/bingo');
+    }
+
+    const templateId = (req.body.templateId ?? '').toString().trim();
+    if (!templateId) {
+        req.flash('error_msg', 'Template selection is required.');
+        return res.redirect('/bingo');
+    }
+
+    try {
+        const settings = await getSettings();
+        const currentConfig = getBingoTemplateConfig(settings);
+        const nextTemplate = currentConfig.templates.find((template) => template.id === templateId);
+        if (!nextTemplate) {
+            req.flash('error_msg', 'Selected Bingo template was not found.');
+            return res.redirect('/bingo');
+        }
+
+        await Promise.all([
+            db.collection('settings').updateOne(
+                { _id: 'appSettings' },
+                { $set: { bingoTemplates: currentConfig.templates, activeBingoTemplateId: templateId } }
+            ),
+            db.collection('users').updateMany({}, { $unset: { bingoProgress: '', bingoTotals: '' } })
+        ]);
+
+        req.flash('success_msg', `Activated "${nextTemplate.name}" and reset weekly Bingo progress.`);
+        res.redirect('/bingo');
+    } catch (error) {
+        console.error('Error activating Bingo template:', error);
+        req.flash('error_msg', 'Unable to activate Bingo template.');
         res.redirect('/bingo');
     }
 });
