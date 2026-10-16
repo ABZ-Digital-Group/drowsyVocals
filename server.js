@@ -764,16 +764,16 @@ app.use(async (req, res, next) => {
 
 // DEFAULT TARGETS DISPLAYED ON THE STAFF BINGO BOARD.
 const DEFAULT_BINGO_GOALS = [
-    { id: '1', label: '1', target: '3 HP', group: 'hp' },
-    { id: '2', label: '2', target: '2 HP', group: 'hp' },
-    { id: '3', label: '3', target: '2 HP', group: 'hp' },
-    { id: '4', label: '4', target: '2 HP', group: 'hp' },
-    { id: '5', label: '5', target: '3 HP', group: 'hp' },
-    { id: '6', label: '6', target: '2500 CC', group: 'cc' },
-    { id: '7', label: '7', target: '2500 CC', group: 'cc' },
-    { id: '8', label: '8', target: '6000 CC', group: 'cc' },
-    { id: '9', label: '9', target: '1000 CC', group: 'cc' },
-    { id: '10', label: '10', target: '1000 CC', group: 'cc' }
+    { id: '1', label: '1', target: '3 HP', challenge: 'Earn at least 3 House Points this week.', group: 'hp' },
+    { id: '2', label: '2', target: '2 HP', challenge: 'Complete another activity worth 2 House Points.', group: 'hp' },
+    { id: '3', label: '3', target: '2 HP', challenge: 'Support your house through a second 2 HP contribution.', group: 'hp' },
+    { id: '4', label: '4', target: '2 HP', challenge: 'Contribute 2 House Points from a different task.', group: 'hp' },
+    { id: '5', label: '5', target: '3 HP', challenge: 'Finish the week with one more 3 HP contribution.', group: 'hp' },
+    { id: '6', label: '6', target: '2500 CC', challenge: 'Earn or collect 2,500 Casino Coins.', group: 'cc' },
+    { id: '7', label: '7', target: '2500 CC', challenge: 'Reach another 2,500 Casino Coins target.', group: 'cc' },
+    { id: '8', label: '8', target: '6000 CC', challenge: 'Complete the high-value 6,000 Casino Coins milestone.', group: 'cc' },
+    { id: '9', label: '9', target: '1000 CC', challenge: 'Gain 1,000 Casino Coins from normal activity.', group: 'cc' },
+    { id: '10', label: '10', target: '1000 CC', challenge: 'Close out with a final 1,000 Casino Coins milestone.', group: 'cc' }
 ];
 
 const DEFAULT_BINGO_TEMPLATE = Object.freeze({
@@ -792,11 +792,13 @@ function inferBingoGoalGroup(target = '') {
 function normalizeBingoGoal(goal, index) {
     const target = (goal?.target ?? '').toString().trim();
     if (!target) return null;
+    const challenge = (goal?.challenge ?? target).toString().trim() || target;
     const safeIndex = index + 1;
     return {
         id: (goal?.id ?? String(safeIndex)).toString(),
         label: (goal?.label ?? String(safeIndex)).toString(),
         target,
+        challenge,
         group: ['hp', 'cc', 'misc'].includes(goal?.group) ? goal.group : inferBingoGoalGroup(target)
     };
 }
@@ -826,13 +828,6 @@ function getBingoTemplateConfig(settings = {}) {
         templates.push(normalizeBingoTemplate(DEFAULT_BINGO_TEMPLATE, 0));
     }
 
-    function resolveBingoReturnPath(rawReturnTo, fallback = '/bingo') {
-        const returnTo = (rawReturnTo ?? '').toString().trim();
-        if (/^\/bingo(?:#[-\w]+)?$/i.test(returnTo)) return returnTo;
-        if (/^\/bot(?:#[-\w]+)?$/i.test(returnTo)) return returnTo;
-        return fallback;
-    }
-
     let activeTemplateId = (settings.activeBingoTemplateId ?? '').toString();
     if (!templates.some((template) => template.id === activeTemplateId)) {
         activeTemplateId = templates[0].id;
@@ -845,6 +840,13 @@ function getBingoTemplateConfig(settings = {}) {
         activeTemplate,
         bingoGoals: activeTemplate.goals
     };
+}
+
+function resolveBingoReturnPath(rawReturnTo, fallback = '/bingo') {
+    const returnTo = (rawReturnTo ?? '').toString().trim();
+    if (/^\/bingo(?:#[-\w]+)?$/i.test(returnTo)) return returnTo;
+    if (/^\/bot(?:#[-\w]+)?$/i.test(returnTo)) return returnTo;
+    return fallback;
 }
 
 // A USER IS CONSIDERED "ONLINE" IF SEEN WITHIN THIS WINDOW
@@ -6561,35 +6563,57 @@ app.post('/bingo/templates', requireDatabase, async (req, res) => {
     const goalTargetsInput = Array.isArray(req.body.goalTargets)
         ? req.body.goalTargets
         : (req.body.goalTargets ? [req.body.goalTargets] : []);
-    const goalLinesFromInputs = goalTargetsInput
-        .map((target) => (target ?? '').toString().trim())
-        .filter(Boolean)
-        .map((target) => target.replace(/^(\d+[\).\-\s]+|[-*•]\s*)/, '').trim())
+    const goalChallengesInput = Array.isArray(req.body.goalChallenges)
+        ? req.body.goalChallenges
+        : (req.body.goalChallenges ? [req.body.goalChallenges] : []);
+    const goalsFromInputs = goalTargetsInput
+        .map((targetValue, index) => {
+            const target = (targetValue ?? '').toString().trim().replace(/^(\d+[\).\-\s]+|[-*•]\s*)/, '').trim();
+            const challenge = (goalChallengesInput[index] ?? '').toString().trim();
+            if (!target) return null;
+            return {
+                target,
+                challenge: challenge || `Complete: ${target}`
+            };
+        })
         .filter(Boolean);
 
     const goalsText = (req.body.goalsText ?? '').toString();
-    const goalLinesFromText = goalsText
+    const goalsFromText = goalsText
         .split(/[\r\n;,]+/)
         .map((line) => line.trim())
-        .filter(Boolean)
-        .map((target) => target.replace(/^(\d+[\).\-\s]+|[-*•]\s*)/, '').trim())
         .filter(Boolean);
-    const goalLines = goalLinesFromInputs.length ? goalLinesFromInputs : goalLinesFromText;
+    const parsedGoalsFromText = goalsFromText
+        .map((line) => {
+            const cleanedLine = line.replace(/^(\d+[\).\-\s]+|[-*•]\s*)/, '').trim();
+            if (!cleanedLine) return null;
+            const [rawTarget, ...rawChallengeParts] = cleanedLine.split('|');
+            const target = (rawTarget ?? '').trim();
+            const challenge = rawChallengeParts.join('|').trim();
+            if (!target) return null;
+            return {
+                target,
+                challenge: challenge || `Complete: ${target}`
+            };
+        })
+        .filter(Boolean);
+    const parsedGoals = goalsFromInputs.length ? goalsFromInputs : parsedGoalsFromText;
 
     if (!templateName || templateName.length > 80) {
         req.flash('error_msg', 'Template name is required and must be 80 characters or fewer.');
         return res.redirect(redirectPath);
     }
-    if (goalLines.length < 1 || goalLines.length > 30) {
+    if (parsedGoals.length < 1 || parsedGoals.length > 30) {
         req.flash('error_msg', 'Template must contain between 1 and 30 goals (one goal per line).');
         return res.redirect(redirectPath);
     }
 
-    const goals = goalLines.map((target, index) => ({
+    const goals = parsedGoals.map((goal, index) => ({
         id: String(index + 1),
         label: String(index + 1),
-        target,
-        group: inferBingoGoalGroup(target)
+        target: goal.target,
+        challenge: goal.challenge,
+        group: inferBingoGoalGroup(goal.target)
     }));
     const templateId = `template-${Date.now()}-${crypto.randomBytes(3).toString('hex')}`;
 

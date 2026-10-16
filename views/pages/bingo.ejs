@@ -68,8 +68,8 @@
                         </div>
                         <div style="display: grid; gap: 8px;">
                             <label for="goalsText" style="font-weight: 700; color: #242320;">Goals (one per line)</label>
-                            <textarea id="goalsText" name="goalsText" required rows="8" class="bingo-search-input" style="resize: vertical;" placeholder="3 HP&#10;2 HP&#10;2500 CC"></textarea>
-                            <span style="font-size: 0.82em; color: #8e897e;">Use 1-30 lines. Include “HP” or “CC” in each goal text so the board groups goals correctly.</span>
+                            <textarea id="goalsText" name="goalsText" required rows="8" class="bingo-search-input" style="resize: vertical;" placeholder="3 HP | Earn 3 House Points this week&#10;2500 CC | Collect 2,500 Casino Coins"></textarea>
+                            <span style="font-size: 0.82em; color: #8e897e;">Use 1-30 lines. Format: <code>Target | Challenge description</code>. If challenge is omitted, it defaults to “Complete: Target”.</span>
                         </div>
                         <div>
                             <button type="submit" class="settings-btn settings-btn-primary">
@@ -138,6 +138,24 @@
                         <% } %>
                     </span>
                 </div>
+
+                <div class="bingo-challenge-guide" aria-label="Bingo challenge guide">
+                    <div class="bingo-challenge-guide-header">
+                        <span class="material-symbols-outlined">task</span>
+                        <span>Goal Challenge Guide</span>
+                    </div>
+                    <div class="bingo-challenge-grid">
+                        <% bingoGoals.forEach(function(goal) { %>
+                        <article class="bingo-challenge-item">
+                            <div class="bingo-challenge-item-top">
+                                <span class="bingo-challenge-badge">Goal <%= goal.label %></span>
+                                <span class="bingo-challenge-target"><%= goal.target %></span>
+                            </div>
+                            <p class="bingo-challenge-text"><%= goal.challenge || ('Complete: ' + goal.target) %></p>
+                        </article>
+                        <% }); %>
+                    </div>
+                </div>
             </div>
 
             <!-- Flash Message Alerts -->
@@ -196,7 +214,7 @@
                                     ? 'bingo-divider-hp-start'
                                     : (goal.id === (firstCcGoal && firstCcGoal.id) || goal.id === (firstMiscGoal && firstMiscGoal.id)) ? 'bingo-divider-cc-start' : '';
                             %>
-                            <th class="<%= dividerClass %>" title="Goal <%= goal.label %>: <%= goal.target %>">
+                            <th class="<%= dividerClass %>" title="Goal <%= goal.label %>: <%= goal.target %> — <%= goal.challenge || ('Complete: ' + goal.target) %>">
                                 <span>Goal <%= goal.label %></span>
                             </th>
                             <% }); %>
@@ -274,13 +292,13 @@
                                 <form action="/bingo/toggle" method="POST" class="bingo-toggle-form" style="margin: 0;">
                                     <input type="hidden" name="discordId" value="<%= user.login.discordId %>">
                                     <input type="hidden" name="goalId" value="<%= goal.id %>">
-                                    <button type="submit" class="bingo-goal-btn" title="Click to toggle Goal <%= goal.label %> (<%= goal.target %>)" aria-label="Goal <%= goal.label %>: <%= goal.target %> <%= completed ? 'Complete' : 'Pending' %>">
+                                    <button type="submit" class="bingo-goal-btn" title="Goal <%= goal.label %>: <%= goal.target %> — <%= goal.challenge || ('Complete: ' + goal.target) %>" aria-label="Goal <%= goal.label %>: <%= goal.target %>. Challenge: <%= goal.challenge || ('Complete: ' + goal.target) %>. <%= completed ? 'Complete' : 'Pending' %>">
                                         <span class="material-symbols-outlined bingo-goal-icon"><%= completed ? 'check_circle' : 'circle' %></span>
                                         <span><%= goal.target %></span>
                                     </button>
                                 </form>
                                 <% } else { %>
-                                <div class="bingo-goal-static">
+                                <div class="bingo-goal-static" title="Goal <%= goal.label %>: <%= goal.target %> — <%= goal.challenge || ('Complete: ' + goal.target) %>">
                                     <span class="material-symbols-outlined bingo-goal-icon"><%= completed ? 'check_circle' : 'circle' %></span>
                                     <span><%= goal.target %></span>
                                 </div>
