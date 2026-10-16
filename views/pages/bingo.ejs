@@ -9,6 +9,41 @@
             <%- include('../partials/nav') %>
         </header>
         <main class="bingo-page">
+            <%
+                const flattenedUsers = [];
+                (groups || []).forEach(function(group) {
+                    (group.users || []).forEach(function(user) {
+                        flattenedUsers.push(user);
+                    });
+                });
+                const currentBingoUser = flattenedUsers.find(function(user) {
+                    return user && user.login && user.login.discordId === currentUserDiscordId;
+                });
+                const currentUserCanToggleCard = Boolean(currentBingoUser && currentBingoUser.login && currentBingoUser.login.discordId);
+                const boardSize = 5;
+                const boardSlots = boardSize * boardSize;
+                const freeSlotIndex = 12;
+                let goalCursor = 0;
+                const bingoCardSlots = [];
+                for (let slotIndex = 0; slotIndex < boardSlots; slotIndex += 1) {
+                    if (slotIndex === freeSlotIndex) {
+                        bingoCardSlots.push({ type: 'free' });
+                        continue;
+                    }
+                    const goal = bingoGoals[goalCursor];
+                    if (goal) {
+                        const completed = Boolean(currentBingoUser && currentBingoUser.bingoProgress && currentBingoUser.bingoProgress[goal.id]);
+                        bingoCardSlots.push({ type: 'goal', goal, completed });
+                        goalCursor += 1;
+                    } else {
+                        bingoCardSlots.push({ type: 'empty' });
+                    }
+                }
+                const currentCompletedGoals = currentBingoUser
+                    ? bingoGoals.filter(function(goal) { return currentBingoUser.bingoProgress && currentBingoUser.bingoProgress[goal.id]; }).length
+                    : 0;
+                const currentCompletionPct = bingoGoals.length ? Math.round((currentCompletedGoals / bingoGoals.length) * 100) : 0;
+            %>
             <!-- Header & Summary Area -->
             <div class="bingo-heading-wrap">
                 <div class="bingo-heading-top">
@@ -118,26 +153,83 @@
                     </div>
                 </div>
 
-                <!-- Search & Filter Controls -->
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 20px;">
-                    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; flex: 1;">
-                        <input type="search" id="bingoSearchInput" class="bingo-search-input" placeholder="🔍 Filter staff by name..." aria-label="Search staff members">
-                        <select id="bingoRankFilter" class="bingo-search-input" style="min-width: 180px;">
-                            <option value="">All Ranks</option>
-                            <% groups.forEach(function(group) { %>
-                            <option value="<%= group.name.toLowerCase() %>"><%= group.name %></option>
-                            <% }); %>
-                        </select>
-                    </div>
-
-                    <span style="font-size: 0.85em; color: #8e897e; font-weight: bold;">
+                    <span style="font-size: 0.86em; color: #8e897e; font-weight: bold;">
                         <% if (canManageBingo) { %>
-                        💡 Click any task tile to toggle status instantly. Changes save automatically.
+                        💡 Admins can use the tracker table below. Everyone can use the new bingo card view.
                         <% } else { %>
-                        💡 Click your own task tiles to mark your progress. Leaders can still update everyone.
+                        💡 Click a square on your card to mark progress. Completed goals trigger confetti.
                         <% } %>
                     </span>
                 </div>
+
+                <section class="bingo-player-card-wrap" aria-label="Personal bingo card">
+                    <div class="bingo-player-card-header">
+                        <div>
+                            <h2 style="margin: 0;">Your Weekly Bingo Card</h2>
+                            <% if (currentBingoUser) { %>
+                            <p style="margin: 6px 0 0; color: #9b9588; font-size: 0.88em;">
+                                <%= currentBingoUser.displayName || currentBingoUser.discordUser || currentBingoUser.login.discordId %> ·
+                                <%= currentBingoUser.accountType %>
+                            </p>
+                            <% } else { %>
+                            <p style="margin: 6px 0 0; color: #9b9588; font-size: 0.88em;">
+                                You are not currently in an eligible bingo rank (Dreamland Guard and above).
+                            </p>
+                            <% } %>
+                        </div>
+                        <div class="bingo-player-card-progress">
+                            <span class="bingo-player-progress-fraction"><span id="bingoPlayerCompletedCount"><%= currentCompletedGoals %></span>/<span id="bingoPlayerTotalCount"><%= bingoGoals.length %></span></span>
+                            <span class="bingo-player-progress-pct" id="bingoPlayerProgressPct"><%= currentCompletionPct %>%</span>
+                        </div>
+                    </div>
+
+                    <% if (currentBingoUser) { %>
+                    <div class="bingo-player-grid" id="bingoPlayerGrid">
+                        <div class="bingo-player-grid-head">B</div>
+                        <div class="bingo-player-grid-head">I</div>
+                        <div class="bingo-player-grid-head">N</div>
+                        <div class="bingo-player-grid-head">G</div>
+                        <div class="bingo-player-grid-head">O</div>
+                        <% bingoCardSlots.forEach(function(slot, slotIndex) { %>
+                            <% if (slot.type === 'free') { %>
+                            <div class="bingo-player-cell is-free">
+                                <span class="material-symbols-outlined bingo-player-cell-icon">star</span>
+                                <span class="bingo-player-cell-title">FREE</span>
+                                <small class="bingo-player-cell-sub">Center Space</small>
+                            </div>
+                            <% } else if (slot.type === 'goal') { %>
+                            <div class="bingo-player-cell <%= slot.completed ? 'is-complete' : 'is-pending' %>" data-goal-id="<%= slot.goal.id %>" data-bingo-card-cell="true">
+                                <% if (currentUserCanToggleCard) { %>
+                                <form action="/bingo/toggle" method="POST" class="bingo-toggle-form bingo-player-toggle-form">
+                                    <input type="hidden" name="discordId" value="<%= currentBingoUser.login.discordId %>">
+                                    <input type="hidden" name="goalId" value="<%= slot.goal.id %>">
+                                    <button type="submit" class="bingo-player-cell-btn" title="Goal <%= slot.goal.label %>: <%= slot.goal.target %> — <%= slot.goal.challenge || ('Complete: ' + slot.goal.target) %>">
+                                        <span class="material-symbols-outlined bingo-goal-icon"><%= slot.completed ? 'check_circle' : 'circle' %></span>
+                                        <span class="bingo-player-cell-title"><%= slot.goal.target %></span>
+                                        <small class="bingo-player-cell-sub"><%= slot.goal.challenge || ('Complete: ' + slot.goal.target) %></small>
+                                    </button>
+                                </form>
+                                <% } else { %>
+                                <div class="bingo-player-cell-static" title="Goal <%= slot.goal.label %>: <%= slot.goal.target %> — <%= slot.goal.challenge || ('Complete: ' + slot.goal.target) %>">
+                                    <span class="material-symbols-outlined bingo-goal-icon"><%= slot.completed ? 'check_circle' : 'circle' %></span>
+                                    <span class="bingo-player-cell-title"><%= slot.goal.target %></span>
+                                    <small class="bingo-player-cell-sub"><%= slot.goal.challenge || ('Complete: ' + slot.goal.target) %></small>
+                                </div>
+                                <% } %>
+                            </div>
+                            <% } else { %>
+                            <div class="bingo-player-cell is-empty" aria-hidden="true"></div>
+                            <% } %>
+                        <% }); %>
+                    </div>
+                    <% } else { %>
+                    <div class="bingo-player-empty-state">
+                        <span class="material-symbols-outlined">info</span>
+                        <span>You currently do not have a personal bingo card available in this week&apos;s eligible ranks.</span>
+                    </div>
+                    <% } %>
+                </section>
 
                 <div class="bingo-challenge-guide" aria-label="Bingo challenge guide">
                     <div class="bingo-challenge-guide-header">
@@ -156,6 +248,24 @@
                         <% }); %>
                     </div>
                 </div>
+
+                <% if (canManageBingo) { %>
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 22px;">
+                    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; flex: 1;">
+                        <input type="search" id="bingoSearchInput" class="bingo-search-input" placeholder="🔍 Filter staff by name..." aria-label="Search staff members">
+                        <select id="bingoRankFilter" class="bingo-search-input" style="min-width: 180px;">
+                            <option value="">All Ranks</option>
+                            <% groups.forEach(function(group) { %>
+                            <option value="<%= group.name.toLowerCase() %>"><%= group.name %></option>
+                            <% }); %>
+                        </select>
+                    </div>
+
+                    <span style="font-size: 0.85em; color: #8e897e; font-weight: bold;">
+                        🛠️ Admin tracker view: bulk monitor and edit all staff progress.
+                    </span>
+                </div>
+                <% } %>
             </div>
 
             <!-- Flash Message Alerts -->
@@ -178,7 +288,7 @@
             </div>
             <% } %>
 
-            <!-- Interactive Board Container -->
+            <!-- Interactive Board Container (Admins Only) -->
             <%
                 const hpGoalCount = bingoGoals.filter(goal => goal.group === 'hp').length;
                 const ccGoalCount = bingoGoals.filter(goal => goal.group === 'cc').length;
@@ -188,6 +298,7 @@
                 const firstCcGoal = bingoGoals.find(goal => goal.group === 'cc');
                 const firstMiscGoal = bingoGoals.find(goal => goal.group === 'misc');
             %>
+            <% if (canManageBingo) { %>
             <section class="bingo-board-container" aria-label="Staff Bingo board">
                 <table class="bingo-table">
                     <thead>
@@ -347,6 +458,7 @@
                     </tbody>
                 </table>
             </section>
+            <% } %>
         </main>
         <div class="footer">
             <p>&copy; 2026 Drowsy Vocals | All rights reserved.</p>
@@ -360,6 +472,7 @@
             const headerRows = document.querySelectorAll('.bingo-rank-header');
 
             function applyBingoFilters() {
+                if (!rows.length) return;
                 const query = (searchInput?.value || '').toLowerCase().trim();
                 const selectedRank = (rankFilter?.value || '').toLowerCase().trim();
 
@@ -506,10 +619,14 @@
             document.querySelectorAll('.bingo-toggle-form').forEach(form => {
                 form.addEventListener('submit', async (e) => {
                     e.preventDefault();
-                    const cell = form.closest('.bingo-cell');
+                    const cell = form.closest('.bingo-cell, .bingo-player-cell');
                     const row = form.closest('.bingo-user-row');
                     const btn = form.querySelector('.bingo-goal-btn');
                     const icon = btn?.querySelector('.bingo-goal-icon');
+                    const cardButton = form.querySelector('.bingo-player-cell-btn');
+                    const cardIcon = cardButton?.querySelector('.bingo-goal-icon');
+                    const activeButton = btn || cardButton;
+                    const activeIcon = icon || cardIcon;
                     
                     const discordId = form.querySelector('input[name="discordId"]')?.value;
                     const goalId = form.querySelector('input[name="goalId"]')?.value;
@@ -519,10 +636,11 @@
                     const currentlyComplete = cell.classList.contains('is-complete');
                     const nextComplete = !currentlyComplete;
 
-                    setGoalCellState(cell, icon, nextComplete);
+                    setGoalCellState(cell, activeIcon, nextComplete);
 
                     // Update row progress calculation
                     updateRowProgress(row);
+                    updatePlayerCardProgress();
 
                     try {
                         const response = await fetch('/bingo/toggle', {
@@ -538,16 +656,18 @@
                         const payload = await response.json().catch(() => null);
                         const serverCompleted = typeof payload?.completed === 'boolean' ? payload.completed : nextComplete;
 
-                        setGoalCellState(cell, icon, serverCompleted);
+                        setGoalCellState(cell, activeIcon, serverCompleted);
                         updateRowProgress(row);
+                        updatePlayerCardProgress();
                         if (serverCompleted && !currentlyComplete) {
-                            const rect = btn?.getBoundingClientRect();
+                            const rect = activeButton?.getBoundingClientRect();
                             launchConfetti(rect ? { x: rect.left + (rect.width / 2), y: rect.top + (rect.height / 2) } : null);
                         }
                     } catch (err) {
                         console.error('Failed to toggle bingo goal:', err);
-                        setGoalCellState(cell, icon, currentlyComplete);
+                        setGoalCellState(cell, activeIcon, currentlyComplete);
                         updateRowProgress(row);
+                        updatePlayerCardProgress();
                     }
                 });
             });
@@ -568,6 +688,21 @@
                     pctEl.style.color = pct === 100 ? '#34d399' : pct >= 50 ? '#fbbf24' : '#8e897e';
                 }
                 if (fillEl) fillEl.style.width = `${pct}%`;
+            }
+
+            function updatePlayerCardProgress() {
+                const grid = document.getElementById('bingoPlayerGrid');
+                if (!grid) return;
+                const goalCells = grid.querySelectorAll('.bingo-player-cell[data-goal-id]');
+                const totalGoals = goalCells.length;
+                const completedGoals = grid.querySelectorAll('.bingo-player-cell.is-complete[data-goal-id]').length;
+                const pct = totalGoals > 0 ? Math.round((completedGoals / totalGoals) * 100) : 0;
+                const completedEl = document.getElementById('bingoPlayerCompletedCount');
+                const totalEl = document.getElementById('bingoPlayerTotalCount');
+                const pctEl = document.getElementById('bingoPlayerProgressPct');
+                if (completedEl) completedEl.textContent = `${completedGoals}`;
+                if (totalEl) totalEl.textContent = `${totalGoals}`;
+                if (pctEl) pctEl.textContent = `${pct}%`;
             }
         </script>
     </body>

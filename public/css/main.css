@@ -796,6 +796,184 @@ tbody tr:not(.rank-group-header):not(.bingo-rank-header):hover {
     line-height: 1.45;
 }
 
+.bingo-player-card-wrap {
+    margin-top: 16px;
+    border: 1px solid #4a463f;
+    border-radius: 12px;
+    background: radial-gradient(circle at top left, #2f2b24 0%, #221f1a 58%, #191713 100%);
+    box-shadow: 0 12px 26px rgba(0, 0, 0, 0.23);
+    padding: 16px;
+}
+
+.bingo-player-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 12px;
+}
+
+.bingo-player-card-header h2 {
+    color: #f3efe6;
+    font-size: 1.15em;
+}
+
+.bingo-player-card-progress {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #171512;
+    border: 1px solid #3f3a31;
+    border-radius: 999px;
+    padding: 6px 10px;
+    white-space: nowrap;
+}
+
+.bingo-player-progress-fraction {
+    color: #d7d2c7;
+    font-size: 0.82em;
+    font-weight: 700;
+}
+
+.bingo-player-progress-pct {
+    color: #34d399;
+    font-size: 0.88em;
+    font-weight: 800;
+}
+
+.bingo-player-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(120px, 1fr));
+    gap: 8px;
+}
+
+.bingo-player-grid-head {
+    background: #151310;
+    border: 1px solid #3f3a31;
+    border-radius: 8px;
+    min-height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffd46d;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+}
+
+.bingo-player-cell {
+    border-radius: 10px;
+    border: 1px solid #403a33;
+    background: #1b1814;
+    min-height: 106px;
+    overflow: hidden;
+    transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.bingo-player-cell-btn,
+.bingo-player-cell-static {
+    width: 100%;
+    min-height: 106px;
+    border: none;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: 4px;
+    padding: 10px;
+    cursor: pointer;
+}
+
+.bingo-player-cell-btn {
+    border-radius: 10px;
+}
+
+.bingo-player-cell-title {
+    color: #f3efe6;
+    font-size: 0.86em;
+    font-weight: 800;
+    letter-spacing: 0.01em;
+}
+
+.bingo-player-cell-sub {
+    color: #a39c8f;
+    font-size: 0.77em;
+    line-height: 1.33;
+}
+
+.bingo-player-cell.is-pending .bingo-player-cell-btn:hover {
+    background: #2b2621;
+}
+
+.bingo-player-cell.is-pending:hover {
+    transform: translateY(-2px);
+    border-color: #6d6659;
+    box-shadow: 0 10px 16px rgba(0, 0, 0, 0.2);
+}
+
+.bingo-player-cell.is-complete {
+    border-color: rgba(52, 211, 153, 0.45);
+    background: linear-gradient(160deg, rgba(16, 185, 129, 0.22) 0%, rgba(17, 116, 87, 0.2) 100%);
+    box-shadow: inset 0 0 0 1px rgba(52, 211, 153, 0.15);
+}
+
+.bingo-player-cell.is-complete .bingo-player-cell-title,
+.bingo-player-cell.is-complete .bingo-goal-icon {
+    color: #57e7b4;
+}
+
+.bingo-player-cell.is-free {
+    border-color: #7c3aed66;
+    background: linear-gradient(150deg, rgba(124, 58, 237, 0.24) 0%, rgba(53, 27, 102, 0.2) 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 10px;
+}
+
+.bingo-player-cell.is-free .bingo-player-cell-title {
+    color: #d9c7ff;
+}
+
+.bingo-player-cell.is-free .bingo-player-cell-sub {
+    color: #bba7e9;
+}
+
+.bingo-player-cell.is-free .bingo-player-cell-icon {
+    color: #d9c7ff;
+    background: transparent;
+    padding: 0;
+    font-size: 1.35em;
+}
+
+.bingo-player-cell.is-empty {
+    border-style: dashed;
+    opacity: 0.35;
+    min-height: 106px;
+}
+
+.bingo-player-empty-state {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #b3aba0;
+    background: #1a1917;
+    border: 1px dashed #4d473d;
+    border-radius: 8px;
+    padding: 12px;
+}
+
+.bingo-player-empty-state .material-symbols-outlined {
+    background: transparent;
+    color: #fbbf24;
+    padding: 0;
+}
+
 .bingo-board-container {
     background: linear-gradient(180deg, #242320 0%, #1f1d1a 100%);
     border-radius: 12px;
@@ -4462,6 +4640,22 @@ dialog button {
         flex-direction: column;
         gap: 6px;
     }
+    .bingo-player-card-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+    .bingo-player-grid {
+        grid-template-columns: repeat(2, minmax(140px, 1fr));
+    }
+    .bingo-player-grid-head {
+        min-height: 30px;
+    }
+    .bingo-player-cell,
+    .bingo-player-cell-btn,
+    .bingo-player-cell-static,
+    .bingo-player-cell.is-empty {
+        min-height: 92px;
+    }
     .planner-page {
         width: auto;
         margin: 18px 12px;
@@ -4528,6 +4722,9 @@ dialog button {
         width: 100%;
     }
     .planner-lanes {
+        grid-template-columns: 1fr;
+    }
+    .bingo-player-grid {
         grid-template-columns: 1fr;
     }
     .event-feedback-page { margin: 30px auto 50px; }
