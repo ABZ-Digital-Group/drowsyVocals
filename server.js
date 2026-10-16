@@ -782,6 +782,39 @@ const DEFAULT_BINGO_TEMPLATE = Object.freeze({
     goals: DEFAULT_BINGO_GOALS
 });
 
+const HALLOWEEN_BINGO_GOALS = [
+    { id: '1', label: '1', target: 'Reply to 3 Messages', challenge: 'Reply to at least 3 messages in #general this week.', group: 'misc' },
+    { id: '2', label: '2', target: 'Help a Member', challenge: 'Help a member with a question in chat.', group: 'misc' },
+    { id: '3', label: '3', target: 'Make a New Friend', challenge: 'Start a friendly conversation with someone new.', group: 'misc' },
+    { id: '4', label: '4', target: 'Movie/Listen Party', challenge: 'Join a movie night or listen party event.', group: 'misc' },
+    { id: '5', label: '5', target: '50 VC Hours', challenge: 'Reach 50 hours in voice channels.', group: 'misc' },
+    { id: '6', label: '6', target: 'Start a New Convo', challenge: 'Start a conversation with someone you do not usually talk to.', group: 'misc' },
+    { id: '7', label: '7', target: 'Host a Pop-Up VC', challenge: 'Host a pop-up VC activity for the community.', group: 'misc' },
+    { id: '8', label: '8', target: 'Bump Server Twice', challenge: 'Bump the server 2 times.', group: 'misc' },
+    { id: '9', label: '9', target: 'Host in Shy Stage', challenge: 'Host an event in a shy stage.', group: 'misc' },
+    { id: '10', label: '10', target: 'Vote 3 Times', challenge: 'Vote for the server 3 times.', group: 'misc' },
+    { id: '11', label: '11', target: 'Share Music Tutorial', challenge: 'Post a music tutorial for others to learn from.', group: 'misc' },
+    { id: '12', label: '12', target: 'Share a Spotify Song', challenge: 'Share a Spotify track recommendation.', group: 'misc' },
+    { id: '13', label: '13', target: 'Answer a Ticket', challenge: 'Respond to and help resolve a community ticket.', group: 'misc' },
+    { id: '14', label: '14', target: 'React to Event Alerts', challenge: 'React to event alerts to boost visibility.', group: 'misc' },
+    { id: '15', label: '15', target: '🥧 Pumpkin Pie Moment', challenge: 'Share a seasonal pie/pumpkin vibe moment in chat.', group: 'misc' },
+    { id: '16', label: '16', target: 'Teach the Casino', challenge: 'Teach someone how to use the casino features.', group: 'misc' },
+    { id: '17', label: '17', target: 'Welcome 5 Members', challenge: 'Welcome at least 5 members this week.', group: 'misc' },
+    { id: '18', label: '18', target: 'Promote Staff Apps', challenge: 'Promote staff applications in the server.', group: 'misc' },
+    { id: '19', label: '19', target: 'Create Art', challenge: 'Create and share a piece of art.', group: 'misc' },
+    { id: '20', label: '20', target: 'Refer a Member to Staff', challenge: 'Refer a member who could be a good staff fit.', group: 'misc' },
+    { id: '21', label: '21', target: 'Listen in on Interview', challenge: 'Sit in on an interview session.', group: 'misc' },
+    { id: '22', label: '22', target: 'Carve a Pumpkin', challenge: 'Share your carved pumpkin (or pumpkin design).', group: 'misc' },
+    { id: '23', label: '23', target: 'Post Spooky Selfie', challenge: 'Post a spooky selfie in the community.', group: 'misc' },
+    { id: '24', label: '24', target: '👻 Ghost Sighting', challenge: 'Drop a ghost-themed post or reaction in chat.', group: 'misc' }
+];
+
+const HALLOWEEN_BINGO_TEMPLATE = Object.freeze({
+    id: 'halloween-edition',
+    name: 'Halloween Edition',
+    goals: HALLOWEEN_BINGO_GOALS
+});
+
 function inferBingoGoalGroup(target = '') {
     const normalized = target.toString().toLowerCase();
     if (normalized.includes('hp') || normalized.includes('house point')) return 'hp';
@@ -817,12 +850,18 @@ function normalizeBingoTemplate(template, index) {
 }
 
 function getBingoTemplateConfig(settings = {}) {
+    const builtInTemplates = [DEFAULT_BINGO_TEMPLATE, HALLOWEEN_BINGO_TEMPLATE];
     const rawTemplates = Array.isArray(settings.bingoTemplates) && settings.bingoTemplates.length
         ? settings.bingoTemplates
-        : [DEFAULT_BINGO_TEMPLATE];
-    const templates = rawTemplates
+        : builtInTemplates;
+    const normalizedUserTemplates = rawTemplates
         .map((template, index) => normalizeBingoTemplate(template, index))
         .filter(Boolean);
+    const existingTemplateIds = new Set(normalizedUserTemplates.map((template) => template.id));
+    const normalizedBuiltIns = builtInTemplates
+        .map((template, index) => normalizeBingoTemplate(template, index))
+        .filter((template) => template && !existingTemplateIds.has(template.id));
+    const templates = [...normalizedUserTemplates, ...normalizedBuiltIns];
 
     if (!templates.length) {
         templates.push(normalizeBingoTemplate(DEFAULT_BINGO_TEMPLATE, 0));
