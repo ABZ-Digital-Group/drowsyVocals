@@ -140,6 +140,11 @@
                         <span>Invite Whitelist</span>
                         <span class="settings-tab-badge"><%= (allowedInvites || []).length %></span>
                     </button>
+                    <button type="button" class="settings-tab-btn" data-tab="bingo-templates">
+                        <span class="material-symbols-outlined">view_module</span>
+                        <span>Bingo Templates</span>
+                        <span class="settings-tab-badge"><%= (bingoTemplates || []).length %></span>
+                    </button>
                     <button type="button" class="settings-tab-btn" data-tab="config">
                         <span class="material-symbols-outlined">settings</span>
                         <span>Bot Core Config</span>
@@ -716,6 +721,125 @@
                                 No invite link whitelist exceptions registered.
                             </div>
                             <% } %>
+                        </div>
+                    </div>
+
+                    <!-- SECTION: BINGO TEMPLATE MANAGEMENT -->
+                    <div class="settings-group" data-section="bingo-templates">
+                        <div class="settings-group-header">
+                            <span class="material-symbols-outlined" style="background: #242320; color: #B7B2A7; padding: 4px; border-radius: 4px;">view_module</span>
+                            <h2>Bingo Template Management</h2>
+                        </div>
+
+                        <div class="settings-card">
+                            <div class="settings-card-header">
+                                <div class="settings-card-title-wrap">
+                                    <h3 class="settings-card-title">
+                                        <span class="material-symbols-outlined">swap_horiz</span>
+                                        <span>Switch Active Bingo Card</span>
+                                    </h3>
+                                    <p class="settings-card-desc">Quickly swap the weekly bingo card template. Switching templates will reset current weekly bingo progress and totals.</p>
+                                </div>
+                            </div>
+                            <form action="/bingo/templates/activate" method="POST" onsubmit="return confirm('Switching templates will reset all weekly bingo progress and totals. Continue?');" style="display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap;">
+                                <input type="hidden" name="returnTo" value="/bot#bingo-templates">
+                                <div class="settings-form-group" style="margin-bottom: 0; min-width: 280px; flex: 1;">
+                                    <label for="activeTemplateSelect">Active Template</label>
+                                    <select id="activeTemplateSelect" name="templateId" class="settings-input" required>
+                                        <% (bingoTemplates || []).forEach(function(template) { %>
+                                        <option value="<%= template.id %>" <%= template.id === activeBingoTemplateId ? 'selected' : '' %>><%= template.name %> (<%= (template.goals || []).length %> goals)</option>
+                                        <% }); %>
+                                    </select>
+                                </div>
+                                <button type="submit" class="settings-btn settings-btn-secondary">
+                                    <span class="material-symbols-outlined">rocket_launch</span>
+                                    <span>Activate Template</span>
+                                </button>
+                                <a href="/bingo" class="settings-btn settings-btn-primary" style="text-decoration: none;">
+                                    <span class="material-symbols-outlined">dashboard</span>
+                                    <span>Open Bingo Board</span>
+                                </a>
+                            </form>
+                        </div>
+
+                        <div class="settings-card">
+                            <div class="settings-card-header">
+                                <div class="settings-card-title-wrap">
+                                    <h3 class="settings-card-title">
+                                        <span class="material-symbols-outlined">post_add</span>
+                                        <span>Create New Bingo Template</span>
+                                    </h3>
+                                    <p class="settings-card-desc">Use easy goal fields instead of manual formatting. Leave unused fields empty. Goals can contain HP, CC, or any custom text.</p>
+                                </div>
+                            </div>
+                            <%
+                                const activeGoalTargets = ((activeBingoTemplate && activeBingoTemplate.goals) || []).map(function(goal) { return goal.target || ''; });
+                                while (activeGoalTargets.length < 12) activeGoalTargets.push('');
+                                const goalInputValues = activeGoalTargets.slice(0, 12);
+                            %>
+                            <form action="/bingo/templates" method="POST" style="display: flex; flex-direction: column; gap: 16px;">
+                                <input type="hidden" name="returnTo" value="/bot#bingo-templates">
+                                <div class="settings-form-group" style="margin-bottom: 0; max-width: 460px;">
+                                    <label for="newTemplateName">Template Name</label>
+                                    <input id="newTemplateName" name="templateName" class="settings-input" maxlength="80" required placeholder="e.g. Winter Event Week">
+                                </div>
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px;">
+                                    <% goalInputValues.forEach(function(goalValue, goalIndex) { %>
+                                    <div class="settings-form-group" style="margin-bottom: 0;">
+                                        <label for="goalTarget<%= goalIndex + 1 %>">Goal <%= goalIndex + 1 %></label>
+                                        <input id="goalTarget<%= goalIndex + 1 %>" type="text" name="goalTargets" class="settings-input" maxlength="120" value="<%= goalValue %>" placeholder="e.g. 3 HP">
+                                    </div>
+                                    <% }); %>
+                                </div>
+                                <div style="display: flex; justify-content: flex-start;">
+                                    <button type="submit" class="settings-btn settings-btn-primary">
+                                        <span class="material-symbols-outlined">add_circle</span>
+                                        <span>Save Template</span>
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <div class="settings-card">
+                            <div class="settings-card-header">
+                                <div class="settings-card-title-wrap">
+                                    <h3 class="settings-card-title">
+                                        <span class="material-symbols-outlined">inventory_2</span>
+                                        <span>Template Library</span>
+                                    </h3>
+                                    <p class="settings-card-desc">Preview existing templates and activate any one with a single click.</p>
+                                </div>
+                            </div>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 12px;">
+                                <% (bingoTemplates || []).forEach(function(template) { %>
+                                <div style="background: #1a1917; border: 1px solid <%= template.id === activeBingoTemplateId ? '#10b981' : '#383734' %>; border-radius: 8px; padding: 14px;">
+                                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                                        <strong style="color: #f3efe6;"><%= template.name %></strong>
+                                        <% if (template.id === activeBingoTemplateId) { %>
+                                        <span class="settings-badge badge-success">Active</span>
+                                        <% } else { %>
+                                        <span class="settings-badge badge-danger">Inactive</span>
+                                        <% } %>
+                                    </div>
+                                    <p style="font-size: 0.82em; color: #8e897e; margin: 6px 0 10px;"><%= (template.goals || []).length %> goal<%= (template.goals || []).length === 1 ? '' : 's' %></p>
+                                    <ol style="margin: 0 0 12px 18px; padding: 0; color: #d7d2c7; max-height: 120px; overflow: auto; font-size: 0.85em;">
+                                        <% (template.goals || []).forEach(function(goal) { %>
+                                        <li style="margin-bottom: 4px;"><%= goal.target %></li>
+                                        <% }); %>
+                                    </ol>
+                                    <% if (template.id !== activeBingoTemplateId) { %>
+                                    <form action="/bingo/templates/activate" method="POST" style="margin: 0;" onsubmit="return confirm('Activate <%= template.name %> and reset weekly bingo progress?');">
+                                        <input type="hidden" name="returnTo" value="/bot#bingo-templates">
+                                        <input type="hidden" name="templateId" value="<%= template.id %>">
+                                        <button type="submit" class="settings-btn settings-btn-secondary settings-btn-sm" style="width: 100%;">
+                                            <span class="material-symbols-outlined">bolt</span>
+                                            <span>Activate</span>
+                                        </button>
+                                    </form>
+                                    <% } %>
+                                </div>
+                                <% }); %>
+                            </div>
                         </div>
                     </div>
 
