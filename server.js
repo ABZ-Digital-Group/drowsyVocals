@@ -6384,6 +6384,7 @@ app.get('/bingo', requireDatabase, async (req, res) => {
             bingoTemplates,
             activeBingoTemplateId,
             activeBingoTemplateName: activeTemplate.name,
+            currentUserDiscordId: req.session.currentuser,
             totalParticipants,
             totalCompletedTasks,
             totalPossibleTasks,
@@ -6401,7 +6402,7 @@ app.get('/bingo', requireDatabase, async (req, res) => {
 
 // TOGGLE ONE BINGO TARGET FOR A STAFF MEMBER
 app.post('/bingo/toggle', requireDatabase, async (req, res) => {
-    if (!req.session.loggedin || !hasManagementAccess(req)) {
+    if (!req.session.loggedin) {
         if (req.xhr || req.headers['x-requested-with'] === 'XMLHttpRequest') {
             return res.status(403).json({ error: 'Unauthorized.' });
         }
@@ -6418,6 +6419,16 @@ app.post('/bingo/toggle', requireDatabase, async (req, res) => {
     }
 
     try {
+        const canManageBingo = hasManagementAccess(req);
+        const requesterDiscordId = (req.session.currentuser ?? '').toString().trim();
+        if (!canManageBingo && requesterDiscordId !== discordId) {
+            if (req.xhr || req.headers['x-requested-with'] === 'XMLHttpRequest') {
+                return res.status(403).json({ error: 'You can only update your own Bingo goals.' });
+            }
+            req.flash('error_msg', 'You can only update your own Bingo goals.');
+            return res.redirect('/bingo');
+        }
+
         const [settings, user] = await Promise.all([
             getSettings(),
             db.collection('users').findOne(

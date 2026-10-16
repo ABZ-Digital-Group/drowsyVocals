@@ -133,6 +133,8 @@
                     <span style="font-size: 0.85em; color: #8e897e; font-weight: bold;">
                         <% if (canManageBingo) { %>
                         💡 Click any task tile to toggle status instantly. Changes save automatically.
+                        <% } else { %>
+                        💡 Click your own task tiles to mark your progress. Leaders can still update everyone.
                         <% } %>
                     </span>
                 </div>
@@ -260,6 +262,7 @@
                             </td>
 
                             <!-- 10 Bingo Goals -->
+                            <% const canToggleThisUser = canManageBingo || user.login.discordId === currentUserDiscordId; %>
                             <% bingoGoals.forEach(function(goal) {
                                 const completed = Boolean(user.bingoProgress && user.bingoProgress[goal.id]);
                                 const dividerClass = goal.id === (firstHpGoal && firstHpGoal.id)
@@ -267,7 +270,7 @@
                                     : (goal.id === (firstCcGoal && firstCcGoal.id) || goal.id === (firstMiscGoal && firstMiscGoal.id)) ? 'bingo-divider-cc-start' : '';
                             %>
                             <td class="bingo-cell <%= dividerClass %> <%= completed ? 'is-complete' : 'is-pending' %>" data-goal-id="<%= goal.id %>">
-                                <% if (canManageBingo) { %>
+                                <% if (canToggleThisUser) { %>
                                 <form action="/bingo/toggle" method="POST" class="bingo-toggle-form" style="margin: 0;">
                                     <input type="hidden" name="discordId" value="<%= user.login.discordId %>">
                                     <input type="hidden" name="goalId" value="<%= goal.id %>">
@@ -362,6 +365,76 @@
             if (searchInput) searchInput.addEventListener('input', applyBingoFilters);
             if (rankFilter) rankFilter.addEventListener('change', applyBingoFilters);
 
+            function setGoalCellState(cell, icon, isComplete) {
+                if (!cell) return;
+                cell.classList.toggle('is-complete', isComplete);
+                cell.classList.toggle('is-pending', !isComplete);
+                if (icon) icon.textContent = isComplete ? 'check_circle' : 'circle';
+            }
+
+            function launchConfetti() {
+                const canvas = document.createElement('canvas');
+                canvas.style.position = 'fixed';
+                canvas.style.inset = '0';
+                canvas.style.width = '100vw';
+                canvas.style.height = '100vh';
+                canvas.style.pointerEvents = 'none';
+                canvas.style.zIndex = '9999';
+                document.body.appendChild(canvas);
+
+                const context = canvas.getContext('2d');
+                if (!context) {
+                    canvas.remove();
+                    return;
+                }
+
+                const resizeCanvas = () => {
+                    canvas.width = window.innerWidth;
+                    canvas.height = window.innerHeight;
+                };
+                resizeCanvas();
+
+                const colors = ['#fbbf24', '#34d399', '#60a5fa', '#fb7185', '#a78bfa', '#f97316'];
+                const particleCount = 150;
+                const particles = Array.from({ length: particleCount }).map(() => ({
+                    x: Math.random() * canvas.width,
+                    y: -20 - Math.random() * canvas.height * 0.3,
+                    size: 3 + Math.random() * 6,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    vx: -2 + Math.random() * 4,
+                    vy: 2 + Math.random() * 6,
+                    gravity: 0.08 + Math.random() * 0.12,
+                    life: 90 + Math.floor(Math.random() * 50)
+                }));
+
+                let frame = 0;
+                const totalFrames = 130;
+
+                const animate = () => {
+                    context.clearRect(0, 0, canvas.width, canvas.height);
+                    particles.forEach((particle) => {
+                        particle.x += particle.vx;
+                        particle.y += particle.vy;
+                        particle.vy += particle.gravity;
+                        particle.life -= 1;
+
+                        context.globalAlpha = Math.max(0, particle.life / totalFrames);
+                        context.fillStyle = particle.color;
+                        context.fillRect(particle.x, particle.y, particle.size, particle.size * 0.8);
+                    });
+                    context.globalAlpha = 1;
+
+                    frame += 1;
+                    if (frame < totalFrames) {
+                        requestAnimationFrame(animate);
+                    } else {
+                        canvas.remove();
+                    }
+                };
+
+                requestAnimationFrame(animate);
+            }
+
             // AJAX Toggle for Bingo Buttons (Instant UI response without page reload)
             document.querySelectorAll('.bingo-toggle-form').forEach(form => {
                 form.addEventListener('submit', async (e) => {
@@ -379,9 +452,7 @@
                     const currentlyComplete = cell.classList.contains('is-complete');
                     const nextComplete = !currentlyComplete;
 
-                    cell.classList.toggle('is-complete', nextComplete);
-                    cell.classList.toggle('is-pending', !nextComplete);
-                    if (icon) icon.textContent = nextComplete ? 'check_circle' : 'circle';
+                    setGoalCellState(cell, icon, nextComplete);
 
                     // Update row progress calculation
                     updateRowProgress(row);
@@ -396,15 +467,19 @@
                             body: new URLSearchParams({ discordId, goalId }).toString()
                         });
 
-                        if (!response.ok) {
-                            // Revert on failure
-                            cell.classList.toggle('is-complete', currentlyComplete);
-                            cell.classList.toggle('is-pending', !currentlyComplete);
-                            if (icon) icon.textContent = currentlyComplete ? 'check_circle' : 'circle';
-                            updateRowProgress(row);
+                        if (!response.ok) throw new Error(`Toggle failed: ${response.status}`);
+                        const payload = await response.json().catch(() => null);
+                        const serverCompleted = typeof payload?.completed === 'boolean' ? payload.completed : nextComplete;
+
+                        setGoalCellState(cell, icon, serverCompleted);
+                        updateRowProgress(row);
+                        if (serverCompleted && !currentlyComplete) {
+                            launchConfetti();
                         }
                     } catch (err) {
                         console.error('Failed to toggle bingo goal:', err);
+                        setGoalCellState(cell, icon, currentlyComplete);
+                        updateRowProgress(row);
                     }
                 });
             });
