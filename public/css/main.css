@@ -636,8 +636,11 @@ tbody tr:not(.rank-group-header):not(.bingo-rank-header):hover {
 }
 
 .bingo-heading-wrap {
-    border-bottom: 4px solid #242320;
-    padding-bottom: 24px;
+    border: 1px solid #383734;
+    border-radius: 14px;
+    background: linear-gradient(145deg, #2a2824 0%, #242320 55%, #1f1d1a 100%);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.2);
+    padding: 18px 18px 24px;
     margin-bottom: 24px;
 }
 
@@ -689,6 +692,7 @@ tbody tr:not(.rank-group-header):not(.bingo-rank-header):hover {
     padding: 4px 10px;
     border-radius: 20px;
     font-size: 0.85em;
+    backdrop-filter: blur(2px);
 }
 
 .bingo-legend-complete {
@@ -705,20 +709,22 @@ tbody tr:not(.rank-group-header):not(.bingo-rank-header):hover {
 
 .bingo-challenge-guide {
     margin-top: 16px;
-    border: 1px solid #383734;
-    border-radius: 10px;
-    background: #1a1917;
-    padding: 14px;
+    border: 1px solid #4a463f;
+    border-radius: 12px;
+    background: linear-gradient(165deg, #1f1e1b 0%, #171614 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    padding: 14px 14px 12px;
 }
 
 .bingo-challenge-guide-header {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    color: #d7d2c7;
+    color: #efe9dc;
     font-weight: 700;
-    font-size: 0.92em;
-    margin-bottom: 10px;
+    font-size: 0.94em;
+    margin-bottom: 12px;
+    letter-spacing: 0.02em;
 }
 
 .bingo-challenge-guide-header .material-symbols-outlined {
@@ -729,15 +735,33 @@ tbody tr:not(.rank-group-header):not(.bingo-rank-header):hover {
 
 .bingo-challenge-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 10px;
+    grid-template-columns: repeat(auto-fit, minmax(245px, 1fr));
+    gap: 12px;
 }
 
 .bingo-challenge-item {
-    background: #242320;
-    border: 1px solid #383734;
-    border-radius: 8px;
-    padding: 10px;
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(155deg, #2a2824 0%, #22211e 100%);
+    border: 1px solid #3d3933;
+    border-radius: 10px;
+    padding: 11px;
+    transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.bingo-challenge-item::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 2px;
+    background: linear-gradient(90deg, #fbbf24, #a78bfa, #60a5fa);
+    opacity: 0.85;
+}
+
+.bingo-challenge-item:hover {
+    transform: translateY(-2px);
+    border-color: #5b564c;
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.22);
 }
 
 .bingo-challenge-item-top {
@@ -748,34 +772,36 @@ tbody tr:not(.rank-group-header):not(.bingo-rank-header):hover {
 }
 
 .bingo-challenge-badge {
-    background: #2f2d29;
-    border: 1px solid #4a4741;
-    color: #d7d2c7;
+    background: #34312b;
+    border: 1px solid #5c574d;
+    color: #ece5d8;
     border-radius: 16px;
-    padding: 3px 8px;
+    padding: 3px 9px;
     font-size: 0.75em;
     font-weight: 700;
+    white-space: nowrap;
 }
 
 .bingo-challenge-target {
-    color: #fbbf24;
+    color: #ffd46d;
     font-weight: 700;
-    font-size: 0.83em;
+    font-size: 0.84em;
+    text-shadow: 0 0 14px rgba(251, 191, 36, 0.18);
 }
 
 .bingo-challenge-text {
     margin: 8px 0 0;
-    color: #a59f94;
-    font-size: 0.82em;
-    line-height: 1.4;
+    color: #c5bfb3;
+    font-size: 0.83em;
+    line-height: 1.45;
 }
 
 .bingo-board-container {
-    background: #242320;
-    border-radius: 10px;
-    border: 1px solid #383734;
+    background: linear-gradient(180deg, #242320 0%, #1f1d1a 100%);
+    border-radius: 12px;
+    border: 1px solid #3f3b34;
     overflow-x: auto;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.24);
 }
 
 .bingo-table {
@@ -943,7 +969,7 @@ tbody tr:not(.rank-group-header):not(.bingo-rank-header):hover {
     font-size: 0.88em;
     font-weight: bold;
     box-sizing: border-box;
-    transition: all 160ms ease;
+    transition: all 170ms ease;
     border: 1px solid transparent;
     padding: 6px 8px;
     margin: 0 !important;
@@ -952,32 +978,33 @@ tbody tr:not(.rank-group-header):not(.bingo-rank-header):hover {
 /* Completed Goal Style */
 .bingo-cell.is-complete .bingo-goal-btn,
 .bingo-cell.is-complete .bingo-goal-static {
-    background: #10b98122;
-    border-color: #10b98155;
-    color: #34d399;
-    box-shadow: 0 1px 4px rgba(16, 185, 129, 0.15);
+    background: linear-gradient(160deg, rgba(16, 185, 129, 0.22) 0%, rgba(17, 116, 87, 0.2) 100%);
+    border-color: rgba(52, 211, 153, 0.45);
+    color: #57e7b4;
+    box-shadow: 0 3px 10px rgba(16, 185, 129, 0.16);
 }
 
 .bingo-cell.is-complete .bingo-goal-btn:hover {
-    background: #10b98133;
-    border-color: #10b98188;
+    background: linear-gradient(160deg, rgba(16, 185, 129, 0.32) 0%, rgba(19, 137, 102, 0.26) 100%);
+    border-color: rgba(52, 211, 153, 0.72);
     color: #ffffff;
-    transform: translateY(-1px);
+    transform: translateY(-2px);
 }
 
 /* Pending Goal Style */
 .bingo-cell.is-pending .bingo-goal-btn,
 .bingo-cell.is-pending .bingo-goal-static {
-    background: #1a1917;
-    border-color: #383734;
-    color: #8e897e;
+    background: linear-gradient(160deg, #1d1b18 0%, #171614 100%);
+    border-color: #3f3b34;
+    color: #aba598;
 }
 
 .bingo-cell.is-pending .bingo-goal-btn:hover {
-    background: #292825;
-    border-color: #666;
+    background: linear-gradient(160deg, #2a2824 0%, #22211e 100%);
+    border-color: #6d675c;
     color: #f3efe6;
-    transform: translateY(-1px);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
 }
 
 .bingo-goal-icon {
@@ -1061,6 +1088,24 @@ tbody tr:not(.rank-group-header):not(.bingo-rank-header):hover {
     background: linear-gradient(90deg, #3b82f6, #10b981);
     border-radius: 4px;
     transition: width 240ms ease;
+}
+
+.bingo-board-container::-webkit-scrollbar {
+    height: 10px;
+}
+
+.bingo-board-container::-webkit-scrollbar-track {
+    background: #1a1917;
+    border-radius: 20px;
+}
+
+.bingo-board-container::-webkit-scrollbar-thumb {
+    background: #4f4a41;
+    border-radius: 20px;
+}
+
+.bingo-board-container::-webkit-scrollbar-thumb:hover {
+    background: #6a6459;
 }
 
 .guidelines-page {
@@ -4401,6 +4446,21 @@ dialog button {
     .bingo-page {
         width: auto;
         margin: 18px 12px;
+    }
+    .bingo-heading-wrap {
+        padding: 14px;
+        border-radius: 12px;
+    }
+    .bingo-heading-top {
+        gap: 12px;
+    }
+    .bingo-challenge-grid {
+        grid-template-columns: 1fr;
+    }
+    .bingo-challenge-item-top {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 6px;
     }
     .planner-page {
         width: auto;
