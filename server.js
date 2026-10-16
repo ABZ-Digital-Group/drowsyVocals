@@ -849,6 +849,24 @@ function resolveBingoReturnPath(rawReturnTo, fallback = '/bingo') {
     return fallback;
 }
 
+function getBingoEligibilityOrder(settings = {}) {
+    const normalizeRank = (rank) => (rank || '').toString().toLowerCase().replace(/\./g, '').trim();
+    const ranks = Array.isArray(settings.ranks) ? settings.ranks : [];
+    const drowsyDefenderRank = ranks.find((rank) => normalizeRank(rank.name) === normalizeRank('Drowsy Defender'));
+    const dreamyDefenderRank = ranks.find((rank) => normalizeRank(rank.name) === normalizeRank('Dreamy Defender'));
+    const guardRank = ranks.find((rank) => normalizeRank(rank.name) === normalizeRank('Dreamland Guard'));
+    const baselineRank = drowsyDefenderRank || dreamyDefenderRank || guardRank;
+    return baselineRank?.order;
+}
+
+function isEligibleForBingo(settings = {}, accountType = '') {
+    const baselineOrder = getBingoEligibilityOrder(settings);
+    if (!Number.isFinite(baselineOrder)) return false;
+    const normalizeRank = (rank) => (rank || '').toString().toLowerCase().replace(/\./g, '').trim();
+    const userRank = (settings.ranks || []).find((rank) => normalizeRank(rank.name) === normalizeRank(accountType));
+    return Boolean(userRank) && (userRank.order ?? 0) >= baselineOrder;
+}
+
 // A USER IS CONSIDERED "ONLINE" IF SEEN WITHIN THIS WINDOW
 const ONLINE_THRESHOLD_MS = 2 * 60 * 1000;
 
@@ -6345,16 +6363,17 @@ app.get('/bingo', requireDatabase, async (req, res) => {
             bingoGoals
         } = getBingoTemplateConfig(settings);
 
-        const normalizeRank = (rank) => (rank || '').toString().toLowerCase().replace(/\./g, '').trim();
         const sortedRanks = settings.ranks.slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-        const guardRank = sortedRanks.find((rank) => normalizeRank(rank.name) === normalizeRank('Dreamland Guard'));
-        const guardOrder = guardRank?.order;
+        const baselineOrder = getBingoEligibilityOrder(settings);
         const groups = sortedRanks.filter((rank) => (
-            Number.isFinite(guardOrder) && (rank.order ?? 0) >= guardOrder
+            Number.isFinite(baselineOrder) && (rank.order ?? 0) >= baselineOrder
         )).map((rank) => ({
             name: rank.name,
             users: users
-                .filter((user) => normalizeRank(user.accountType) === normalizeRank(rank.name))
+                .filter((user) => (
+                    (user.accountType || '').toString().toLowerCase().replace(/\./g, '').trim()
+                    === (rank.name || '').toString().toLowerCase().replace(/\./g, '').trim()
+                ))
                 .sort((a, b) => (a.displayName || a.discordUser || '').localeCompare(b.displayName || b.discordUser || ''))
         })).filter((group) => group.users.length);
 
@@ -6452,10 +6471,7 @@ app.post('/bingo/toggle', requireDatabase, async (req, res) => {
             return res.redirect('/bingo');
         }
 
-        const normalizeRank = (rank) => (rank || '').toString().toLowerCase().replace(/\./g, '').trim();
-        const guardRank = settings.ranks.find((rank) => normalizeRank(rank.name) === normalizeRank('Dreamland Guard'));
-        const userRank = settings.ranks.find((rank) => normalizeRank(rank.name) === normalizeRank(user.accountType));
-        if (!guardRank || !userRank || (userRank.order ?? 0) < (guardRank.order ?? 0)) {
+        if (!isEligibleForBingo(settings, user.accountType)) {
             if (req.xhr || req.headers['x-requested-with'] === 'XMLHttpRequest') {
                 return res.status(400).json({ error: 'User is not in an eligible rank for Bingo.' });
             }
@@ -6507,10 +6523,7 @@ app.post('/bingo/totals', requireDatabase, async (req, res) => {
                 { projection: { accountType: 1 } }
             )
         ]);
-        const normalizeRank = (rank) => (rank || '').toString().toLowerCase().replace(/\./g, '').trim();
-        const guardRank = settings.ranks.find((rank) => normalizeRank(rank.name) === normalizeRank('Dreamland Guard'));
-        const userRank = settings.ranks.find((rank) => normalizeRank(rank.name) === normalizeRank(user?.accountType));
-        if (!guardRank || !userRank || (userRank.order ?? 0) < (guardRank.order ?? 0)) {
+        if (!isEligibleForBingo(settings, user?.accountType)) {
             return res.redirect('/bingo');
         }
 
