@@ -826,6 +826,13 @@ function getBingoTemplateConfig(settings = {}) {
         templates.push(normalizeBingoTemplate(DEFAULT_BINGO_TEMPLATE, 0));
     }
 
+    function resolveBingoReturnPath(rawReturnTo, fallback = '/bingo') {
+        const returnTo = (rawReturnTo ?? '').toString().trim();
+        if (/^\/bingo(?:#[-\w]+)?$/i.test(returnTo)) return returnTo;
+        if (/^\/bot(?:#[-\w]+)?$/i.test(returnTo)) return returnTo;
+        return fallback;
+    }
+
     let activeTemplateId = (settings.activeBingoTemplateId ?? '').toString();
     if (!templates.some((template) => template.id === activeTemplateId)) {
         activeTemplateId = templates[0].id;
@@ -2818,6 +2825,11 @@ app.get('/bot', requireDatabase, async (req, res) => {
             getSettings(),
             db.collection('users').find({}, { projection: { displayName: 1, discordUser: 1, accountType: 1, house: 1, avatarUrl: 1, 'login.discordId': 1 } }).toArray()
         ]);
+        const {
+            templates: bingoTemplates,
+            activeTemplateId: activeBingoTemplateId,
+            activeTemplate: activeBingoTemplate
+        } = getBingoTemplateConfig(settings);
 
         const botEnv = parseBotEnv(BOT_ENV_FILE);
         const nowSinging = readBotJson(path.join(BOT_ASSETS_DIR, 'obs-now-singing.json'), {
@@ -2875,7 +2887,10 @@ app.get('/bot', requireDatabase, async (req, res) => {
             allowedInvites,
             guildConfigs,
             users: allUsers.sort((a, b) => (a.displayName || a.discordUser || '').localeCompare(b.displayName || b.discordUser || '')),
-            settings
+            settings,
+            bingoTemplates,
+            activeBingoTemplateId,
+            activeBingoTemplate
         });
     } catch (error) {
         console.error('Error loading bot management portal:', error);
@@ -6525,25 +6540,38 @@ app.post('/bingo/reset', requireDatabase, async (req, res) => {
 
 // CREATE A NEW BINGO TEMPLATE
 app.post('/bingo/templates', requireDatabase, async (req, res) => {
+    const redirectPath = resolveBingoReturnPath(req.body.returnTo, '/bingo');
     if (!req.session.loggedin || !hasManagementAccess(req)) {
         req.flash('error_msg', 'You are not authorized to create Bingo templates.');
-        return res.redirect('/bingo');
+        return res.redirect(redirectPath);
     }
 
     const templateName = (req.body.templateName ?? '').toString().trim();
-    const goalsText = (req.body.goalsText ?? '').toString();
-    const goalLines = goalsText
-        .split(/\r?\n/)
-        .map((line) => line.trim())
+    const goalTargetsInput = Array.isArray(req.body.goalTargets)
+        ? req.body.goalTargets
+        : (req.body.goalTargets ? [req.body.goalTargets] : []);
+    const goalLinesFromInputs = goalTargetsInput
+        .map((target) => (target ?? '').toString().trim())
+        .filter(Boolean)
+        .map((target) => target.replace(/^(\d+[\).\-\s]+|[-*•]\s*)/, '').trim())
         .filter(Boolean);
+
+    const goalsText = (req.body.goalsText ?? '').toString();
+    const goalLinesFromText = goalsText
+        .split(/[\r\n;,]+/)
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .map((target) => target.replace(/^(\d+[\).\-\s]+|[-*•]\s*)/, '').trim())
+        .filter(Boolean);
+    const goalLines = goalLinesFromInputs.length ? goalLinesFromInputs : goalLinesFromText;
 
     if (!templateName || templateName.length > 80) {
         req.flash('error_msg', 'Template name is required and must be 80 characters or fewer.');
-        return res.redirect('/bingo');
+        return res.redirect(redirectPath);
     }
     if (goalLines.length < 1 || goalLines.length > 30) {
         req.flash('error_msg', 'Template must contain between 1 and 30 goals (one goal per line).');
-        return res.redirect('/bingo');
+        return res.redirect(redirectPath);
     }
 
     const goals = goalLines.map((target, index) => ({
@@ -6573,25 +6601,26 @@ app.post('/bingo/templates', requireDatabase, async (req, res) => {
         );
 
         req.flash('success_msg', `Created bingo template "${templateName}".`);
-        res.redirect('/bingo');
+        res.redirect(redirectPath);
     } catch (error) {
         console.error('Error creating Bingo template:', error);
         req.flash('error_msg', 'Unable to create Bingo template.');
-        res.redirect('/bingo');
+        res.redirect(redirectPath);
     }
 });
 
 // ACTIVATE A BINGO TEMPLATE AND RESET WEEKLY PROGRESS
 app.post('/bingo/templates/activate', requireDatabase, async (req, res) => {
+    const redirectPath = resolveBingoReturnPath(req.body.returnTo, '/bingo');
     if (!req.session.loggedin || !hasManagementAccess(req)) {
         req.flash('error_msg', 'You are not authorized to switch Bingo templates.');
-        return res.redirect('/bingo');
+        return res.redirect(redirectPath);
     }
 
     const templateId = (req.body.templateId ?? '').toString().trim();
     if (!templateId) {
         req.flash('error_msg', 'Template selection is required.');
-        return res.redirect('/bingo');
+        return res.redirect(redirectPath);
     }
 
     try {
@@ -6600,7 +6629,7 @@ app.post('/bingo/templates/activate', requireDatabase, async (req, res) => {
         const nextTemplate = currentConfig.templates.find((template) => template.id === templateId);
         if (!nextTemplate) {
             req.flash('error_msg', 'Selected Bingo template was not found.');
-            return res.redirect('/bingo');
+            return res.redirect(redirectPath);
         }
 
         await Promise.all([
@@ -6612,11 +6641,11 @@ app.post('/bingo/templates/activate', requireDatabase, async (req, res) => {
         ]);
 
         req.flash('success_msg', `Activated "${nextTemplate.name}" and reset weekly Bingo progress.`);
-        res.redirect('/bingo');
+        res.redirect(redirectPath);
     } catch (error) {
         console.error('Error activating Bingo template:', error);
         req.flash('error_msg', 'Unable to activate Bingo template.');
-        res.redirect('/bingo');
+        res.redirect(redirectPath);
     }
 });
 
