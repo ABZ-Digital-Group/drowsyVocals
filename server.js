@@ -6528,6 +6528,7 @@ app.get('/bingo', requireDatabase, async (req, res) => {
             activeTemplate,
             bingoGoals
         } = getBingoTemplateConfig(settings);
+        const playableBingoGoals = bingoGoals.filter((goal) => !goal.imageUrl);
 
         const sortedRanks = settings.ranks.slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
         const baselineOrder = getBingoEligibilityOrder(settings);
@@ -6545,7 +6546,7 @@ app.get('/bingo', requireDatabase, async (req, res) => {
 
         const totalParticipants = groups.reduce((acc, g) => acc + g.users.length, 0);
         let totalCompletedTasks = 0;
-        let totalPossibleTasks = totalParticipants * bingoGoals.length;
+        let totalPossibleTasks = totalParticipants * playableBingoGoals.length;
         let totalBingoHp = 0;
         let totalBingoCc = 0;
 
@@ -6555,6 +6556,7 @@ app.get('/bingo', requireDatabase, async (req, res) => {
                 let userCcTotal = 0;
                 if (u.bingoProgress) {
                     bingoGoals.forEach(goal => {
+                        if (goal.imageUrl) return;
                         if (!u.bingoProgress[goal.id]) return;
                         totalCompletedTasks += 1;
                         const rewardValue = getBingoGoalRewardValue(goal);
@@ -6579,6 +6581,7 @@ app.get('/bingo', requireDatabase, async (req, res) => {
             page: 'bingo',
             groups,
             bingoGoals,
+            playableBingoGoalCount: playableBingoGoals.length,
             bingoTemplates,
             activeBingoTemplateId,
             activeBingoTemplateName: activeTemplate.name,
@@ -6635,7 +6638,8 @@ app.post('/bingo/toggle', requireDatabase, async (req, res) => {
             )
         ]);
         const { bingoGoals } = getBingoTemplateConfig(settings);
-        if (!bingoGoals.some((goal) => goal.id === goalId)) {
+        const selectedGoal = bingoGoals.find((goal) => goal.id === goalId);
+        if (!selectedGoal || selectedGoal.imageUrl) {
             if (req.xhr || req.headers['x-requested-with'] === 'XMLHttpRequest') {
                 return res.status(400).json({ error: 'Invalid goal.' });
             }
