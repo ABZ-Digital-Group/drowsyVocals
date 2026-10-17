@@ -116,20 +116,19 @@
                                         <span>Activate Template</span>
                                     </button>
                                 </form>
-                                <% const deletableBingoTemplates = bingoTemplates.filter(function(template) { return template.id !== 'default-weekly' && template.id !== 'halloween-edition'; }); %>
-                                <% if (deletableBingoTemplates.length) { %>
                                 <form action="/bingo/templates/delete" method="POST" onsubmit="return confirm('Delete this Bingo template and its uploaded images? This cannot be undone.');">
+                                    <label for="deleteBingoTemplate">Template to delete</label>
                                     <select name="templateId" class="bingo-template-input" aria-label="Select Bingo template to delete">
-                                        <% deletableBingoTemplates.forEach(function(template) { %>
-                                        <option value="<%= template.id %>"><%= template.name %> (<%= template.goals.length %> goals)</option>
+                                        <% bingoTemplates.forEach(function(template) { %>
+                                        <option value="<%= template.id %>" <%= template.id === 'default-weekly' || template.id === 'halloween-edition' ? 'disabled' : '' %>><%= template.name %> (<%= template.goals.length %> goals)<%= template.id === 'default-weekly' || template.id === 'halloween-edition' ? ' [built-in]' : '' %></option>
                                         <% }); %>
                                     </select>
-                                    <button type="submit" class="settings-btn settings-btn-danger">
+                                    <button type="submit" class="settings-btn settings-btn-danger" <%= bingoTemplates.some(function(template) { return template.id !== 'default-weekly' && template.id !== 'halloween-edition'; }) ? '' : 'disabled' %>>
                                         <span class="material-symbols-outlined">delete</span>
                                         <span>Delete Template</span>
                                     </button>
                                 </form>
-                                <% } %>
+                                <span>Built-in templates are protected. Only custom templates can be deleted.</span>
                             </div>
 
                     <form action="/bingo/templates/update" method="POST" enctype="multipart/form-data" class="bingo-template-form">
