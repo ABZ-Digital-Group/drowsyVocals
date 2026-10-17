@@ -898,6 +898,18 @@ function normalizeBingoTemplate(template, index) {
         && /^\/uploads\/bingo\/[A-Za-z0-9._-]+$/.test(centerSlot.imageUrl)
         ? centerSlot.imageUrl
         : null;
+    const fillerSlots = (Array.isArray(template?.fillerSlots) ? template.fillerSlots : [])
+        .map((slot) => {
+            const position = Number(slot?.position);
+            const imageUrl = typeof slot?.imageUrl === 'string'
+                && /^\/uploads\/bingo\/[A-Za-z0-9._-]+$/.test(slot.imageUrl)
+                ? slot.imageUrl
+                : null;
+            return Number.isInteger(position) && position >= 0 && position < 25 && position !== 12 && imageUrl
+                ? { position, imageUrl }
+                : null;
+        })
+        .filter(Boolean);
     return {
         id: (template?.id ?? `template-${index + 1}`).toString(),
         name: (template?.name ?? `Bingo Template ${index + 1}`).toString().trim() || `Bingo Template ${index + 1}`,
@@ -905,7 +917,8 @@ function normalizeBingoTemplate(template, index) {
         centerSlot: {
             text: (centerSlot.text ?? 'FREE').toString().trim().slice(0, 80) || 'FREE',
             imageUrl: centerImageUrl
-        }
+        },
+        fillerSlots
     };
 }
 
@@ -1072,6 +1085,18 @@ function getBingoGoalUpload(req, index) {
 
 function getBingoCenterUpload(req) {
     return (req.files || []).find((file) => file.fieldname === 'centerImage');
+}
+
+function getBingoFillerUpload(req, index) {
+    return (req.files || []).find((file) => file.fieldname === `fillerImages[${index}]`);
+}
+
+function getBingoFillerPositions(value) {
+    const values = Array.isArray(value) ? value : (value ? [value] : []);
+    return values.map((rawPosition) => {
+        const position = Number(rawPosition);
+        return Number.isInteger(position) && position >= 0 && position < 25 && position !== 12 ? position : null;
+    });
 }
 
 async function saveBingoGoalImage(file) {
@@ -6600,6 +6625,7 @@ app.get('/bingo', requireDatabase, async (req, res) => {
             activeBingoTemplateId,
             activeBingoTemplateName: activeTemplate.name,
             centerSlot: activeTemplate.centerSlot,
+            fillerSlots: activeTemplate.fillerSlots,
             currentUserDiscordId: req.session.currentuser,
             totalParticipants,
             totalCompletedTasks,
@@ -6795,6 +6821,11 @@ app.post('/bingo/templates', requireDatabase, handleBingoTemplateUpload, async (
     })));
     const templateId = `template-${Date.now()}-${crypto.randomBytes(3).toString('hex')}`;
     const centerImage = getBingoCenterUpload(req);
+    const fillerPositions = getBingoFillerPositions(req.body.fillerPositions);
+    const fillerSlots = await Promise.all(fillerPositions.map(async (position, index) => {
+        const file = getBingoFillerUpload(req, index);
+        return position === null || !file ? null : { position, imageUrl: await saveBingoGoalImage(file) };
+    }));
 
     try {
         const settings = await getSettings();
@@ -6808,7 +6839,8 @@ app.post('/bingo/templates', requireDatabase, handleBingoTemplateUpload, async (
                 centerSlot: {
                     text: centerText,
                     imageUrl: centerImage ? await saveBingoGoalImage(centerImage) : null
-                }
+                },
+                fillerSlots: fillerSlots.filter(Boolean)
             }
         ];
 
@@ -6887,10 +6919,18 @@ app.post('/bingo/templates/update', requireDatabase, handleBingoTemplateUpload, 
                 ? await saveBingoGoalImage(centerImage)
                 : existingTemplate.centerSlot?.imageUrl || null
         };
+        const fillerPositions = getBingoFillerPositions(req.body.fillerPositions);
+        const uploadedFillerSlots = await Promise.all(fillerPositions.map(async (position, index) => {
+            const file = getBingoFillerUpload(req, index);
+            return position === null || !file ? null : { position, imageUrl: await saveBingoGoalImage(file) };
+        }));
+        const fillerSlots = uploadedFillerSlots.filter(Boolean).length
+            ? uploadedFillerSlots.filter(Boolean)
+            : (existingTemplate.fillerSlots || []);
 
         const nextTemplates = currentConfig.templates.map((template) => (
             template.id === templateId
-                ? { ...template, name: templateName, goals, centerSlot }
+                ? { ...template, name: templateName, goals, centerSlot, fillerSlots }
                 : template
         ));
 
