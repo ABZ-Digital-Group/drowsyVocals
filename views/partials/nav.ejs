@@ -7,6 +7,15 @@
     <% } %>
 </div>
 <% } %>
+<% if (typeof developerPreviewMode !== 'undefined' && developerPreviewMode) { %>
+<div class="developer-preview-banner" role="status">
+    <span class="material-symbols-outlined" aria-hidden="true">visibility</span>
+    <span>You are viewing the site as a non-admin user.</span>
+    <form method="post" action="/developer-preview/stop">
+        <button type="submit">Exit preview</button>
+    </form>
+</div>
+<% } %>
 <nav>
     <img src="/assets/DrowsyLogo.png" alt="Drowsy Vocals Logo">
     <button class="nav-menu-toggle" type="button" aria-expanded="false" aria-controls="primaryNavigation"><span class="material-symbols-outlined" aria-hidden="true">menu</span> Menu</button>
@@ -40,7 +49,7 @@
                 <% } %>
             </div>
         </li>
-        <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender' || userIsDeveloper || currentuser === '404371787606917140') { %>
+        <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender' || userIsDeveloper || (currentuser === '404371787606917140' && !developerPreviewMode)) { %>
         <li class="nav-guidelines-menu">
             <button class="nav-guidelines-trigger" type="button" aria-expanded="false" aria-controls="managementMenu">
                 Management
@@ -58,7 +67,7 @@
                 <a href="/changelog">Changelog</a>
                 <a href="/footprint">Digital Footprint</a>
                 <% } %>
-                <% if (currentuser === '404371787606917140') { %>
+                <% if (currentuser === '404371787606917140' && !developerPreviewMode) { %>
                 <a href="/discord-channels">Discord Channels</a>
                 <% } %>
                 <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userIsDeveloper) { %>
@@ -90,6 +99,11 @@
             </button>
             <div class="nav-account-dropdown" id="accountMenu">
                 <a href="/account">Account</a>
+                <% if (userIsDeveloper && !developerPreviewMode) { %>
+                <form method="post" action="/developer-preview/start">
+                    <button type="submit" class="nav-account-action">View as non-admin</button>
+                </form>
+                <% } %>
                 <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userIsDeveloper) { %>
                 <a href="/settings">Settings</a>
                 <a href="/bot">Discord Bot</a>

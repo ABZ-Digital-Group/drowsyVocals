@@ -214,6 +214,7 @@ app.use(async (req, res, next) => {
     res.locals.currentuser = req.session.currentuser;
     res.locals.userType = req.session.isDeveloper ? 'Realm God' : req.session.accountType;
     res.locals.userIsDeveloper = Boolean(req.session.isDeveloper);
+    res.locals.developerPreviewMode = Boolean(req.session.previewAsNonAdmin);
     res.locals.navUser = res.locals.navUser || null;
     res.locals.maintenanceActive = false;
 
@@ -232,7 +233,7 @@ app.use(async (req, res, next) => {
 // MAINTENANCE MODE MIDDLEWARE
 app.use(async (req, res, next) => {
     // Always allow static files, health checks, login/auth pages, logout, and external webhook ingestion
-    const bypassedPaths = ['/health', '/logout', '/login', '/index', '/event-feedback', '/staff-application', '/api/applications/webhook'];
+    const bypassedPaths = ['/health', '/logout', '/login', '/index', '/event-feedback', '/staff-application', '/api/applications/webhook', '/developer-preview/stop'];
     if (bypassedPaths.includes(req.path) || req.path.startsWith('/css') || req.path.startsWith('/scripts') || req.path.startsWith('/assets') || req.path.startsWith('/uploads')) {
         return next();
     }
@@ -311,13 +312,40 @@ function requireDatabase(req, res, next) {
     next();
 }
 
+// DEVELOPER PREVIEW MODE
+app.post('/developer-preview/start', (req, res) => {
+    if (!req.session.loggedin || !req.session.isDeveloper) {
+        return res.status(403).send('Developer preview mode is only available to developers.');
+    }
+
+    req.session.previewOriginalAccountType = req.session.accountType;
+    req.session.previewOriginalIsDeveloper = Boolean(req.session.isDeveloper);
+    req.session.previewAsNonAdmin = true;
+    req.session.accountType = 'Tired Esquire';
+    req.session.isDeveloper = false;
+    res.redirect(req.get('Referrer') || '/dashboard');
+});
+
+app.post('/developer-preview/stop', (req, res) => {
+    if (!req.session.loggedin || !req.session.previewAsNonAdmin) {
+        return res.redirect('/dashboard');
+    }
+
+    req.session.accountType = req.session.previewOriginalAccountType || req.session.accountType;
+    req.session.isDeveloper = Boolean(req.session.previewOriginalIsDeveloper);
+    delete req.session.previewOriginalAccountType;
+    delete req.session.previewOriginalIsDeveloper;
+    delete req.session.previewAsNonAdmin;
+    res.redirect(req.get('Referrer') || '/dashboard');
+});
+
 // ROLES ALLOWED TO MANAGE STRIKES, ATTENDANCE, AND LOA APPROVALS
 const MANAGEMENT_ROLES = ['Mr. Sandman', 'Realm God', 'Drowsy Defender', 'Dreamy Defender'];
 const GOD_ROLES = ['Mr. Sandman', 'Realm God'];
 const DISCORD_CHANNEL_VIEWER_ID = '404371787606917140';
 const hasManagementAccess = (req) => MANAGEMENT_ROLES.includes(req.session.accountType) || Boolean(req.session.isDeveloper);
 const hasGodAccess = (req) => GOD_ROLES.includes(req.session.accountType) || Boolean(req.session.isDeveloper);
-const hasDiscordChannelViewerAccess = (req) => req.session.currentuser === DISCORD_CHANNEL_VIEWER_ID;
+const hasDiscordChannelViewerAccess = (req) => !req.session.previewAsNonAdmin && req.session.currentuser === DISCORD_CHANNEL_VIEWER_ID;
 const hasCheckInAccess = (req, settings) => hasGodAccess(req) || (settings.checkInAccessUserIds || []).includes(req.session.currentuser);
 const canViewCheckIn = (req, checkIn) => {
     if (checkIn.visibility === 'gods') return hasGodAccess(req);
