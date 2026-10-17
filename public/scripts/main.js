@@ -770,9 +770,9 @@ document.querySelectorAll(".bingo-total-input").forEach((input) => {
 
   const saveTotals = () => {
     clearTimeout(saveTimer);
-    const row = input.closest("tr");
-    const hpInput = row?.querySelector(".bingo-hp-input");
-    const ccInput = row?.querySelector(".bingo-cc-input");
+    const card = input.closest(".bingo-admin-card");
+    const hpInput = card?.querySelector(".bingo-hp-input");
+    const ccInput = card?.querySelector(".bingo-cc-input");
     if (!hpInput || !ccInput) return;
 
     lastLocalSaveTime = Date.now();

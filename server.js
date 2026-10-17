@@ -6516,9 +6516,13 @@ app.get('/bingo', requireDatabase, async (req, res) => {
                         if (goal.group === 'cc') userCcTotal += rewardValue;
                     });
                 }
-                u.calculatedBingoTotals = { hp: userHpTotal, cc: userCcTotal };
-                totalBingoHp += userHpTotal;
-                totalBingoCc += userCcTotal;
+                const storedHpTotal = Number(u.bingoTotals?.hp);
+                const storedCcTotal = Number(u.bingoTotals?.cc);
+                const displayHpTotal = Number.isFinite(storedHpTotal) ? storedHpTotal : userHpTotal;
+                const displayCcTotal = Number.isFinite(storedCcTotal) ? storedCcTotal : userCcTotal;
+                u.calculatedBingoTotals = { hp: displayHpTotal, cc: displayCcTotal };
+                totalBingoHp += displayHpTotal;
+                totalBingoCc += displayCcTotal;
             });
         });
 
