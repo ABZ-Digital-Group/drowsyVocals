@@ -6716,8 +6716,15 @@ app.get('/bingo', requireDatabase, async (req, res) => {
             templates: bingoTemplates,
             activeTemplateId: activeBingoTemplateId,
             activeTemplate,
-            bingoGoals
+            bingoGoals: activeBingoGoals
         } = getBingoTemplateConfig(settings);
+        const requestedPreviewTemplateId = (req.query.previewTemplateId ?? '').toString().trim();
+        const previewTemplate = hasGodAccess(req) && requestedPreviewTemplateId
+            ? bingoTemplates.find((template) => template.id === requestedPreviewTemplateId)
+            : null;
+        const boardTemplate = previewTemplate || activeTemplate;
+        const bingoGoals = boardTemplate.goals;
+        const isBingoTemplatePreview = Boolean(previewTemplate && previewTemplate.id !== activeBingoTemplateId);
         const playableBingoGoals = bingoGoals;
 
         const sortedRanks = settings.ranks.slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
@@ -6776,6 +6783,12 @@ app.get('/bingo', requireDatabase, async (req, res) => {
             activeBingoTemplateName: activeTemplate.name,
             centerSlot: activeTemplate.centerSlot,
             fillerSlots: activeTemplate.fillerSlots,
+            activeBingoGoals,
+            bingoBoardTemplateId: boardTemplate.id,
+            bingoBoardTemplateName: boardTemplate.name,
+            isBingoTemplatePreview,
+            bingoBoardCenterSlot: boardTemplate.centerSlot,
+            bingoBoardFillerSlots: boardTemplate.fillerSlots,
             currentUserDiscordId: req.session.currentuser,
             totalParticipants,
             totalCompletedTasks,
