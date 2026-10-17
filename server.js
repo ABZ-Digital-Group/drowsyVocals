@@ -956,7 +956,7 @@ function getBingoTemplateConfig(settings = {}) {
 
 function resolveBingoReturnPath(rawReturnTo, fallback = '/bingo') {
     const returnTo = (rawReturnTo ?? '').toString().trim();
-    if (/^\/bingo(?:#[-\w]+)?$/i.test(returnTo)) return returnTo;
+    if (/^\/bingo(?:\?previewTemplateId=[A-Za-z0-9_-]+)?(?:#[-\w]+)?$/i.test(returnTo)) return returnTo;
     if (/^\/bot(?:#[-\w]+)?$/i.test(returnTo)) return returnTo;
     return fallback;
 }
@@ -6725,6 +6725,7 @@ app.get('/bingo', requireDatabase, async (req, res) => {
         const boardTemplate = previewTemplate || activeTemplate;
         const bingoGoals = boardTemplate.goals;
         const isBingoTemplatePreview = Boolean(previewTemplate && previewTemplate.id !== activeBingoTemplateId);
+        const editorTemplate = boardTemplate;
         const playableBingoGoals = bingoGoals;
 
         const sortedRanks = settings.ranks.slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
@@ -6784,6 +6785,11 @@ app.get('/bingo', requireDatabase, async (req, res) => {
             centerSlot: activeTemplate.centerSlot,
             fillerSlots: activeTemplate.fillerSlots,
             activeBingoGoals,
+            editorTemplateId: editorTemplate.id,
+            editorTemplateName: editorTemplate.name,
+            editorBingoGoals: editorTemplate.goals,
+            editorCenterSlot: editorTemplate.centerSlot,
+            editorFillerSlots: editorTemplate.fillerSlots,
             bingoBoardTemplateId: boardTemplate.id,
             bingoBoardTemplateName: boardTemplate.name,
             isBingoTemplatePreview,

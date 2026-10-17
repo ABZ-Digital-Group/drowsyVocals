@@ -87,7 +87,7 @@
                 <% if (canManageBingoTemplates) { %>
                 <div class="bingo-template-management">
                     <%
-                        const activeTemplateGoalsText = (activeBingoGoals || []).map(function(goal) {
+                        const activeTemplateGoalsText = (editorBingoGoals || []).map(function(goal) {
                             const rewardValue = Number(goal.rewardValue);
                             const target = rewardValue && !/\d/.test(goal.target || '')
                                 ? `${rewardValue} ${(goal.group || '').toUpperCase()}`.trim()
@@ -150,21 +150,21 @@
                             </div>
 
                     <form action="/bingo/templates/update" method="POST" enctype="multipart/form-data" class="bingo-template-form">
-                        <input type="hidden" name="returnTo" value="/bingo">
-                        <input type="hidden" name="templateId" value="<%= activeBingoTemplateId %>">
+                        <input type="hidden" name="returnTo" value="<%= isBingoTemplatePreview ? '/bingo?previewTemplateId=' + editorTemplateId : '/bingo' %>">
+                        <input type="hidden" name="templateId" value="<%= editorTemplateId %>">
                         <div class="bingo-template-field">
-                            <label for="activeTemplateName">Edit Active Template Name</label>
-                            <input id="activeTemplateName" name="templateName" maxlength="80" required class="bingo-template-input" value="<%= activeBingoTemplateName %>">
+                            <label for="activeTemplateName"><%= isBingoTemplatePreview ? 'Edit Preview Template Name' : 'Edit Active Template Name' %></label>
+                            <input id="activeTemplateName" name="templateName" maxlength="80" required class="bingo-template-input" value="<%= editorTemplateName %>">
                         </div>
                         <div class="bingo-template-field">
                             <label for="centerText">Centre space text</label>
-                            <input id="centerText" name="centerText" maxlength="80" class="bingo-template-input" value="<%= centerSlot.text %>">
+                            <input id="centerText" name="centerText" maxlength="80" class="bingo-template-input" value="<%= editorCenterSlot.text %>">
                         </div>
                         <div class="bingo-template-field">
                             <label for="centerImage">Centre space image (optional)</label>
                             <input id="centerImage" name="centerImage" type="file" accept="image/png,image/jpeg,image/webp" class="bingo-template-input">
                             <span>Uploading an image replaces the centre text. Leave empty to keep the current image.</span>
-                            <% if (centerSlot.imageUrl) { %>
+                            <% if (editorCenterSlot.imageUrl) { %>
                             <label class="bingo-image-remove"><input type="checkbox" name="removeCenterImage" value="true"> Remove current centre image</label>
                             <% } %>
                         </div>
@@ -184,7 +184,7 @@
                                 <small>Use centre-space settings above</small>
                             </div>
                             <% } else {
-                                const filler = (fillerSlots || []).find(function(slot) { return slot.position === position; });
+                                const filler = (editorFillerSlots || []).find(function(slot) { return slot.position === position; });
                             %>
                             <label class="bingo-filler-position">
                                 <span><%= fillerColumnLabels[position % 5] %><%= Math.floor(position / 5) + 1 %> · Space <%= position + 1 %></span>
@@ -196,9 +196,9 @@
                             </div>
                         </div>
                         <div>
-                            <button type="submit" class="settings-btn settings-btn-secondary" onclick="return confirm('Update the active template with these new goals?');">
+                            <button type="submit" class="settings-btn settings-btn-secondary" onclick="return confirm('<%= isBingoTemplatePreview ? 'Update this preview template? The active card will remain unchanged.' : 'Update the active template with these new goals?' %>');">
                                 <span class="material-symbols-outlined">edit</span>
-                                <span>Save Active Template Changes</span>
+                                <span><%= isBingoTemplatePreview ? 'Save Preview Template Changes' : 'Save Active Template Changes' %></span>
                             </button>
                         </div>
                     </form>
