@@ -110,7 +110,7 @@
                                 </form>
                             </div>
 
-                    <form action="/bingo/templates/update" method="POST" class="bingo-template-form">
+                    <form action="/bingo/templates/update" method="POST" enctype="multipart/form-data" class="bingo-template-form">
                         <input type="hidden" name="returnTo" value="/bingo">
                         <input type="hidden" name="templateId" value="<%= activeBingoTemplateId %>">
                         <div class="bingo-template-field">
@@ -121,6 +121,17 @@
                             <label for="activeGoalsText">Edit Active Template Goals</label>
                             <textarea id="activeGoalsText" name="goalsText" required rows="8" class="bingo-template-input"><%= activeTemplateGoalsText %></textarea>
                             <span>One goal per line using: <code>Target | Challenge description</code>.</span>
+                        </div>
+                        <div class="bingo-template-images">
+                            <div class="bingo-template-image-heading">Goal images (optional)</div>
+                            <span>Upload one image per goal, in the same order as the lines above. An image replaces the goal text on the Bingo card.</span>
+                            <% bingoGoals.forEach(function(goal, goalIndex) { %>
+                            <label class="bingo-template-image-field">
+                                <span>Goal <%= goalIndex + 1 %>: <%= goal.target %></span>
+                                <input type="file" name="goalImages[<%= goalIndex %>]" accept="image/png,image/jpeg,image/webp">
+                                <% if (goal.imageUrl) { %><img src="<%= goal.imageUrl %>" alt="Current image for goal <%= goalIndex + 1 %>"><% } %>
+                            </label>
+                            <% }); %>
                         </div>
                         <div>
                             <button type="submit" class="settings-btn settings-btn-secondary" onclick="return confirm('Update the active template with these new goals?');">
@@ -242,15 +253,19 @@
                                     <input type="hidden" name="goalId" value="<%= slot.goal.id %>">
                                     <button type="submit" class="bingo-player-cell-btn" title="Goal <%= slot.goal.label %>: <%= slot.goal.target %> — <%= slot.goal.challenge || ('Complete: ' + slot.goal.target) %>">
                                         <span class="material-symbols-outlined bingo-goal-icon"><%= slot.completed ? 'check_circle' : 'circle' %></span>
+                                        <% if (slot.goal.imageUrl) { %><img class="bingo-goal-image" src="<%= slot.goal.imageUrl %>" alt="<%= slot.goal.target %>: <%= slot.goal.challenge || ('Complete: ' + slot.goal.target) %>"><% } else { %>
                                         <span class="bingo-player-cell-title"><%= slot.goal.target %></span>
                                         <small class="bingo-player-cell-sub"><%= slot.goal.challenge || ('Complete: ' + slot.goal.target) %></small>
+                                        <% } %>
                                     </button>
                                 </form>
                                 <% } else { %>
                                 <div class="bingo-player-cell-static" title="Goal <%= slot.goal.label %>: <%= slot.goal.target %> — <%= slot.goal.challenge || ('Complete: ' + slot.goal.target) %>">
                                     <span class="material-symbols-outlined bingo-goal-icon"><%= slot.completed ? 'check_circle' : 'circle' %></span>
+                                    <% if (slot.goal.imageUrl) { %><img class="bingo-goal-image" src="<%= slot.goal.imageUrl %>" alt="<%= slot.goal.target %>: <%= slot.goal.challenge || ('Complete: ' + slot.goal.target) %>"><% } else { %>
                                     <span class="bingo-player-cell-title"><%= slot.goal.target %></span>
                                     <small class="bingo-player-cell-sub"><%= slot.goal.challenge || ('Complete: ' + slot.goal.target) %></small>
+                                    <% } %>
                                 </div>
                                 <% } %>
                             </div>
@@ -397,7 +412,7 @@
                                             <input type="hidden" name="goalId" value="<%= goal.id %>">
                                             <button type="submit" class="bingo-goal-btn" title="Goal <%= goal.label %>">
                                                 <span class="material-symbols-outlined bingo-goal-icon"><%= completed ? 'check_circle' : 'circle' %></span>
-                                                <span>Goal <%= goal.label %></span>
+                                                <% if (goal.imageUrl) { %><img class="bingo-goal-image bingo-goal-image-admin" src="<%= goal.imageUrl %>" alt="<%= goal.target %>: <%= goal.challenge || ('Complete: ' + goal.target) %>"><% } else { %><span>Goal <%= goal.label %></span><% } %>
                                             </button>
                                         </form>
                                     </div>
