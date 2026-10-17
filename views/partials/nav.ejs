@@ -101,7 +101,7 @@
                 <a href="/account">Account</a>
                 <% if ((userIsDeveloper || userType === 'Mr. Sandman' || userType === 'Realm God') && !developerPreviewMode) { %>
                 <form method="post" action="/developer-preview/start">
-                    <button type="submit" class="nav-account-action">View site as non-admin</button>
+                    <button type="submit" class="nav-account-action">User view</button>
                 </form>
                 <% } %>
                 <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userIsDeveloper) { %>
