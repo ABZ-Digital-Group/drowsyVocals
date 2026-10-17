@@ -27,7 +27,7 @@
                 const bingoCardSlots = [];
                 for (let slotIndex = 0; slotIndex < boardSlots; slotIndex += 1) {
                     if (slotIndex === freeSlotIndex) {
-                        bingoCardSlots.push({ type: 'free' });
+                        bingoCardSlots.push({ type: 'free', centerSlot });
                         continue;
                     }
                     const goal = bingoGoals[goalCursor];
@@ -124,6 +124,15 @@
                             <input id="activeTemplateName" name="templateName" maxlength="80" required class="bingo-template-input" value="<%= activeBingoTemplateName %>">
                         </div>
                         <div class="bingo-template-field">
+                            <label for="centerText">Centre space text</label>
+                            <input id="centerText" name="centerText" maxlength="80" class="bingo-template-input" value="<%= centerSlot.text %>">
+                        </div>
+                        <div class="bingo-template-field">
+                            <label for="centerImage">Centre space image (optional)</label>
+                            <input id="centerImage" name="centerImage" type="file" accept="image/png,image/jpeg,image/webp" class="bingo-template-input">
+                            <span>Uploading an image replaces the centre text. Leave empty to keep the current image.</span>
+                        </div>
+                        <div class="bingo-template-field">
                             <label for="activeGoalsText">Edit Active Template Goals</label>
                             <textarea id="activeGoalsText" name="goalsText" required rows="8" class="bingo-template-input"><%= activeTemplateGoalsText %></textarea>
                             <span>One goal per line using: <code>Target | Challenge description</code>.</span>
@@ -147,10 +156,18 @@
                         </div>
                     </form>
 
-                    <form action="/bingo/templates" method="POST" class="bingo-template-form">
+                    <form action="/bingo/templates" method="POST" enctype="multipart/form-data" class="bingo-template-form">
                         <div class="bingo-template-field">
                             <label for="templateName">Create New Template</label>
                             <input id="templateName" name="templateName" maxlength="80" required class="bingo-template-input" placeholder="Example: Halloween Week Board">
+                        </div>
+                        <div class="bingo-template-field">
+                            <label for="newCenterText">Centre space text</label>
+                            <input id="newCenterText" name="centerText" maxlength="80" class="bingo-template-input" value="FREE">
+                        </div>
+                        <div class="bingo-template-field">
+                            <label for="newCenterImage">Centre space image (optional)</label>
+                            <input id="newCenterImage" name="centerImage" type="file" accept="image/png,image/jpeg,image/webp" class="bingo-template-input">
                         </div>
                         <div class="bingo-template-field">
                             <label for="goalsText">Goals (one per line)</label>
@@ -247,9 +264,13 @@
                         <% bingoCardSlots.forEach(function(slot, slotIndex) { %>
                             <% if (slot.type === 'free') { %>
                             <div class="bingo-player-cell is-free">
+                                <% if (slot.centerSlot.imageUrl) { %>
+                                <img class="bingo-goal-image" src="<%= slot.centerSlot.imageUrl %>" alt="<%= slot.centerSlot.text %>">
+                                <% } else { %>
                                 <span class="material-symbols-outlined bingo-player-cell-icon">star</span>
-                                <span class="bingo-player-cell-title">FREE</span>
-                                <small class="bingo-player-cell-sub">Center Space</small>
+                                <span class="bingo-player-cell-title"><%= slot.centerSlot.text %></span>
+                                <small class="bingo-player-cell-sub">Centre Space</small>
+                                <% } %>
                             </div>
                             <% } else if (slot.type === 'filler') { %>
                             <div class="bingo-player-cell bingo-filler" aria-label="Decorative Bingo space">

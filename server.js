@@ -809,7 +809,8 @@ const DEFAULT_BINGO_GOALS = [
 const DEFAULT_BINGO_TEMPLATE = Object.freeze({
     id: 'default-weekly',
     name: 'Default Weekly Board',
-    goals: DEFAULT_BINGO_GOALS
+    goals: DEFAULT_BINGO_GOALS,
+    centerSlot: { text: 'FREE', imageUrl: null }
 });
 
 const HALLOWEEN_BINGO_GOALS = [
@@ -892,10 +893,19 @@ function normalizeBingoTemplate(template, index) {
         .map((goal, goalIndex) => normalizeBingoGoal(goal, goalIndex))
         .filter(Boolean);
     if (!goals.length) return null;
+    const centerSlot = template?.centerSlot || {};
+    const centerImageUrl = typeof centerSlot.imageUrl === 'string'
+        && /^\/uploads\/bingo\/[A-Za-z0-9._-]+$/.test(centerSlot.imageUrl)
+        ? centerSlot.imageUrl
+        : null;
     return {
         id: (template?.id ?? `template-${index + 1}`).toString(),
         name: (template?.name ?? `Bingo Template ${index + 1}`).toString().trim() || `Bingo Template ${index + 1}`,
-        goals
+        goals,
+        centerSlot: {
+            text: (centerSlot.text ?? 'FREE').toString().trim().slice(0, 80) || 'FREE',
+            imageUrl: centerImageUrl
+        }
     };
 }
 
@@ -1058,6 +1068,10 @@ function handleBingoTemplateUpload(req, res, next) {
 
 function getBingoGoalUpload(req, index) {
     return (req.files || []).find((file) => file.fieldname === `goalImages[${index}]`);
+}
+
+function getBingoCenterUpload(req) {
+    return (req.files || []).find((file) => file.fieldname === 'centerImage');
 }
 
 async function saveBingoGoalImage(file) {
@@ -6585,6 +6599,7 @@ app.get('/bingo', requireDatabase, async (req, res) => {
             bingoTemplates,
             activeBingoTemplateId,
             activeBingoTemplateName: activeTemplate.name,
+            centerSlot: activeTemplate.centerSlot,
             currentUserDiscordId: req.session.currentuser,
             totalParticipants,
             totalCompletedTasks,
@@ -6754,6 +6769,7 @@ app.post('/bingo/templates', requireDatabase, handleBingoTemplateUpload, async (
     }
 
     const templateName = (req.body.templateName ?? '').toString().trim();
+    const centerText = (req.body.centerText ?? 'FREE').toString().trim().slice(0, 80) || 'FREE';
     const parsedGoals = parseBingoGoalsFromTemplateRequest(req.body);
 
     if (!templateName || templateName.length > 80) {
@@ -6778,13 +6794,22 @@ app.post('/bingo/templates', requireDatabase, handleBingoTemplateUpload, async (
         imageUrl: getBingoGoalUpload(req, index) ? await saveBingoGoalImage(getBingoGoalUpload(req, index)) : null
     })));
     const templateId = `template-${Date.now()}-${crypto.randomBytes(3).toString('hex')}`;
+    const centerImage = getBingoCenterUpload(req);
 
     try {
         const settings = await getSettings();
         const currentConfig = getBingoTemplateConfig(settings);
         const nextTemplates = [
             ...currentConfig.templates,
-            { id: templateId, name: templateName, goals }
+            {
+                id: templateId,
+                name: templateName,
+                goals,
+                centerSlot: {
+                    text: centerText,
+                    imageUrl: centerImage ? await saveBingoGoalImage(centerImage) : null
+                }
+            }
         ];
 
         await db.collection('settings').updateOne(
@@ -6816,6 +6841,7 @@ app.post('/bingo/templates/update', requireDatabase, handleBingoTemplateUpload, 
 
     const templateId = (req.body.templateId ?? '').toString().trim();
     const templateName = (req.body.templateName ?? '').toString().trim();
+    const centerText = (req.body.centerText ?? 'FREE').toString().trim().slice(0, 80) || 'FREE';
     const parsedGoals = parseBingoGoalsFromTemplateRequest(req.body);
 
     if (!templateId) {
@@ -6854,10 +6880,17 @@ app.post('/bingo/templates/update', requireDatabase, handleBingoTemplateUpload, 
                 ? await saveBingoGoalImage(getBingoGoalUpload(req, index))
                 : existingTemplate.goals[index]?.imageUrl || null
         })));
+        const centerImage = getBingoCenterUpload(req);
+        const centerSlot = {
+            text: centerText,
+            imageUrl: centerImage
+                ? await saveBingoGoalImage(centerImage)
+                : existingTemplate.centerSlot?.imageUrl || null
+        };
 
         const nextTemplates = currentConfig.templates.map((template) => (
             template.id === templateId
-                ? { ...template, name: templateName, goals }
+                ? { ...template, name: templateName, goals, centerSlot }
                 : template
         ));
 

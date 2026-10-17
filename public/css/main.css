@@ -1049,7 +1049,9 @@ textarea.bingo-template-input {
     border-radius: 10px;
     border: 1px solid #403a33;
     background: #1b1814;
+    height: 106px;
     min-height: 106px;
+    box-sizing: border-box;
     overflow: hidden;
     transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
 }
@@ -1057,7 +1059,8 @@ textarea.bingo-template-input {
 .bingo-player-cell-btn,
 .bingo-player-cell-static {
     width: 100%;
-    min-height: 106px;
+    height: 100%;
+    min-height: 0;
     border: none;
     background: transparent;
     color: inherit;
