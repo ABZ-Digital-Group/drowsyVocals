@@ -4544,6 +4544,43 @@ dialog button {
     text-decoration: underline;
     margin-left: 6px;
 }
+.developer-preview-banner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 10px 20px;
+    background: #8b4513;
+    color: #fff7ed;
+    font-weight: bold;
+}
+.developer-preview-banner form {
+    margin-left: 8px;
+}
+.developer-preview-banner button {
+    padding: 5px 12px;
+    border: 1px solid currentColor;
+    border-radius: 4px;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    font: inherit;
+}
+.nav-account-action {
+    display: block;
+    width: 100%;
+    padding: 10px 14px;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    font: inherit;
+    text-align: left;
+}
+.nav-account-action:hover,
+.nav-account-action:focus-visible {
+    background: rgba(183, 178, 167, 0.2);
+}
 .maintenance-body {
     min-height: 100vh;
     display: flex;
