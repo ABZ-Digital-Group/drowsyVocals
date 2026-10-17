@@ -25,9 +25,16 @@
                 const freeSlotIndex = 12;
                 let goalCursor = 0;
                 const bingoCardSlots = [];
+                const fillerByPosition = Object.fromEntries((fillerSlots || []).map(function(slot) {
+                    return [slot.position, slot];
+                }));
                 for (let slotIndex = 0; slotIndex < boardSlots; slotIndex += 1) {
                     if (slotIndex === freeSlotIndex) {
                         bingoCardSlots.push({ type: 'free', centerSlot });
+                        continue;
+                    }
+                    if (fillerByPosition[slotIndex]) {
+                        bingoCardSlots.push({ type: 'filler', filler: fillerByPosition[slotIndex] });
                         continue;
                     }
                     const goal = bingoGoals[goalCursor];
@@ -138,15 +145,21 @@
                             <span>One goal per line using: <code>Target | Challenge description</code>.</span>
                         </div>
                         <div class="bingo-template-images">
-                            <div class="bingo-template-image-heading">Goal images (optional)</div>
-                            <span>Upload one image per goal, in the same order as the lines above. An image replaces the goal text on the Bingo card.</span>
-                            <% bingoGoals.forEach(function(goal, goalIndex) { %>
+                            <div class="bingo-template-image-heading">Image-only filler spaces (optional)</div>
+                            <span>Choose a card position for each image. The centre position is reserved for the centre space.</span>
+                            <% for (let fillerIndex = 0; fillerIndex < 5; fillerIndex += 1) { %>
                             <label class="bingo-template-image-field">
-                                <span>Goal <%= goalIndex + 1 %>: <%= goal.target %></span>
-                                <input type="file" name="goalImages[<%= goalIndex %>]" accept="image/png,image/jpeg,image/webp">
-                                <% if (goal.imageUrl) { %><img src="<%= goal.imageUrl %>" alt="Current image for goal <%= goalIndex + 1 %>"><% } %>
+                                <span>Filler image <%= fillerIndex + 1 %></span>
+                                <select name="fillerPositions" class="bingo-template-input">
+                                    <option value="">No image</option>
+                                    <% for (let position = 0; position < 25; position += 1) { if (position !== 12) { %>
+                                    <option value="<%= position %>" <%= fillerSlots[fillerIndex]?.position === position ? 'selected' : '' %>>Card space <%= position + 1 %></option>
+                                    <% } } %>
+                                </select>
+                                <input type="file" name="fillerImages[<%= fillerIndex %>]" accept="image/png,image/jpeg,image/webp">
+                                <% if (fillerSlots[fillerIndex]) { %><img src="<%= fillerSlots[fillerIndex].imageUrl %>" alt="Current filler image"><% } %>
                             </label>
-                            <% }); %>
+                            <% } %>
                         </div>
                         <div>
                             <button type="submit" class="settings-btn settings-btn-secondary" onclick="return confirm('Update the active template with these new goals?');">
@@ -274,7 +287,7 @@
                             </div>
                             <% } else if (slot.type === 'filler') { %>
                             <div class="bingo-player-cell bingo-filler" aria-label="Decorative Bingo space">
-                                <img class="bingo-goal-image" src="<%= slot.goal.imageUrl %>" alt="">
+                                <img class="bingo-goal-image" src="<%= slot.filler ? slot.filler.imageUrl : slot.goal.imageUrl %>" alt="">
                             </div>
                             <% } else if (slot.type === 'goal') { %>
                             <div class="bingo-player-cell <%= slot.completed ? 'is-complete' : 'is-pending' %>" data-goal-id="<%= slot.goal.id %>" data-bingo-card-cell="true">
