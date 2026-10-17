@@ -644,6 +644,14 @@ tbody tr:not(.rank-group-header):not(.bingo-rank-header):hover {
     margin-bottom: 24px;
 }
 
+.bingo-heading-wrap h1 {
+    color: #f3efe6 !important;
+}
+
+.bingo-heading-wrap .profile-subtitle {
+    color: #c5bfb3;
+}
+
 .bingo-heading-top {
     display: flex;
     justify-content: space-between;
@@ -1369,11 +1377,37 @@ tbody tr:not(.rank-group-header):not(.bingo-rank-header):hover {
 }
 
 .bingo-hp-input {
+    width: 100%;
+    box-sizing: border-box;
+    background: #1a1917;
+    border: 1px solid #383734;
+    border-radius: 6px;
+    padding: 6px 8px;
+    outline: none;
     color: #fbbf24;
+    font-family: inherit;
+    font-size: 0.95em;
+    font-weight: bold;
 }
 
 .bingo-cc-input {
+    width: 100%;
+    box-sizing: border-box;
+    background: #1a1917;
+    border: 1px solid #383734;
+    border-radius: 6px;
+    padding: 6px 8px;
+    outline: none;
     color: #60a5fa;
+    font-family: inherit;
+    font-size: 0.95em;
+    font-weight: bold;
+}
+
+.bingo-hp-input:focus,
+.bingo-cc-input:focus {
+    border-color: #B7B2A7;
+    box-shadow: 0 0 0 2px rgba(183, 178, 167, 0.2);
 }
 
 .bingo-total-box:focus-within {
