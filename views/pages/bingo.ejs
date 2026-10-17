@@ -32,6 +32,11 @@
                     }
                     const goal = bingoGoals[goalCursor];
                     if (goal) {
+                        if (goal.imageUrl) {
+                            bingoCardSlots.push({ type: 'filler', goal });
+                            goalCursor += 1;
+                            continue;
+                        }
                         const completed = Boolean(currentBingoUser && currentBingoUser.bingoProgress && currentBingoUser.bingoProgress[goal.id]);
                         bingoCardSlots.push({ type: 'goal', goal, completed });
                         goalCursor += 1;
@@ -40,9 +45,10 @@
                     }
                 }
                 const currentCompletedGoals = currentBingoUser
-                    ? bingoGoals.filter(function(goal) { return currentBingoUser.bingoProgress && currentBingoUser.bingoProgress[goal.id]; }).length
+                    ? bingoGoals.filter(function(goal) { return !goal.imageUrl && currentBingoUser.bingoProgress && currentBingoUser.bingoProgress[goal.id]; }).length
                     : 0;
-                const currentCompletionPct = bingoGoals.length ? Math.round((currentCompletedGoals / bingoGoals.length) * 100) : 0;
+                const playableGoalCount = bingoGoals.filter(function(goal) { return !goal.imageUrl; }).length;
+                const currentCompletionPct = playableGoalCount ? Math.round((currentCompletedGoals / playableGoalCount) * 100) : 0;
             %>
             <!-- Header & Summary Area -->
             <div class="bingo-heading-wrap">
@@ -226,7 +232,7 @@
                             <% } %>
                         </div>
                         <div class="bingo-player-card-progress">
-                            <span class="bingo-player-progress-fraction"><span id="bingoPlayerCompletedCount"><%= currentCompletedGoals %></span>/<span id="bingoPlayerTotalCount"><%= bingoGoals.length %></span></span>
+                            <span class="bingo-player-progress-fraction"><span id="bingoPlayerCompletedCount"><%= currentCompletedGoals %></span>/<span id="bingoPlayerTotalCount"><%= playableGoalCount %></span></span>
                             <span class="bingo-player-progress-pct" id="bingoPlayerProgressPct"><%= currentCompletionPct %>%</span>
                         </div>
                     </div>
@@ -244,6 +250,10 @@
                                 <span class="material-symbols-outlined bingo-player-cell-icon">star</span>
                                 <span class="bingo-player-cell-title">FREE</span>
                                 <small class="bingo-player-cell-sub">Center Space</small>
+                            </div>
+                            <% } else if (slot.type === 'filler') { %>
+                            <div class="bingo-player-cell bingo-filler" aria-label="Decorative Bingo space">
+                                <img class="bingo-goal-image" src="<%= slot.goal.imageUrl %>" alt="">
                             </div>
                             <% } else if (slot.type === 'goal') { %>
                             <div class="bingo-player-cell <%= slot.completed ? 'is-complete' : 'is-pending' %>" data-goal-id="<%= slot.goal.id %>" data-bingo-card-cell="true">
@@ -358,8 +368,8 @@
                     </header>
                     <div class="bingo-admin-list">
                         <% group.users.forEach(function(user) {
-                            const completedCount = bingoGoals.filter(g => user.bingoProgress && user.bingoProgress[g.id]).length;
-                            const percent = bingoGoals.length ? Math.round((completedCount / bingoGoals.length) * 100) : 0;
+                            const completedCount = bingoGoals.filter(g => !g.imageUrl && user.bingoProgress && user.bingoProgress[g.id]).length;
+                            const percent = playableBingoGoalCount ? Math.round((completedCount / playableBingoGoalCount) * 100) : 0;
                             const userSearchText = `${user.displayName || ''} ${user.discordUser || ''} ${user.login.discordId} ${user.accountType || ''} ${user.house || ''}`.toLowerCase();
                         %>
                         <details class="bingo-admin-card bingo-user-row" data-search="<%= userSearchText %>" data-rank="<%= (user.accountType || '').toLowerCase() %>" data-discord-id="<%= user.login.discordId %>">
@@ -388,7 +398,7 @@
                                 <div class="bingo-admin-summary-right">
                                     <div class="bingo-admin-progress-wrap">
                                         <div class="bingo-progress-labels">
-                                            <span class="bingo-progress-fraction"><%= completedCount %>/<%= bingoGoals.length %></span>
+                                            <span class="bingo-progress-fraction"><%= completedCount %>/<%= playableBingoGoalCount %></span>
                                             <span class="bingo-progress-pct" style="color: <%= percent === 100 ? '#34d399' : percent >= 50 ? '#fbbf24' : '#8e897e' %>;"><%= percent %>%</span>
                                         </div>
                                         <div class="bingo-progress-bar">
@@ -406,7 +416,10 @@
                                         const rewardMatch = (goal.target || '').match(/-?\d[\d,]*/);
                                         const rewardValue = rewardMatch ? Number((rewardMatch[0] || '0').replace(/,/g, '')) || 0 : 0;
                                     %>
-                                    <div class="bingo-cell <%= completed ? 'is-complete' : 'is-pending' %>" data-goal-id="<%= goal.id %>" data-goal-group="<%= goal.group %>" data-goal-value="<%= rewardValue %>">
+                                    <div class="bingo-cell <%= goal.imageUrl ? 'bingo-filler' : (completed ? 'is-complete' : 'is-pending') %>" data-goal-id="<%= goal.id %>" data-goal-group="<%= goal.group %>" data-goal-value="<%= rewardValue %>">
+                                        <% if (goal.imageUrl) { %>
+                                        <img class="bingo-goal-image bingo-goal-image-admin" src="<%= goal.imageUrl %>" alt="">
+                                        <% } else { %>
                                         <form action="/bingo/toggle" method="POST" class="bingo-toggle-form" style="margin: 0;">
                                             <input type="hidden" name="discordId" value="<%= user.login.discordId %>">
                                             <input type="hidden" name="goalId" value="<%= goal.id %>">
@@ -415,6 +428,7 @@
                                                 <% if (goal.imageUrl) { %><img class="bingo-goal-image bingo-goal-image-admin" src="<%= goal.imageUrl %>" alt="<%= goal.target %>: <%= goal.challenge || ('Complete: ' + goal.target) %>"><% } else { %><span>Goal <%= goal.label %></span><% } %>
                                             </button>
                                         </form>
+                                        <% } %>
                                     </div>
                                     <% }); %>
                                 </div>
@@ -672,7 +686,7 @@
 
             function updateRowProgress(row) {
                 if (!row) return;
-                const totalGoals = row.querySelectorAll('.bingo-cell').length || 1;
+                const totalGoals = row.querySelectorAll('.bingo-cell:not(.bingo-filler)').length || 1;
                 const completedGoals = row.querySelectorAll('.bingo-cell.is-complete').length;
                 const pct = Math.round((completedGoals / totalGoals) * 100);
 

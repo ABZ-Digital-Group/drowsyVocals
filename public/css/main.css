@@ -1154,6 +1154,20 @@ textarea.bingo-template-input {
     min-height: 106px;
 }
 
+.bingo-player-cell.bingo-filler,
+.bingo-cell.bingo-filler {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    cursor: default;
+    opacity: 0.85;
+}
+
+.bingo-cell.bingo-filler {
+    min-height: 54px;
+}
+
 .bingo-player-empty-state {
     display: flex;
     align-items: center;
