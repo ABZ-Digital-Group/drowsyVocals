@@ -1099,6 +1099,14 @@ function getBingoFillerPositions(value) {
     });
 }
 
+function getUploadedBingoFillerPositions(req) {
+    return (req.files || [])
+        .map((file) => file.fieldname.match(/^fillerImages\[(\d+)\]$/))
+        .filter(Boolean)
+        .map((match) => Number(match[1]))
+        .filter((position) => position >= 0 && position < 25 && position !== 12);
+}
+
 async function saveBingoGoalImage(file) {
     const extension = AVATAR_MIME_EXTENSIONS[file.mimetype];
     const filename = `goal-${Date.now()}-${crypto.randomBytes(6).toString('hex')}${extension}`;
@@ -6821,9 +6829,9 @@ app.post('/bingo/templates', requireDatabase, handleBingoTemplateUpload, async (
     })));
     const templateId = `template-${Date.now()}-${crypto.randomBytes(3).toString('hex')}`;
     const centerImage = getBingoCenterUpload(req);
-    const fillerPositions = getBingoFillerPositions(req.body.fillerPositions);
-    const fillerSlots = await Promise.all(fillerPositions.map(async (position, index) => {
-        const file = getBingoFillerUpload(req, index);
+    const fillerPositions = getUploadedBingoFillerPositions(req);
+    const fillerSlots = await Promise.all(fillerPositions.map(async (position) => {
+        const file = getBingoFillerUpload(req, position);
         return position === null || !file ? null : { position, imageUrl: await saveBingoGoalImage(file) };
     }));
 
@@ -6919,14 +6927,14 @@ app.post('/bingo/templates/update', requireDatabase, handleBingoTemplateUpload, 
                 ? await saveBingoGoalImage(centerImage)
                 : existingTemplate.centerSlot?.imageUrl || null
         };
-        const fillerPositions = getBingoFillerPositions(req.body.fillerPositions);
-        const uploadedFillerSlots = await Promise.all(fillerPositions.map(async (position, index) => {
-            const file = getBingoFillerUpload(req, index);
+        const fillerPositions = getUploadedBingoFillerPositions(req);
+        const uploadedFillerSlots = await Promise.all(fillerPositions.map(async (position) => {
+            const file = getBingoFillerUpload(req, position);
             return position === null || !file ? null : { position, imageUrl: await saveBingoGoalImage(file) };
         }));
-        const fillerSlots = uploadedFillerSlots.filter(Boolean).length
-            ? uploadedFillerSlots.filter(Boolean)
-            : (existingTemplate.fillerSlots || []);
+        const fillerSlotMap = new Map((existingTemplate.fillerSlots || []).map((slot) => [slot.position, slot]));
+        uploadedFillerSlots.filter(Boolean).forEach((slot) => fillerSlotMap.set(slot.position, slot));
+        const fillerSlots = [...fillerSlotMap.values()];
 
         const nextTemplates = currentConfig.templates.map((template) => (
             template.id === templateId
