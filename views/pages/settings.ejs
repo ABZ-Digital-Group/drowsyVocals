@@ -78,6 +78,46 @@
                 </div>
                 <% } %>
 
+                <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userIsDeveloper) { %>
+                <section class="settings-card" style="margin-bottom: 24px;">
+                    <div class="settings-card-header">
+                        <div class="settings-card-title-wrap">
+                            <h3 class="settings-card-title">
+                                <span class="material-symbols-outlined">approval</span>
+                                Reset Requests
+                            </h3>
+                            <p class="settings-card-desc">Admins can request permission to reset weekly attendance or the Bingo board. Gods and Developers can approve or reject requests here.</p>
+                        </div>
+                    </div>
+                    <% if (resetRequests && resetRequests.length) { %>
+                    <div style="display: grid; gap: 10px;">
+                        <% resetRequests.forEach(function(request) {
+                            const requester = users.find(function(user) { return user.login && user.login.discordId === request.requestedBy; });
+                            const requesterName = requester ? (requester.displayName || requester.discordUser || request.requestedBy) : request.requestedBy;
+                            const requestLabel = request.type === 'attendance' ? `Roster attendance reset for week of ${request.week}` : 'Bingo board reset';
+                        %>
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 12px; border: 1px solid #3d3933; border-radius: 8px; background: #211f1b;">
+                            <div>
+                                <strong><%= requestLabel %></strong>
+                                <div style="color: #8e897e; font-size: 0.9em;">Requested by <%= requesterName %></div>
+                            </div>
+                            <div style="display: flex; gap: 8px;">
+                                <form action="/settings/reset-requests/<%= request._id %>/approve" method="POST" style="margin: 0;" onsubmit="return confirm('Approve this reset request?');">
+                                    <button type="submit" class="settings-btn settings-btn-secondary">Approve</button>
+                                </form>
+                                <form action="/settings/reset-requests/<%= request._id %>/reject" method="POST" style="margin: 0;">
+                                    <button type="submit" class="settings-btn settings-btn-danger">Reject</button>
+                                </form>
+                            </div>
+                        </div>
+                        <% }); %>
+                    </div>
+                    <% } else { %>
+                    <p class="settings-card-desc" style="margin: 0;">There are no pending reset requests.</p>
+                    <% } %>
+                </section>
+                <% } %>
+
                 <!-- Navigation Filter Tabs -->
                 <nav class="settings-tabs-nav" aria-label="Settings Categories">
                     <button type="button" class="settings-tab-btn is-active" data-tab="all">
