@@ -943,7 +943,7 @@ function parseBingoGoalsFromTemplateRequest(body = {}) {
         : (body.goalChallenges ? [body.goalChallenges] : []);
     const goalsFromInputs = goalTargetsInput
         .map((targetValue, index) => {
-            const target = (targetValue ?? '').toString().trim().replace(/^(\d+[\).\-\s]+|[-*•]\s*)/, '').trim();
+            const target = (targetValue ?? '').toString().trim().replace(/^(\d+[.)-]\s*|[-*•]\s*)/, '').trim();
             const challenge = (goalChallengesInput[index] ?? '').toString().trim();
             if (!target) return null;
             return {
@@ -960,7 +960,7 @@ function parseBingoGoalsFromTemplateRequest(body = {}) {
         .filter(Boolean);
     const parsedGoalsFromText = goalsFromText
         .map((line) => {
-            const cleanedLine = line.replace(/^(\d+[\).\-\s]+|[-*•]\s*)/, '').trim();
+            const cleanedLine = line.replace(/^(\d+[.)-]\s*|[-*•]\s*)/, '').trim();
             if (!cleanedLine) return null;
             const [rawTarget, ...rawChallengeParts] = cleanedLine.split('|');
             const target = (rawTarget ?? '').trim();
