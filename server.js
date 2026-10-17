@@ -861,6 +861,9 @@ function normalizeBingoGoal(goal, index) {
         ? Number.parseInt(targetRewardMatch[0].replace(/,/g, ''), 10)
         : 0;
     const storedReward = Number(goal?.rewardValue);
+    const imageUrl = typeof goal?.imageUrl === 'string' && /^\/uploads\/bingo\/[A-Za-z0-9._-]+$/.test(goal.imageUrl)
+        ? goal.imageUrl
+        : null;
     const safeIndex = index + 1;
     return {
         id: (goal?.id ?? String(safeIndex)).toString(),
@@ -868,7 +871,8 @@ function normalizeBingoGoal(goal, index) {
         target,
         challenge,
         group: ['hp', 'cc', 'misc'].includes(goal?.group) ? goal.group : inferBingoGoalGroup(target),
-        rewardValue: Number.isFinite(storedReward) ? storedReward : parsedTargetReward
+        rewardValue: Number.isFinite(storedReward) ? storedReward : parsedTargetReward,
+        imageUrl
     };
 }
 
@@ -1027,6 +1031,41 @@ const profileBackgroundUpload = multer({
 
 const CHECK_IN_UPLOAD_DIR = path.join(__dirname, 'public', 'uploads', 'check-ins');
 fs.mkdirSync(CHECK_IN_UPLOAD_DIR, { recursive: true });
+
+const BINGO_IMAGE_DIR = path.join(__dirname, 'public', 'uploads', 'bingo');
+fs.mkdirSync(BINGO_IMAGE_DIR, { recursive: true });
+
+const bingoTemplateUpload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 5 * 1024 * 1024, files: 30 },
+    fileFilter: (req, file, cb) => {
+        if (!AVATAR_MIME_EXTENSIONS[file.mimetype]) {
+            return cb(new Error('Only PNG, JPEG, or WEBP images are allowed.'));
+        }
+        cb(null, true);
+    }
+});
+
+function handleBingoTemplateUpload(req, res, next) {
+    bingoTemplateUpload.any()(req, res, (error) => {
+        if (error) {
+            req.flash('error_msg', error.message || 'Unable to upload Bingo goal images.');
+            return res.redirect('/bingo');
+        }
+        next();
+    });
+}
+
+function getBingoGoalUpload(req, index) {
+    return (req.files || []).find((file) => file.fieldname === `goalImages[${index}]`);
+}
+
+async function saveBingoGoalImage(file) {
+    const extension = AVATAR_MIME_EXTENSIONS[file.mimetype];
+    const filename = `goal-${Date.now()}-${crypto.randomBytes(6).toString('hex')}${extension}`;
+    await fs.promises.writeFile(path.join(BINGO_IMAGE_DIR, filename), file.buffer);
+    return `/uploads/bingo/${filename}`;
+}
 
 const checkInUpload = multer({
     storage: multer.diskStorage({
@@ -6703,7 +6742,7 @@ app.post('/bingo/reset', requireDatabase, async (req, res) => {
 });
 
 // CREATE A NEW BINGO TEMPLATE
-app.post('/bingo/templates', requireDatabase, async (req, res) => {
+app.post('/bingo/templates', requireDatabase, handleBingoTemplateUpload, async (req, res) => {
     const redirectPath = resolveBingoReturnPath(req.body.returnTo, '/bingo');
     if (!req.session.loggedin || !hasManagementAccess(req)) {
         req.flash('error_msg', 'You are not authorized to create Bingo templates.');
@@ -6722,7 +6761,7 @@ app.post('/bingo/templates', requireDatabase, async (req, res) => {
         return res.redirect(redirectPath);
     }
 
-    const goals = parsedGoals.map((goal, index) => ({
+    const goals = await Promise.all(parsedGoals.map(async (goal, index) => ({
         id: String(index + 1),
         label: String(index + 1),
         target: goal.target,
@@ -6731,8 +6770,9 @@ app.post('/bingo/templates', requireDatabase, async (req, res) => {
         rewardValue: getBingoGoalRewardValue({
             target: goal.target,
             group: inferBingoGoalGroup(goal.target)
-        })
-    }));
+        }),
+        imageUrl: getBingoGoalUpload(req, index) ? await saveBingoGoalImage(getBingoGoalUpload(req, index)) : null
+    })));
     const templateId = `template-${Date.now()}-${crypto.randomBytes(3).toString('hex')}`;
 
     try {
@@ -6763,7 +6803,7 @@ app.post('/bingo/templates', requireDatabase, async (req, res) => {
 });
 
 // UPDATE AN EXISTING BINGO TEMPLATE
-app.post('/bingo/templates/update', requireDatabase, async (req, res) => {
+app.post('/bingo/templates/update', requireDatabase, handleBingoTemplateUpload, async (req, res) => {
     const redirectPath = resolveBingoReturnPath(req.body.returnTo, '/bingo');
     if (!req.session.loggedin || !hasManagementAccess(req)) {
         req.flash('error_msg', 'You are not authorized to edit Bingo templates.');
@@ -6787,18 +6827,6 @@ app.post('/bingo/templates/update', requireDatabase, async (req, res) => {
         return res.redirect(redirectPath);
     }
 
-    const goals = parsedGoals.map((goal, index) => ({
-        id: String(index + 1),
-        label: String(index + 1),
-        target: goal.target,
-        challenge: goal.challenge,
-        group: inferBingoGoalGroup(goal.target),
-        rewardValue: getBingoGoalRewardValue({
-            target: goal.target,
-            group: inferBingoGoalGroup(goal.target)
-        })
-    }));
-
     try {
         const settings = await getSettings();
         const currentConfig = getBingoTemplateConfig(settings);
@@ -6807,6 +6835,21 @@ app.post('/bingo/templates/update', requireDatabase, async (req, res) => {
             req.flash('error_msg', 'Selected Bingo template was not found.');
             return res.redirect(redirectPath);
         }
+
+        const goals = await Promise.all(parsedGoals.map(async (goal, index) => ({
+            id: String(index + 1),
+            label: String(index + 1),
+            target: goal.target,
+            challenge: goal.challenge,
+            group: inferBingoGoalGroup(goal.target),
+            rewardValue: getBingoGoalRewardValue({
+                target: goal.target,
+                group: inferBingoGoalGroup(goal.target)
+            }),
+            imageUrl: getBingoGoalUpload(req, index)
+                ? await saveBingoGoalImage(getBingoGoalUpload(req, index))
+                : existingTemplate.goals[index]?.imageUrl || null
+        })));
 
         const nextTemplates = currentConfig.templates.map((template) => (
             template.id === templateId

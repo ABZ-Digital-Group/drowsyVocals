@@ -795,6 +795,48 @@ textarea.bingo-template-input {
     box-shadow: 0 0 0 2px rgba(183, 178, 167, 0.2);
 }
 
+.bingo-template-images {
+    display: grid;
+    gap: 8px;
+    padding: 14px;
+    border: 1px solid #383734;
+    border-radius: 10px;
+    background: #1a1917;
+}
+
+.bingo-template-image-heading {
+    color: #f3efe6;
+    font-weight: 700;
+}
+
+.bingo-template-images > span {
+    color: #9f998c;
+    font-size: 0.82em;
+}
+
+.bingo-template-image-field {
+    display: grid;
+    grid-template-columns: minmax(140px, 1fr) minmax(180px, 1fr) 70px;
+    align-items: center;
+    gap: 10px;
+    color: #d7d2c7;
+    font-size: 0.88em;
+}
+
+.bingo-template-image-field input[type="file"] {
+    width: 100%;
+    color: #b7b2a7;
+    font: inherit;
+}
+
+.bingo-template-image-field img {
+    width: 70px;
+    height: 45px;
+    object-fit: cover;
+    border: 1px solid #383734;
+    border-radius: 5px;
+}
+
 .bingo-actions-bar {
     display: flex;
     align-items: center;
@@ -1028,6 +1070,18 @@ textarea.bingo-template-input {
     gap: 4px;
     padding: 10px;
     cursor: pointer;
+}
+
+.bingo-goal-image {
+    display: block;
+    width: 100%;
+    height: 72px;
+    object-fit: contain;
+    border-radius: 6px;
+}
+
+.bingo-goal-image-admin {
+    height: 42px;
 }
 
 .bingo-player-cell-btn {
