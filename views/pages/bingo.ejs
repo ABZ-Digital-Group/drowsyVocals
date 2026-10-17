@@ -138,6 +138,9 @@
                             <label for="centerImage">Centre space image (optional)</label>
                             <input id="centerImage" name="centerImage" type="file" accept="image/png,image/jpeg,image/webp" class="bingo-template-input">
                             <span>Uploading an image replaces the centre text. Leave empty to keep the current image.</span>
+                            <% if (centerSlot.imageUrl) { %>
+                            <label class="bingo-image-remove"><input type="checkbox" name="removeCenterImage" value="true"> Remove current centre image</label>
+                            <% } %>
                         </div>
                         <div class="bingo-template-field">
                             <label for="activeGoalsText">Edit Active Template Goals</label>
@@ -148,13 +151,20 @@
                             <div class="bingo-template-image-heading">Image-only filler spaces (optional)</div>
                             <span>Upload an image directly into any card space. The centre position is reserved for the centre space.</span>
                             <div class="bingo-filler-position-grid">
-                            <% for (let position = 0; position < 25; position += 1) { if (position !== 12) {
+                            <% const fillerColumnLabels = ['B', 'I', 'N', 'G', 'O']; %>
+                            <% for (let position = 0; position < 25; position += 1) { if (position === 12) { %>
+                            <div class="bingo-filler-position bingo-filler-position-centre">
+                                <span>N3 · Centre</span>
+                                <small>Use centre-space settings above</small>
+                            </div>
+                            <% } else {
                                 const filler = (fillerSlots || []).find(function(slot) { return slot.position === position; });
                             %>
                             <label class="bingo-filler-position">
-                                <span>Space <%= position + 1 %></span>
+                                <span><%= fillerColumnLabels[position % 5] %><%= Math.floor(position / 5) + 1 %> · Space <%= position + 1 %></span>
                                 <% if (filler) { %><img src="<%= filler.imageUrl %>" alt="Current filler image"><% } %>
                                 <input type="file" name="fillerImages[<%= position %>]" accept="image/png,image/jpeg,image/webp" aria-label="Upload filler image for space <%= position + 1 %>">
+                                <% if (filler) { %><span class="bingo-image-remove"><input type="checkbox" name="removeFillerPositions" value="<%= position %>"> Remove image</span><% } %>
                             </label>
                             <% } } %>
                             </div>

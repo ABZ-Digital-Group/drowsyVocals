@@ -1114,6 +1114,15 @@ async function saveBingoGoalImage(file) {
     return `/uploads/bingo/${filename}`;
 }
 
+async function deleteBingoGoalImage(imageUrl) {
+    if (!/^\/uploads\/bingo\/[A-Za-z0-9._-]+$/.test(imageUrl || '')) return;
+    try {
+        await fs.promises.unlink(path.join(BINGO_IMAGE_DIR, path.basename(imageUrl)));
+    } catch (error) {
+        if (error.code !== 'ENOENT') console.error('Bingo image cleanup failed:', error.message);
+    }
+}
+
 const checkInUpload = multer({
     storage: multer.diskStorage({
         destination: (req, file, cb) => cb(null, CHECK_IN_UPLOAD_DIR),
@@ -6921,18 +6930,22 @@ app.post('/bingo/templates/update', requireDatabase, handleBingoTemplateUpload, 
                 : existingTemplate.goals[index]?.imageUrl || null
         })));
         const centerImage = getBingoCenterUpload(req);
+        const removeCenterImage = req.body.removeCenterImage === 'true';
         const centerSlot = {
             text: centerText,
             imageUrl: centerImage
                 ? await saveBingoGoalImage(centerImage)
-                : existingTemplate.centerSlot?.imageUrl || null
+                : (removeCenterImage ? null : existingTemplate.centerSlot?.imageUrl || null)
         };
         const fillerPositions = getUploadedBingoFillerPositions(req);
+        const removeFillerPositions = new Set(getBingoFillerPositions(req.body.removeFillerPositions).filter((position) => position !== null));
         const uploadedFillerSlots = await Promise.all(fillerPositions.map(async (position) => {
             const file = getBingoFillerUpload(req, position);
             return position === null || !file ? null : { position, imageUrl: await saveBingoGoalImage(file) };
         }));
-        const fillerSlotMap = new Map((existingTemplate.fillerSlots || []).map((slot) => [slot.position, slot]));
+        const fillerSlotMap = new Map((existingTemplate.fillerSlots || [])
+            .filter((slot) => !removeFillerPositions.has(slot.position))
+            .map((slot) => [slot.position, slot]));
         uploadedFillerSlots.filter(Boolean).forEach((slot) => fillerSlotMap.set(slot.position, slot));
         const fillerSlots = [...fillerSlotMap.values()];
 
@@ -6951,6 +6964,12 @@ app.post('/bingo/templates/update', requireDatabase, handleBingoTemplateUpload, 
                 }
             }
         );
+        await Promise.all((existingTemplate.fillerSlots || [])
+            .filter((slot) => removeFillerPositions.has(slot.position))
+            .map((slot) => deleteBingoGoalImage(slot.imageUrl)));
+        if (removeCenterImage && existingTemplate.centerSlot?.imageUrl) {
+            await deleteBingoGoalImage(existingTemplate.centerSlot.imageUrl);
+        }
 
         req.flash('success_msg', `Updated bingo template "${templateName}".`);
         res.redirect(redirectPath);
