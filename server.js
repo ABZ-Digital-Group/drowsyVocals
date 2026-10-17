@@ -535,20 +535,7 @@ app.post('/check-ins', requireDatabase, (req, res) => checkInUpload.single('atta
         ]);
         if (!targetUser) return res.status(404).send('The selected user could not be found.');
 
-        if (req.file) {
-            const attachmentData = await fs.promises.readFile(req.file.path);
-            await db.collection('checkInAttachments').updateOne(
-                { _id: req.file.filename },
-                {
-                    $set: {
-                        contentType: req.file.mimetype,
-                        data: attachmentData,
-                        updatedAt: new Date()
-                    }
-                },
-                { upsert: true }
-            );
-        }
+        const newAttachment = await persistCheckInAttachment(req.file);
 
         await db.collection('checkIns').insertOne({
             targetDiscordId,
@@ -559,7 +546,7 @@ app.post('/check-ins', requireDatabase, (req, res) => checkInUpload.single('atta
             followUpText,
             followUpDueDate,
             followUpComplete: false,
-            attachments: req.file ? [{ filename: req.file.filename, originalName: req.file.originalname, mimeType: req.file.mimetype, size: req.file.size }] : [],
+            attachments: newAttachment ? [newAttachment] : [],
             editHistory: [],
             authorDiscordId: req.session.currentuser,
             authorDisplayName: author?.displayName || author?.discordUser || req.session.currentuser,
@@ -575,12 +562,16 @@ app.post('/check-ins', requireDatabase, (req, res) => checkInUpload.single('atta
     }
 }));
 
-app.post('/check-ins/:checkInId/edit', requireDatabase, async (req, res) => {
+app.post('/check-ins/:checkInId/edit', requireDatabase, (req, res) => checkInUpload.single('attachment')(req, res, async (uploadError) => {
     if (!req.session.loggedin) return res.redirect('/');
 
     const settings = await getSettings();
     if (!hasCheckInAccess(req, settings)) return res.status(403).send('You do not have permission to edit check-ins.');
     if (!ObjectId.isValid(req.params.checkInId)) return res.status(400).send('Invalid check-in note.');
+    if (uploadError) {
+        req.flash('error_msg', uploadError.message || 'Unable to upload the attachment.');
+        return res.redirect(`/check-ins?user=${encodeURIComponent(req.body?.targetDiscordId || '')}`);
+    }
 
     const note = typeof req.body.note === 'string' ? req.body.note.trim() : '';
     if (!note || note.length > 5000) {
@@ -591,11 +582,15 @@ app.post('/check-ins/:checkInId/edit', requireDatabase, async (req, res) => {
     try {
         const previousNote = await db.collection('checkIns').findOne({ _id: new ObjectId(req.params.checkInId) });
         if (!previousNote) return res.status(404).send('Check-in note not found.');
+        const newAttachment = await persistCheckInAttachment(req.file);
         await db.collection('checkIns').updateOne(
             { _id: previousNote._id },
             {
                 $set: { note, updatedAt: new Date().toISOString(), updatedBy: req.session.currentuser },
-                $push: { editHistory: { note: previousNote.note, editedAt: new Date().toISOString(), editedBy: req.session.currentuser } }
+                $push: {
+                    editHistory: { note: previousNote.note, editedAt: new Date().toISOString(), editedBy: req.session.currentuser },
+                    ...(newAttachment ? { attachments: newAttachment } : {})
+                }
             }
         );
 
@@ -607,7 +602,7 @@ app.post('/check-ins/:checkInId/edit', requireDatabase, async (req, res) => {
         req.flash('error_msg', 'Unable to edit the check-in note.');
         res.redirect(`/check-ins?user=${encodeURIComponent(req.body.targetDiscordId || '')}`);
     }
-});
+}));
 
 app.post('/check-ins/:checkInId/delete', requireDatabase, async (req, res) => {
     if (!req.session.loggedin) return res.redirect('/');
@@ -1182,6 +1177,28 @@ const checkInUpload = multer({
         cb(null, true);
     }
 });
+
+async function persistCheckInAttachment(file) {
+    if (!file) return null;
+    const attachmentData = await fs.promises.readFile(file.path);
+    await db.collection('checkInAttachments').updateOne(
+        { _id: file.filename },
+        {
+            $set: {
+                contentType: file.mimetype,
+                data: attachmentData,
+                updatedAt: new Date()
+            }
+        },
+        { upsert: true }
+    );
+    return {
+        filename: file.filename,
+        originalName: file.originalname,
+        mimeType: file.mimetype,
+        size: file.size
+    };
+}
 
 // DROWSY DISCORD BOT INTEGRATION PATHS & HELPERS
 const DROWSY_BOT_DIR = process.env.DROWSY_BOT_DIR || path.resolve(__dirname, '..', 'drowsybot2');
