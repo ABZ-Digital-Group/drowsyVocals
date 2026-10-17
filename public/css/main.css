@@ -1306,6 +1306,7 @@ textarea.bingo-template-input {
 
 .bingo-admin-toggle {
     width: 100%;
+    box-sizing: border-box;
     border: none;
     background: transparent;
     color: inherit;
