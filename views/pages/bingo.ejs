@@ -19,18 +19,18 @@
                 const currentBingoUser = flattenedUsers.find(function(user) {
                     return user && user.login && user.login.discordId === currentUserDiscordId;
                 });
-                const currentUserCanToggleCard = Boolean(currentBingoUser && currentBingoUser.login && currentBingoUser.login.discordId);
+                const currentUserCanToggleCard = Boolean(currentBingoUser && currentBingoUser.login && currentBingoUser.login.discordId && !isBingoTemplatePreview);
                 const boardSize = 5;
                 const boardSlots = boardSize * boardSize;
                 const freeSlotIndex = 12;
                 let goalCursor = 0;
                 const bingoCardSlots = [];
-                const fillerByPosition = Object.fromEntries((fillerSlots || []).map(function(slot) {
+                const fillerByPosition = Object.fromEntries((bingoBoardFillerSlots || []).map(function(slot) {
                     return [slot.position, slot];
                 }));
                 for (let slotIndex = 0; slotIndex < boardSlots; slotIndex += 1) {
                     if (slotIndex === freeSlotIndex) {
-                        bingoCardSlots.push({ type: 'free', centerSlot });
+                        bingoCardSlots.push({ type: 'free', centerSlot: bingoBoardCenterSlot });
                         continue;
                     }
                     if (fillerByPosition[slotIndex]) {
@@ -87,7 +87,7 @@
                 <% if (canManageBingoTemplates) { %>
                 <div class="bingo-template-management">
                     <%
-                        const activeTemplateGoalsText = (bingoGoals || []).map(function(goal) {
+                        const activeTemplateGoalsText = (activeBingoGoals || []).map(function(goal) {
                             const rewardValue = Number(goal.rewardValue);
                             const target = rewardValue && !/\d/.test(goal.target || '')
                                 ? `${rewardValue} ${(goal.group || '').toUpperCase()}`.trim()
@@ -116,6 +116,21 @@
                                         <span>Activate Template</span>
                                     </button>
                                 </form>
+                                <form action="/bingo" method="GET">
+                                    <label for="previewBingoTemplate">Preview a template</label>
+                                    <select id="previewBingoTemplate" name="previewTemplateId" class="bingo-template-input" aria-label="Select Bingo template to preview">
+                                        <% bingoTemplates.forEach(function(template) { %>
+                                        <option value="<%= template.id %>" <%= template.id === bingoBoardTemplateId ? 'selected' : '' %>><%= template.name %> (<%= template.goals.length %> goals)</option>
+                                        <% }); %>
+                                    </select>
+                                    <button type="submit" class="settings-btn settings-btn-secondary">
+                                        <span class="material-symbols-outlined">visibility</span>
+                                        <span>Preview Template</span>
+                                    </button>
+                                    <% if (isBingoTemplatePreview) { %>
+                                    <a href="/bingo" class="settings-btn settings-btn-secondary">Return to Active Card</a>
+                                    <% } %>
+                                </form>
                                 <form action="/bingo/templates/delete" method="POST" onsubmit="return confirm('Delete this Bingo template and its uploaded images? This cannot be undone.');">
                                     <label for="deleteBingoTemplate">Template to delete</label>
                                     <select name="templateId" class="bingo-template-input" aria-label="Select Bingo template to delete">
@@ -129,6 +144,9 @@
                                     </button>
                                 </form>
                                 <span>Built-in templates are protected. Only custom templates can be deleted.</span>
+                                <% if (isBingoTemplatePreview) { %>
+                                <span class="bingo-template-preview-note">Previewing <strong><%= bingoBoardTemplateName %></strong>. The active card and all progress remain unchanged.</span>
+                                <% } %>
                             </div>
 
                     <form action="/bingo/templates/update" method="POST" enctype="multipart/form-data" class="bingo-template-form">
