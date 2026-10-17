@@ -74,10 +74,10 @@
                         </div>
 
                         <% if (canManageBingo) { %>
-                        <form action="/bingo/reset" method="POST" onsubmit="return confirm('⚠️ Are you sure you want to reset all Bingo milestones and totals for the new week?');" style="margin: 0;">
+                        <form action="/bingo/reset" method="POST" onsubmit="return confirm('<%= userIsDeveloper || userType === 'Mr. Sandman' || userType === 'Realm God' ? '⚠️ Are you sure you want to reset all Bingo milestones and totals for the new week?' : 'Submit a request to reset all Bingo milestones and totals?'; %>');" style="margin: 0;">
                             <button type="submit" class="settings-btn settings-btn-danger">
                                 <span class="material-symbols-outlined">restart_alt</span>
-                                <span>Reset Weekly Board</span>
+                                <span><%= userIsDeveloper || userType === 'Mr. Sandman' || userType === 'Realm God' ? 'Reset Weekly Board' : 'Request Board Reset' %></span>
                             </button>
                         </form>
                         <% } %>

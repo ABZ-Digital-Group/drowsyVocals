@@ -2468,6 +2468,27 @@ app.post('/reset-attendance', requireDatabase, async (req, res) => {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(week || '')) return res.redirect('/roster');
 
     try {
+        if (!hasGodAccess(req)) {
+            const existingRequest = await db.collection('resetRequests').findOne({
+                type: 'attendance',
+                week,
+                status: 'pending'
+            });
+            if (existingRequest) {
+                req.flash('error_msg', 'A reset request for this attendance week is already pending approval.');
+                return res.redirect('/roster');
+            }
+            await db.collection('resetRequests').insertOne({
+                type: 'attendance',
+                week,
+                status: 'pending',
+                requestedBy: req.session.currentuser,
+                requestedAt: new Date()
+            });
+            req.flash('success_msg', 'Reset request submitted to Gods and Developers for approval.');
+            return res.redirect('/roster');
+        }
+
         await db.collection('users').updateMany({}, { $pull: { attendance: { week } } });
         await writeAudit(req, 'Reset attendance', `Week of ${week}`);
         req.flash('success_msg', `Attendance reset for week of ${week}.`);
@@ -2624,15 +2645,69 @@ app.get('/settings', requireDatabase, async (req, res) => {
     }
 
     try {
-        const [settings, developers, users] = await Promise.all([
+        const [settings, developers, users, resetRequests] = await Promise.all([
             getSettings(),
             db.collection('users').find({ isDeveloper: true }, { projection: { displayName: 1, discordUser: 1, 'login.discordId': 1 } }).toArray(),
-            db.collection('users').find({}, { projection: { displayName: 1, discordUser: 1, accountType: 1, 'login.discordId': 1 } }).sort({ displayName: 1 }).toArray()
+            db.collection('users').find({}, { projection: { displayName: 1, discordUser: 1, accountType: 1, 'login.discordId': 1 } }).sort({ displayName: 1 }).toArray(),
+            hasGodAccess(req)
+                ? db.collection('resetRequests').find({ status: 'pending' }).sort({ requestedAt: 1 }).toArray()
+                : []
         ]);
-        res.render('pages/settings', { page: 'settings', settings, developers, users });
+        res.render('pages/settings', { page: 'settings', settings, developers, users, resetRequests });
     } catch (error) {
         console.error('Error loading settings:', error);
         res.status(500).send('Error loading settings.');
+    }
+});
+
+app.post('/settings/reset-requests/:requestId/:decision', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !hasGodAccess(req)) {
+        req.flash('error_msg', 'You are not authorized to manage reset requests.');
+        return res.redirect('/settings');
+    }
+
+    const requestId = (req.params.requestId || '').trim();
+    const decision = (req.params.decision || '').trim().toLowerCase();
+    if (!/^[a-f0-9]{24}$/i.test(requestId) || !['approve', 'reject'].includes(decision)) {
+        req.flash('error_msg', 'Invalid reset request decision.');
+        return res.redirect('/settings');
+    }
+
+    try {
+        const request = await db.collection('resetRequests').findOne({ _id: new ObjectId(requestId), status: 'pending' });
+        if (!request) {
+            req.flash('error_msg', 'That reset request is no longer pending.');
+            return res.redirect('/settings');
+        }
+
+        if (decision === 'approve') {
+            if (request.type === 'attendance') {
+                await db.collection('users').updateMany({}, { $pull: { attendance: { week: request.week } } });
+            } else if (request.type === 'bingo') {
+                await db.collection('users').updateMany({}, { $unset: { bingoProgress: '', bingoTotals: '' } });
+            } else {
+                req.flash('error_msg', 'Unsupported reset request type.');
+                return res.redirect('/settings');
+            }
+        }
+
+        await db.collection('resetRequests').updateOne(
+            { _id: request._id, status: 'pending' },
+            {
+                $set: {
+                    status: decision === 'approve' ? 'approved' : 'rejected',
+                    decidedBy: req.session.currentuser,
+                    decidedAt: new Date()
+                }
+            }
+        );
+        await writeAudit(req, `${decision === 'approve' ? 'Approved' : 'Rejected'} reset request`, request.type === 'attendance' ? `Attendance week ${request.week}` : 'Bingo board');
+        req.flash('success_msg', `Reset request ${decision === 'approve' ? 'approved' : 'rejected'}.`);
+        res.redirect('/settings');
+    } catch (error) {
+        console.error('Error deciding reset request:', error);
+        req.flash('error_msg', 'Unable to process reset request.');
+        res.redirect('/settings');
     }
 });
 
@@ -6852,6 +6927,25 @@ app.post('/bingo/reset', requireDatabase, async (req, res) => {
     }
 
     try {
+        if (!hasGodAccess(req)) {
+            const existingRequest = await db.collection('resetRequests').findOne({
+                type: 'bingo',
+                status: 'pending'
+            });
+            if (existingRequest) {
+                req.flash('error_msg', 'A Bingo reset request is already pending approval.');
+                return res.redirect('/bingo');
+            }
+            await db.collection('resetRequests').insertOne({
+                type: 'bingo',
+                status: 'pending',
+                requestedBy: req.session.currentuser,
+                requestedAt: new Date()
+            });
+            req.flash('success_msg', 'Reset request submitted to Gods and Developers for approval.');
+            return res.redirect('/bingo');
+        }
+
         await db.collection('users').updateMany({}, { $unset: { bingoProgress: '', bingoTotals: '' } });
         req.flash('success_msg', 'Bingo board reset for the new week.');
         res.redirect('/bingo');

@@ -29,11 +29,11 @@
                                 <span class="material-symbols-outlined" aria-hidden="true">check_circle</span>
                                 Save Attendance
                             </button>
-                            <form action="/reset-attendance" method="POST" onsubmit="return confirm('Reset attendance for this week?');" style="margin: 0;">
+                            <form action="/reset-attendance" method="POST" onsubmit="return confirm('<%= userIsDeveloper || userType === 'Mr. Sandman' || userType === 'Realm God' ? 'Reset attendance for this week?' : 'Submit a request to reset attendance for this week?'; %>');" style="margin: 0;">
                                 <input type="hidden" name="week" value="<%= currentWeek %>">
                                 <button class="action-button action-button-primary" type="submit">
                                     <span class="material-symbols-outlined" aria-hidden="true">restart_alt</span>
-                                    Reset
+                                    <%= userIsDeveloper || userType === 'Mr. Sandman' || userType === 'Realm God' ? 'Reset' : 'Request Reset' %>
                                 </button>
                             </form>
                         </div>
