@@ -110,7 +110,7 @@ function safeTimingCompare(a, b) {
 }
 
 app.use((req, res, next) => {
-    if (req.path.startsWith('/uploads/check-ins/')) return next();
+    if (req.path.startsWith('/uploads/check-ins/') || req.path.startsWith('/uploads/bingo/')) return next();
     express.static(path.join(__dirname, 'public'))(req, res, next);
 });
 
@@ -1111,6 +1111,17 @@ async function saveBingoGoalImage(file) {
     const extension = AVATAR_MIME_EXTENSIONS[file.mimetype];
     const filename = `goal-${Date.now()}-${crypto.randomBytes(6).toString('hex')}${extension}`;
     await fs.promises.writeFile(path.join(BINGO_IMAGE_DIR, filename), file.buffer);
+    await db.collection('bingoImages').updateOne(
+        { _id: filename },
+        {
+            $set: {
+                contentType: file.mimetype,
+                data: file.buffer,
+                updatedAt: new Date()
+            }
+        },
+        { upsert: true }
+    );
     return `/uploads/bingo/${filename}`;
 }
 
@@ -1120,6 +1131,11 @@ async function deleteBingoGoalImage(imageUrl) {
         await fs.promises.unlink(path.join(BINGO_IMAGE_DIR, path.basename(imageUrl)));
     } catch (error) {
         if (error.code !== 'ENOENT') console.error('Bingo image cleanup failed:', error.message);
+    }
+    try {
+        await db.collection('bingoImages').deleteOne({ _id: path.basename(imageUrl) });
+    } catch (error) {
+        console.error('Bingo image database cleanup failed:', error.message);
     }
 
     function getBingoTemplateImageUrls(template) {
@@ -6574,6 +6590,41 @@ app.post('/guidelines/:slug', requireDatabase, async (req, res) => {
         console.error(`Error saving ${slug}:`, error);
         req.flash('error_msg', 'Unable to save guidelines.');
         res.redirect(`/${slug}`);
+    }
+});
+
+// Persisted Bingo images are served from MongoDB so deployments do not remove uploaded assets.
+app.get('/uploads/bingo/:filename', requireDatabase, async (req, res, next) => {
+    const filename = (req.params.filename || '').toString();
+    if (!/^[A-Za-z0-9._-]+$/.test(filename)) return next();
+
+    try {
+        const image = await db.collection('bingoImages').findOne(
+            { _id: filename },
+            { projection: { contentType: 1, data: 1 } }
+        );
+        if (image?.data) {
+            return res.type(image.contentType || 'application/octet-stream').send(image.data.buffer || image.data);
+        }
+
+        const diskPath = path.join(BINGO_IMAGE_DIR, filename);
+        if (!fs.existsSync(diskPath)) return next();
+        const data = await fs.promises.readFile(diskPath);
+        const contentTypeByExtension = {
+            '.png': 'image/png',
+            '.jpg': 'image/jpeg',
+            '.webp': 'image/webp'
+        };
+        const contentType = contentTypeByExtension[path.extname(filename).toLowerCase()] || 'application/octet-stream';
+        await db.collection('bingoImages').updateOne(
+            { _id: filename },
+            { $set: { contentType, data, updatedAt: new Date() } },
+            { upsert: true }
+        );
+        return res.type(contentType).send(data);
+    } catch (error) {
+        console.error('Error loading Bingo image:', error);
+        next(error);
     }
 });
 
