@@ -99,9 +99,9 @@
             </button>
             <div class="nav-account-dropdown" id="accountMenu">
                 <a href="/account">Account</a>
-                <% if (userIsDeveloper && !developerPreviewMode) { %>
+                <% if ((userIsDeveloper || userType === 'Mr. Sandman' || userType === 'Realm God') && !developerPreviewMode) { %>
                 <form method="post" action="/developer-preview/start">
-                    <button type="submit" class="nav-account-action">View as non-admin</button>
+                    <button type="submit" class="nav-account-action">View site as non-admin</button>
                 </form>
                 <% } %>
                 <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userIsDeveloper) { %>

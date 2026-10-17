@@ -316,8 +316,8 @@ function requireDatabase(req, res, next) {
 
 // DEVELOPER PREVIEW MODE
 app.post('/developer-preview/start', (req, res) => {
-    if (!req.session.loggedin || !req.session.isDeveloper) {
-        return res.status(403).send('Developer preview mode is only available to developers.');
+    if (!req.session.loggedin || (!req.session.isDeveloper && !GOD_ROLES.includes(req.session.accountType))) {
+        return res.status(403).send('Developer preview mode is only available to developers and Realm Gods.');
     }
 
     req.session.previewOriginalAccountType = req.session.accountType;
