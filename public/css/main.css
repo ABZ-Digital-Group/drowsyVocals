@@ -1342,7 +1342,8 @@ textarea.bingo-template-input {
     display: flex;
     align-items: center;
     gap: 10px;
-    min-width: 240px;
+    min-width: 0;
+    flex: 0 1 240px;
     justify-content: flex-end;
 }
 
@@ -1353,6 +1354,12 @@ textarea.bingo-template-input {
 }
 
 .bingo-admin-chevron {
+    display: grid;
+    flex: 0 0 24px;
+    width: 24px;
+    height: 24px;
+    place-items: center;
+    line-height: 1;
     color: #a7a193;
     transition: transform 180ms ease;
 }
