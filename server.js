@@ -856,18 +856,25 @@ function normalizeBingoGoal(goal, index) {
     const target = (goal?.target ?? '').toString().trim();
     if (!target) return null;
     const challenge = (goal?.challenge ?? target).toString().trim() || target;
+    const targetRewardMatch = target.match(/-?\d[\d,]*/);
+    const parsedTargetReward = targetRewardMatch
+        ? Number.parseInt(targetRewardMatch[0].replace(/,/g, ''), 10)
+        : 0;
+    const storedReward = Number(goal?.rewardValue);
     const safeIndex = index + 1;
     return {
         id: (goal?.id ?? String(safeIndex)).toString(),
         label: (goal?.label ?? String(safeIndex)).toString(),
         target,
         challenge,
-        group: ['hp', 'cc', 'misc'].includes(goal?.group) ? goal.group : inferBingoGoalGroup(target)
+        group: ['hp', 'cc', 'misc'].includes(goal?.group) ? goal.group : inferBingoGoalGroup(target),
+        rewardValue: Number.isFinite(storedReward) ? storedReward : parsedTargetReward
     };
 }
 
 function getBingoGoalRewardValue(goal = {}) {
     if (!goal || !['hp', 'cc'].includes(goal.group)) return 0;
+    if (Number.isFinite(Number(goal.rewardValue))) return Number(goal.rewardValue);
     const targetText = (goal.target ?? '').toString();
     const numberMatch = targetText.match(/-?\d[\d,]*/);
     if (!numberMatch) return 0;
@@ -6720,7 +6727,11 @@ app.post('/bingo/templates', requireDatabase, async (req, res) => {
         label: String(index + 1),
         target: goal.target,
         challenge: goal.challenge,
-        group: inferBingoGoalGroup(goal.target)
+        group: inferBingoGoalGroup(goal.target),
+        rewardValue: getBingoGoalRewardValue({
+            target: goal.target,
+            group: inferBingoGoalGroup(goal.target)
+        })
     }));
     const templateId = `template-${Date.now()}-${crypto.randomBytes(3).toString('hex')}`;
 
@@ -6781,7 +6792,11 @@ app.post('/bingo/templates/update', requireDatabase, async (req, res) => {
         label: String(index + 1),
         target: goal.target,
         challenge: goal.challenge,
-        group: inferBingoGoalGroup(goal.target)
+        group: inferBingoGoalGroup(goal.target),
+        rewardValue: getBingoGoalRewardValue({
+            target: goal.target,
+            group: inferBingoGoalGroup(goal.target)
+        })
     }));
 
     try {
