@@ -403,13 +403,13 @@
                                     <label class="bingo-total-cell">
                                         <span class="bingo-admin-total-label">Total HP</span>
                                         <div class="bingo-total-box">
-                                            <input type="text" value="<%= user.calculatedBingoTotals?.hp ?? 0 %>" aria-label="Total HP for <%= user.displayName || user.login.discordId %>" class="bingo-hp-input" title="Auto-calculated from completed HP goals" readonly>
+                                            <input type="text" value="<%= user.calculatedBingoTotals?.hp ?? 0 %>" data-discord-id="<%= user.login.discordId %>" aria-label="Total HP for <%= user.displayName || user.login.discordId %>" class="bingo-total-input bingo-hp-input" title="Total House Points for this Bingo card">
                                         </div>
                                     </label>
                                     <label class="bingo-total-cell">
                                         <span class="bingo-admin-total-label">Total CC</span>
                                         <div class="bingo-total-box">
-                                            <input type="text" value="<%= user.calculatedBingoTotals?.cc ?? 0 %>" aria-label="Total CC for <%= user.displayName || user.login.discordId %>" class="bingo-cc-input" title="Auto-calculated from completed CC goals" readonly>
+                                            <input type="text" value="<%= user.calculatedBingoTotals?.cc ?? 0 %>" data-discord-id="<%= user.login.discordId %>" aria-label="Total CC for <%= user.displayName || user.login.discordId %>" class="bingo-total-input bingo-cc-input" title="Total Casino Coins for this Bingo card">
                                         </div>
                                     </label>
                                 </div>
