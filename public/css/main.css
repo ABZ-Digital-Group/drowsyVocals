@@ -1106,10 +1106,11 @@ textarea.bingo-template-input {
 }
 
 .bingo-player-cell.is-pending .bingo-player-cell-btn:hover {
-    background: #2b2621;
+    background: transparent;
 }
 
 .bingo-player-cell.is-pending:hover {
+    background: #2b2621;
     transform: translateY(-2px);
     border-color: #6d6659;
     box-shadow: 0 10px 16px rgba(0, 0, 0, 0.2);
