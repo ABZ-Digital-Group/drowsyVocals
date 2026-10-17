@@ -39,11 +39,6 @@
                     }
                     const goal = bingoGoals[goalCursor];
                     if (goal) {
-                        if (goal.imageUrl) {
-                            bingoCardSlots.push({ type: 'filler', goal });
-                            goalCursor += 1;
-                            continue;
-                        }
                         const completed = Boolean(currentBingoUser && currentBingoUser.bingoProgress && currentBingoUser.bingoProgress[goal.id]);
                         bingoCardSlots.push({ type: 'goal', goal, completed });
                         goalCursor += 1;
@@ -52,9 +47,9 @@
                     }
                 }
                 const currentCompletedGoals = currentBingoUser
-                    ? bingoGoals.filter(function(goal) { return !goal.imageUrl && currentBingoUser.bingoProgress && currentBingoUser.bingoProgress[goal.id]; }).length
+                    ? bingoGoals.filter(function(goal) { return currentBingoUser.bingoProgress && currentBingoUser.bingoProgress[goal.id]; }).length
                     : 0;
-                const playableGoalCount = bingoGoals.filter(function(goal) { return !goal.imageUrl; }).length;
+                const playableGoalCount = bingoGoals.length;
                 const currentCompletionPct = playableGoalCount ? Math.round((currentCompletedGoals / playableGoalCount) * 100) : 0;
             %>
             <!-- Header & Summary Area -->
@@ -121,6 +116,20 @@
                                         <span>Activate Template</span>
                                     </button>
                                 </form>
+                                <% const deletableBingoTemplates = bingoTemplates.filter(function(template) { return template.id !== 'default-weekly' && template.id !== 'halloween-edition'; }); %>
+                                <% if (deletableBingoTemplates.length) { %>
+                                <form action="/bingo/templates/delete" method="POST" onsubmit="return confirm('Delete this Bingo template and its uploaded images? This cannot be undone.');">
+                                    <select name="templateId" class="bingo-template-input" aria-label="Select Bingo template to delete">
+                                        <% deletableBingoTemplates.forEach(function(template) { %>
+                                        <option value="<%= template.id %>"><%= template.name %> (<%= template.goals.length %> goals)</option>
+                                        <% }); %>
+                                    </select>
+                                    <button type="submit" class="settings-btn settings-btn-danger">
+                                        <span class="material-symbols-outlined">delete</span>
+                                        <span>Delete Template</span>
+                                    </button>
+                                </form>
+                                <% } %>
                             </div>
 
                     <form action="/bingo/templates/update" method="POST" enctype="multipart/form-data" class="bingo-template-form">
@@ -295,7 +304,7 @@
                             </div>
                             <% } else if (slot.type === 'filler') { %>
                             <div class="bingo-player-cell bingo-filler" aria-label="Decorative Bingo space">
-                                <img class="bingo-goal-image" src="<%= slot.filler ? slot.filler.imageUrl : slot.goal.imageUrl %>" alt="">
+                                <img class="bingo-goal-image" src="<%= slot.filler.imageUrl %>" alt="">
                             </div>
                             <% } else if (slot.type === 'goal') { %>
                             <div class="bingo-player-cell <%= slot.completed ? 'is-complete' : 'is-pending' %>" data-goal-id="<%= slot.goal.id %>" data-bingo-card-cell="true">
@@ -305,19 +314,15 @@
                                     <input type="hidden" name="goalId" value="<%= slot.goal.id %>">
                                     <button type="submit" class="bingo-player-cell-btn" title="Goal <%= slot.goal.label %>: <%= slot.goal.target %> — <%= slot.goal.challenge || ('Complete: ' + slot.goal.target) %>">
                                         <span class="material-symbols-outlined bingo-goal-icon"><%= slot.completed ? 'check_circle' : 'circle' %></span>
-                                        <% if (slot.goal.imageUrl) { %><img class="bingo-goal-image" src="<%= slot.goal.imageUrl %>" alt="<%= slot.goal.target %>: <%= slot.goal.challenge || ('Complete: ' + slot.goal.target) %>"><% } else { %>
                                         <span class="bingo-player-cell-title"><%= slot.goal.target %></span>
                                         <small class="bingo-player-cell-sub"><%= slot.goal.challenge || ('Complete: ' + slot.goal.target) %></small>
-                                        <% } %>
                                     </button>
                                 </form>
                                 <% } else { %>
                                 <div class="bingo-player-cell-static" title="Goal <%= slot.goal.label %>: <%= slot.goal.target %> — <%= slot.goal.challenge || ('Complete: ' + slot.goal.target) %>">
                                     <span class="material-symbols-outlined bingo-goal-icon"><%= slot.completed ? 'check_circle' : 'circle' %></span>
-                                    <% if (slot.goal.imageUrl) { %><img class="bingo-goal-image" src="<%= slot.goal.imageUrl %>" alt="<%= slot.goal.target %>: <%= slot.goal.challenge || ('Complete: ' + slot.goal.target) %>"><% } else { %>
                                     <span class="bingo-player-cell-title"><%= slot.goal.target %></span>
                                     <small class="bingo-player-cell-sub"><%= slot.goal.challenge || ('Complete: ' + slot.goal.target) %></small>
-                                    <% } %>
                                 </div>
                                 <% } %>
                             </div>
@@ -458,19 +463,15 @@
                                         const rewardMatch = (goal.target || '').match(/-?\d[\d,]*/);
                                         const rewardValue = rewardMatch ? Number((rewardMatch[0] || '0').replace(/,/g, '')) || 0 : 0;
                                     %>
-                                    <div class="bingo-cell <%= goal.imageUrl ? 'bingo-filler' : (completed ? 'is-complete' : 'is-pending') %>" data-goal-id="<%= goal.id %>" data-goal-group="<%= goal.group %>" data-goal-value="<%= rewardValue %>">
-                                        <% if (goal.imageUrl) { %>
-                                        <img class="bingo-goal-image bingo-goal-image-admin" src="<%= goal.imageUrl %>" alt="">
-                                        <% } else { %>
+                                    <div class="bingo-cell <%= completed ? 'is-complete' : 'is-pending' %>" data-goal-id="<%= goal.id %>" data-goal-group="<%= goal.group %>" data-goal-value="<%= rewardValue %>">
                                         <form action="/bingo/toggle" method="POST" class="bingo-toggle-form" style="margin: 0;">
                                             <input type="hidden" name="discordId" value="<%= user.login.discordId %>">
                                             <input type="hidden" name="goalId" value="<%= goal.id %>">
                                             <button type="submit" class="bingo-goal-btn" title="Goal <%= goal.label %>">
                                                 <span class="material-symbols-outlined bingo-goal-icon"><%= completed ? 'check_circle' : 'circle' %></span>
-                                                <% if (goal.imageUrl) { %><img class="bingo-goal-image bingo-goal-image-admin" src="<%= goal.imageUrl %>" alt="<%= goal.target %>: <%= goal.challenge || ('Complete: ' + goal.target) %>"><% } else { %><span>Goal <%= goal.label %></span><% } %>
+                                                <span>Goal <%= goal.label %></span>
                                             </button>
                                         </form>
-                                        <% } %>
                                     </div>
                                     <% }); %>
                                 </div>

@@ -1121,6 +1121,14 @@ async function deleteBingoGoalImage(imageUrl) {
     } catch (error) {
         if (error.code !== 'ENOENT') console.error('Bingo image cleanup failed:', error.message);
     }
+
+    function getBingoTemplateImageUrls(template) {
+        return [
+            template?.centerSlot?.imageUrl,
+            ...(template?.goals || []).map((goal) => goal.imageUrl),
+            ...(template?.fillerSlots || []).map((slot) => slot.imageUrl)
+        ].filter((imageUrl) => typeof imageUrl === 'string');
+    }
 }
 
 const checkInUpload = multer({
@@ -6584,7 +6592,7 @@ app.get('/bingo', requireDatabase, async (req, res) => {
             activeTemplate,
             bingoGoals
         } = getBingoTemplateConfig(settings);
-        const playableBingoGoals = bingoGoals.filter((goal) => !goal.imageUrl);
+        const playableBingoGoals = bingoGoals;
 
         const sortedRanks = settings.ranks.slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
         const baselineOrder = getBingoEligibilityOrder(settings);
@@ -6612,7 +6620,6 @@ app.get('/bingo', requireDatabase, async (req, res) => {
                 let userCcTotal = 0;
                 if (u.bingoProgress) {
                     bingoGoals.forEach(goal => {
-                        if (goal.imageUrl) return;
                         if (!u.bingoProgress[goal.id]) return;
                         totalCompletedTasks += 1;
                         const rewardValue = getBingoGoalRewardValue(goal);
@@ -6697,7 +6704,7 @@ app.post('/bingo/toggle', requireDatabase, async (req, res) => {
         ]);
         const { bingoGoals } = getBingoTemplateConfig(settings);
         const selectedGoal = bingoGoals.find((goal) => goal.id === goalId);
-        if (!selectedGoal || selectedGoal.imageUrl) {
+        if (!selectedGoal) {
             if (req.xhr || req.headers['x-requested-with'] === 'XMLHttpRequest') {
                 return res.status(400).json({ error: 'Invalid goal.' });
             }
@@ -6976,6 +6983,81 @@ app.post('/bingo/templates/update', requireDatabase, handleBingoTemplateUpload, 
     } catch (error) {
         console.error('Error updating Bingo template:', error);
         req.flash('error_msg', 'Unable to update Bingo template.');
+        res.redirect(redirectPath);
+    }
+});
+
+// DELETE A USER-CREATED BINGO TEMPLATE
+app.post('/bingo/templates/delete', requireDatabase, async (req, res) => {
+    const redirectPath = resolveBingoReturnPath(req.body.returnTo, '/bingo');
+    if (!req.session.loggedin || !hasManagementAccess(req)) {
+        req.flash('error_msg', 'You are not authorized to delete Bingo templates.');
+        return res.redirect(redirectPath);
+    }
+
+    const templateId = (req.body.templateId ?? '').toString().trim();
+    if (!templateId) {
+        req.flash('error_msg', 'Template selection is required.');
+        return res.redirect(redirectPath);
+    }
+
+    try {
+        const settings = await getSettings();
+        const currentConfig = getBingoTemplateConfig(settings);
+        const builtInTemplateIds = new Set(['default-weekly', 'halloween-edition']);
+        const templateToDelete = currentConfig.templates.find((template) => template.id === templateId);
+
+        if (!templateToDelete) {
+            req.flash('error_msg', 'Selected Bingo template was not found.');
+            return res.redirect(redirectPath);
+        }
+        if (builtInTemplateIds.has(templateId)) {
+            req.flash('error_msg', 'Built-in Bingo templates cannot be deleted.');
+            return res.redirect(redirectPath);
+        }
+
+        const nextTemplates = currentConfig.templates.filter((template) => template.id !== templateId);
+        const deletingActiveTemplate = currentConfig.activeTemplateId === templateId;
+        const nextActiveTemplate = deletingActiveTemplate
+            ? nextTemplates[0]
+            : currentConfig.activeTemplate;
+
+        if (!nextActiveTemplate) {
+            req.flash('error_msg', 'At least one Bingo template must remain.');
+            return res.redirect(redirectPath);
+        }
+
+        await db.collection('settings').updateOne(
+            { _id: 'appSettings' },
+            {
+                $set: {
+                    bingoTemplates: nextTemplates,
+                    activeBingoTemplateId: nextActiveTemplate.id
+                }
+            }
+        );
+
+        if (deletingActiveTemplate) {
+            await db.collection('users').updateMany({}, { $unset: { bingoProgress: '', bingoTotals: '' } });
+        }
+
+        const remainingImageUrls = new Set(nextTemplates.flatMap(getBingoTemplateImageUrls));
+        await Promise.all(
+            getBingoTemplateImageUrls(templateToDelete)
+                .filter((imageUrl) => !remainingImageUrls.has(imageUrl))
+                .map(deleteBingoGoalImage)
+        );
+
+        req.flash(
+            'success_msg',
+            deletingActiveTemplate
+                ? `Deleted "${templateToDelete.name}" and activated "${nextActiveTemplate.name}". Weekly Bingo progress was reset.`
+                : `Deleted Bingo template "${templateToDelete.name}".`
+        );
+        res.redirect(redirectPath);
+    } catch (error) {
+        console.error('Error deleting Bingo template:', error);
+        req.flash('error_msg', 'Unable to delete Bingo template.');
         res.redirect(redirectPath);
     }
 });
