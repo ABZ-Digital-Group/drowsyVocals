@@ -4875,14 +4875,16 @@ dialog button {
     padding: 10px 14px;
     border: 0;
     background: transparent;
-    color: inherit;
+    color: #242320;
     cursor: pointer;
     font: inherit;
     text-align: left;
 }
 .nav-account-action:hover,
 .nav-account-action:focus-visible {
-    background: rgba(183, 178, 167, 0.2);
+    background-color: #242320;
+    color: #B7B2A7;
+    outline: none;
 }
 .maintenance-body {
     min-height: 100vh;
