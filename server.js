@@ -197,7 +197,9 @@ app.use(async (req, res, next) => {
                 { 'login.discordId': req.session.currentuser },
                 { projection: { isDeveloper: 1, displayName: 1, discordUser: 1, avatarUrl: 1, 'login.discordId': 1 } }
             );
-            req.session.isDeveloper = Boolean(user?.isDeveloper);
+            if (!req.session.previewAsNonAdmin) {
+                req.session.isDeveloper = Boolean(user?.isDeveloper);
+            }
             res.locals.navUser = user ? {
                 displayName: user.displayName || user.discordUser || user.login.discordId,
                 avatarUrl: user.avatarUrl || null,
