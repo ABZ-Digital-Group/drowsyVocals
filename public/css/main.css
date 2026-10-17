@@ -660,6 +660,141 @@ tbody tr:not(.rank-group-header):not(.bingo-rank-header):hover {
     gap: 16px;
 }
 
+.bingo-template-management {
+    margin-top: 18px;
+    border: 1px solid #383734;
+    border-radius: 12px;
+    background: #1f1d1a;
+    overflow: hidden;
+}
+
+.bingo-template-details > summary {
+    list-style: none;
+}
+
+.bingo-template-details > summary::-webkit-details-marker {
+    display: none;
+}
+
+.bingo-template-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px 16px;
+    cursor: pointer;
+    color: #f3efe6;
+}
+
+.bingo-template-summary:hover,
+.bingo-template-summary:focus-visible {
+    background: #2a2824;
+}
+
+.bingo-template-eyebrow,
+.bingo-template-active {
+    display: block;
+}
+
+.bingo-template-eyebrow {
+    margin-bottom: 4px;
+    color: #9f998c;
+    font-size: 0.78em;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.bingo-template-active {
+    color: #d7d2c7;
+    font-size: 0.95em;
+}
+
+.bingo-template-active strong {
+    color: #fbbf24;
+}
+
+.bingo-template-chevron {
+    color: #b7b2a7;
+    transition: transform 160ms ease;
+}
+
+.bingo-template-details[open] .bingo-template-chevron {
+    transform: rotate(180deg);
+}
+
+.bingo-template-content {
+    display: grid;
+    gap: 14px;
+    padding: 0 16px 16px;
+    border-top: 1px solid #383734;
+}
+
+.bingo-template-activation {
+    padding-top: 14px;
+}
+
+.bingo-template-activation form {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin: 0;
+}
+
+.bingo-template-form {
+    display: grid;
+    gap: 10px;
+    padding: 14px;
+    border: 1px solid #383734;
+    border-radius: 10px;
+    background: #242320;
+}
+
+.bingo-template-field {
+    display: grid;
+    gap: 8px;
+}
+
+.bingo-template-field label {
+    color: #f3efe6;
+    font-weight: 700;
+}
+
+.bingo-template-field > span {
+    color: #9f998c;
+    font-size: 0.82em;
+}
+
+.bingo-template-field code {
+    color: #d7d2c7;
+}
+
+.bingo-template-input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px 14px;
+    border: 1px solid #383734;
+    border-radius: 6px;
+    background: #1a1917;
+    color: #f3efe6;
+    font: inherit;
+    outline: none;
+}
+
+textarea.bingo-template-input {
+    resize: vertical;
+}
+
+.bingo-template-input::placeholder {
+    color: #777166;
+}
+
+.bingo-template-input:focus {
+    border-color: #b7b2a7;
+    box-shadow: 0 0 0 2px rgba(183, 178, 167, 0.2);
+}
+
 .bingo-actions-bar {
     display: flex;
     align-items: center;

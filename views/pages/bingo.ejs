@@ -77,41 +77,46 @@
                 </div>
 
                 <% if (canManageBingo) { %>
-                <div style="margin-top: 18px; padding: 16px; border: 1px solid #ece7dc; border-radius: 14px; background: #fffdfa;">
+                <div class="bingo-template-management">
                     <%
                         const activeTemplateGoalsText = (bingoGoals || []).map(function(goal) {
                             return `${goal.target} | ${goal.challenge || ('Complete: ' + goal.target)}`;
                         }).join('\n');
                     %>
-                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin-bottom: 14px;">
-                        <div>
-                            <div style="font-size: 0.85em; color: #8e897e; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;">Template Management</div>
-                            <div style="font-size: 1em; color: #242320; font-weight: 700;">Active Template: <span style="color: #7c3aed;"><%= activeBingoTemplateName %></span></div>
-                        </div>
-                        <form action="/bingo/templates/activate" method="POST" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 0;" onsubmit="return confirm('Switching bingo templates will reset all weekly bingo progress and totals. Continue?');">
-                            <select name="templateId" class="bingo-search-input" style="min-width: 240px;" aria-label="Select active bingo template">
-                                <% bingoTemplates.forEach(function(template) { %>
-                                <option value="<%= template.id %>" <%= template.id === activeBingoTemplateId ? 'selected' : '' %>><%= template.name %> (<%= template.goals.length %> goals)</option>
-                                <% }); %>
-                            </select>
-                            <button type="submit" class="settings-btn settings-btn-secondary">
-                                <span class="material-symbols-outlined">swap_horiz</span>
-                                <span>Activate Template</span>
-                            </button>
-                        </form>
-                    </div>
+                    <details class="bingo-template-details">
+                        <summary class="bingo-template-summary">
+                            <span>
+                                <span class="bingo-template-eyebrow">Template Management</span>
+                                <span class="bingo-template-active">Active Template: <strong><%= activeBingoTemplateName %></strong></span>
+                            </span>
+                            <span class="material-symbols-outlined bingo-template-chevron" aria-hidden="true">expand_more</span>
+                        </summary>
+                        <div class="bingo-template-content">
+                            <div class="bingo-template-activation">
+                                <form action="/bingo/templates/activate" method="POST" onsubmit="return confirm('Switching bingo templates will reset all weekly bingo progress and totals. Continue?');">
+                                    <select name="templateId" class="bingo-template-input" aria-label="Select active bingo template">
+                                        <% bingoTemplates.forEach(function(template) { %>
+                                        <option value="<%= template.id %>" <%= template.id === activeBingoTemplateId ? 'selected' : '' %>><%= template.name %> (<%= template.goals.length %> goals)</option>
+                                        <% }); %>
+                                    </select>
+                                    <button type="submit" class="settings-btn settings-btn-secondary">
+                                        <span class="material-symbols-outlined">swap_horiz</span>
+                                        <span>Activate Template</span>
+                                    </button>
+                                </form>
+                            </div>
 
-                    <form action="/bingo/templates/update" method="POST" style="display: grid; gap: 10px; margin-bottom: 18px; padding: 12px; border: 1px solid #ece7dc; border-radius: 10px; background: #ffffff;">
+                    <form action="/bingo/templates/update" method="POST" class="bingo-template-form">
                         <input type="hidden" name="returnTo" value="/bingo">
                         <input type="hidden" name="templateId" value="<%= activeBingoTemplateId %>">
-                        <div style="display: grid; gap: 8px;">
-                            <label for="activeTemplateName" style="font-weight: 700; color: #242320;">Edit Active Template Name</label>
-                            <input id="activeTemplateName" name="templateName" maxlength="80" required class="bingo-search-input" value="<%= activeBingoTemplateName %>">
+                        <div class="bingo-template-field">
+                            <label for="activeTemplateName">Edit Active Template Name</label>
+                            <input id="activeTemplateName" name="templateName" maxlength="80" required class="bingo-template-input" value="<%= activeBingoTemplateName %>">
                         </div>
-                        <div style="display: grid; gap: 8px;">
-                            <label for="activeGoalsText" style="font-weight: 700; color: #242320;">Edit Active Template Goals</label>
-                            <textarea id="activeGoalsText" name="goalsText" required rows="8" class="bingo-search-input" style="resize: vertical;"><%= activeTemplateGoalsText %></textarea>
-                            <span style="font-size: 0.82em; color: #8e897e;">One goal per line using: <code>Target | Challenge description</code>.</span>
+                        <div class="bingo-template-field">
+                            <label for="activeGoalsText">Edit Active Template Goals</label>
+                            <textarea id="activeGoalsText" name="goalsText" required rows="8" class="bingo-template-input"><%= activeTemplateGoalsText %></textarea>
+                            <span>One goal per line using: <code>Target | Challenge description</code>.</span>
                         </div>
                         <div>
                             <button type="submit" class="settings-btn settings-btn-secondary" onclick="return confirm('Update the active template with these new goals?');">
@@ -121,15 +126,15 @@
                         </div>
                     </form>
 
-                    <form action="/bingo/templates" method="POST" style="display: grid; gap: 10px;">
-                        <div style="display: grid; gap: 8px;">
-                            <label for="templateName" style="font-weight: 700; color: #242320;">Create New Template</label>
-                            <input id="templateName" name="templateName" maxlength="80" required class="bingo-search-input" placeholder="Example: Halloween Week Board">
+                    <form action="/bingo/templates" method="POST" class="bingo-template-form">
+                        <div class="bingo-template-field">
+                            <label for="templateName">Create New Template</label>
+                            <input id="templateName" name="templateName" maxlength="80" required class="bingo-template-input" placeholder="Example: Halloween Week Board">
                         </div>
-                        <div style="display: grid; gap: 8px;">
-                            <label for="goalsText" style="font-weight: 700; color: #242320;">Goals (one per line)</label>
-                            <textarea id="goalsText" name="goalsText" required rows="8" class="bingo-search-input" style="resize: vertical;" placeholder="3 HP | Earn 3 House Points this week&#10;2500 CC | Collect 2,500 Casino Coins"></textarea>
-                            <span style="font-size: 0.82em; color: #8e897e;">Use 1-30 lines. Format: <code>Target | Challenge description</code>. If challenge is omitted, it defaults to “Complete: Target”.</span>
+                        <div class="bingo-template-field">
+                            <label for="goalsText">Goals (one per line)</label>
+                            <textarea id="goalsText" name="goalsText" required rows="8" class="bingo-template-input" placeholder="3 HP | Earn 3 House Points this week&#10;2500 CC | Collect 2,500 Casino Coins"></textarea>
+                            <span>Use 1-30 lines. Format: <code>Target | Challenge description</code>. If challenge is omitted, it defaults to “Complete: Target”.</span>
                         </div>
                         <div>
                             <button type="submit" class="settings-btn settings-btn-primary">
@@ -138,6 +143,8 @@
                             </button>
                         </div>
                     </form>
+                        </div>
+                    </details>
                 </div>
                 <% } %>
 
