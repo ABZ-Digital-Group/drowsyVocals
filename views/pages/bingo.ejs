@@ -80,7 +80,11 @@
                 <div class="bingo-template-management">
                     <%
                         const activeTemplateGoalsText = (bingoGoals || []).map(function(goal) {
-                            return `${goal.target} | ${goal.challenge || ('Complete: ' + goal.target)}`;
+                            const rewardValue = Number(goal.rewardValue);
+                            const target = rewardValue && !/\d/.test(goal.target || '')
+                                ? `${rewardValue} ${(goal.group || '').toUpperCase()}`.trim()
+                                : goal.target;
+                            return `${target} | ${goal.challenge || ('Complete: ' + target)}`;
                         }).join('\n');
                     %>
                     <details class="bingo-template-details">
