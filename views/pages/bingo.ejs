@@ -146,20 +146,18 @@
                         </div>
                         <div class="bingo-template-images">
                             <div class="bingo-template-image-heading">Image-only filler spaces (optional)</div>
-                            <span>Choose a card position for each image. The centre position is reserved for the centre space.</span>
-                            <% for (let fillerIndex = 0; fillerIndex < 5; fillerIndex += 1) { %>
-                            <label class="bingo-template-image-field">
-                                <span>Filler image <%= fillerIndex + 1 %></span>
-                                <select name="fillerPositions" class="bingo-template-input">
-                                    <option value="">No image</option>
-                                    <% for (let position = 0; position < 25; position += 1) { if (position !== 12) { %>
-                                    <option value="<%= position %>" <%= fillerSlots[fillerIndex]?.position === position ? 'selected' : '' %>>Card space <%= position + 1 %></option>
-                                    <% } } %>
-                                </select>
-                                <input type="file" name="fillerImages[<%= fillerIndex %>]" accept="image/png,image/jpeg,image/webp">
-                                <% if (fillerSlots[fillerIndex]) { %><img src="<%= fillerSlots[fillerIndex].imageUrl %>" alt="Current filler image"><% } %>
+                            <span>Upload an image directly into any card space. The centre position is reserved for the centre space.</span>
+                            <div class="bingo-filler-position-grid">
+                            <% for (let position = 0; position < 25; position += 1) { if (position !== 12) {
+                                const filler = (fillerSlots || []).find(function(slot) { return slot.position === position; });
+                            %>
+                            <label class="bingo-filler-position">
+                                <span>Space <%= position + 1 %></span>
+                                <% if (filler) { %><img src="<%= filler.imageUrl %>" alt="Current filler image"><% } %>
+                                <input type="file" name="fillerImages[<%= position %>]" accept="image/png,image/jpeg,image/webp" aria-label="Upload filler image for space <%= position + 1 %>">
                             </label>
-                            <% } %>
+                            <% } } %>
+                            </div>
                         </div>
                         <div>
                             <button type="submit" class="settings-btn settings-btn-secondary" onclick="return confirm('Update the active template with these new goals?');">

@@ -814,6 +814,38 @@ textarea.bingo-template-input {
     font-size: 0.82em;
 }
 
+.bingo-filler-position-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(120px, 1fr));
+    gap: 8px;
+}
+
+.bingo-filler-position {
+    display: grid;
+    gap: 6px;
+    min-height: 90px;
+    padding: 8px;
+    border: 1px solid #383734;
+    border-radius: 7px;
+    background: #242320;
+    color: #d7d2c7;
+    font-size: 0.8em;
+}
+
+.bingo-filler-position img {
+    width: 100%;
+    height: 42px;
+    object-fit: contain;
+    border-radius: 4px;
+}
+
+.bingo-filler-position input[type="file"] {
+    width: 100%;
+    min-width: 0;
+    color: #9f998c;
+    font: inherit;
+}
+
 .bingo-template-image-field {
     display: grid;
     grid-template-columns: minmax(140px, 1fr) minmax(180px, 1fr) 70px;
