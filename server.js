@@ -535,6 +535,21 @@ app.post('/check-ins', requireDatabase, (req, res) => checkInUpload.single('atta
         ]);
         if (!targetUser) return res.status(404).send('The selected user could not be found.');
 
+        if (req.file) {
+            const attachmentData = await fs.promises.readFile(req.file.path);
+            await db.collection('checkInAttachments').updateOne(
+                { _id: req.file.filename },
+                {
+                    $set: {
+                        contentType: req.file.mimetype,
+                        data: attachmentData,
+                        updatedAt: new Date()
+                    }
+                },
+                { upsert: true }
+            );
+        }
+
         await db.collection('checkIns').insertOne({
             targetDiscordId,
             targetDisplayName: targetUser.displayName || targetUser.discordUser || targetDiscordId,
@@ -644,6 +659,14 @@ app.get('/check-ins/:checkInId/attachment/:filename', requireDatabase, async (re
         const checkIn = await db.collection('checkIns').findOne({ _id: new ObjectId(req.params.checkInId) });
         const attachment = checkIn?.attachments?.find((item) => item.filename === req.params.filename);
         if (!checkIn || !attachment || !canViewCheckIn(req, checkIn)) return res.status(404).send('Attachment not found.');
+        const storedAttachment = await db.collection('checkInAttachments').findOne(
+            { _id: attachment.filename },
+            { projection: { contentType: 1, data: 1 } }
+        );
+        if (storedAttachment?.data) {
+            return res.type(storedAttachment.contentType || attachment.mimeType || 'application/octet-stream')
+                .send(storedAttachment.data.buffer || storedAttachment.data);
+        }
         return res.sendFile(path.join(CHECK_IN_UPLOAD_DIR, path.basename(attachment.filename)));
     } catch (error) {
         console.error('Error loading check-in attachment:', error);
