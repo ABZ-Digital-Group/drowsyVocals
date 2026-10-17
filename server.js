@@ -6709,7 +6709,8 @@ app.get('/bingo', requireDatabase, async (req, res) => {
             totalBingoHp,
             totalBingoCc,
             houseColorMap,
-            canManageBingo: hasManagementAccess(req)
+            canManageBingo: hasManagementAccess(req),
+            canManageBingoTemplates: hasGodAccess(req)
         });
     } catch (error) {
         console.error('Error loading Bingo board:', error);
@@ -6864,7 +6865,7 @@ app.post('/bingo/reset', requireDatabase, async (req, res) => {
 // CREATE A NEW BINGO TEMPLATE
 app.post('/bingo/templates', requireDatabase, handleBingoTemplateUpload, async (req, res) => {
     const redirectPath = resolveBingoReturnPath(req.body.returnTo, '/bingo');
-    if (!req.session.loggedin || !hasManagementAccess(req)) {
+    if (!req.session.loggedin || !hasGodAccess(req)) {
         req.flash('error_msg', 'You are not authorized to create Bingo templates.');
         return res.redirect(redirectPath);
     }
@@ -6941,7 +6942,7 @@ app.post('/bingo/templates', requireDatabase, handleBingoTemplateUpload, async (
 // UPDATE AN EXISTING BINGO TEMPLATE
 app.post('/bingo/templates/update', requireDatabase, handleBingoTemplateUpload, async (req, res) => {
     const redirectPath = resolveBingoReturnPath(req.body.returnTo, '/bingo');
-    if (!req.session.loggedin || !hasManagementAccess(req)) {
+    if (!req.session.loggedin || !hasGodAccess(req)) {
         req.flash('error_msg', 'You are not authorized to edit Bingo templates.');
         return res.redirect(redirectPath);
     }
@@ -7041,7 +7042,7 @@ app.post('/bingo/templates/update', requireDatabase, handleBingoTemplateUpload, 
 // DELETE A USER-CREATED BINGO TEMPLATE
 app.post('/bingo/templates/delete', requireDatabase, async (req, res) => {
     const redirectPath = resolveBingoReturnPath(req.body.returnTo, '/bingo');
-    if (!req.session.loggedin || !hasManagementAccess(req)) {
+    if (!req.session.loggedin || !hasGodAccess(req)) {
         req.flash('error_msg', 'You are not authorized to delete Bingo templates.');
         return res.redirect(redirectPath);
     }
@@ -7116,7 +7117,7 @@ app.post('/bingo/templates/delete', requireDatabase, async (req, res) => {
 // ACTIVATE A BINGO TEMPLATE AND RESET WEEKLY PROGRESS
 app.post('/bingo/templates/activate', requireDatabase, async (req, res) => {
     const redirectPath = resolveBingoReturnPath(req.body.returnTo, '/bingo');
-    if (!req.session.loggedin || !hasManagementAccess(req)) {
+    if (!req.session.loggedin || !hasGodAccess(req)) {
         req.flash('error_msg', 'You are not authorized to switch Bingo templates.');
         return res.redirect(redirectPath);
     }
