@@ -40,7 +40,10 @@ main{
     width: 100%;
 }
 .splash-page {
-    background-color: #242320;
+    --space-angel: #163E62;
+    --bridal-white: #F2F1F2;
+    --york-plum: #DAC2EB;
+    background-color: var(--space-angel);
     transition: opacity 350ms ease;
 }
 .splash-page.splash-leaving {
@@ -54,7 +57,7 @@ main{
     justify-content: center;
     gap: 20px;
     padding: 32px;
-    color: #B7B2A7;
+    color: var(--bridal-white);
     text-align: center;
     animation: splash-enter 500ms ease-out both;
 }
@@ -64,6 +67,7 @@ main{
 }
 .splash p {
     margin: 0;
+    color: var(--york-plum);
     font-size: 1.2em;
     font-weight: bold;
 }
