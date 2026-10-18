@@ -5504,6 +5504,24 @@ dialog button {
     border-color: var(--misty-blue) !important;
     color: var(--dusty-blue-purple) !important;
 }
+.settings-group[data-section="obs"] .settings-card {
+    background: var(--cloud-lilac);
+    border-color: var(--misty-blue);
+    color: var(--night-indigo);
+}
+.settings-group[data-section="obs"] .settings-card-title {
+    color: var(--night-indigo);
+}
+.settings-group[data-section="obs"] .settings-card-desc {
+    color: var(--dusty-blue-purple);
+}
+.obs-preview {
+    background: var(--cloud-white) !important;
+    border-color: var(--misty-blue) !important;
+}
+.obs-preview h4 {
+    color: #087F5B !important;
+}
 
 .bingo-cell.is-complete .bingo-goal-btn,
 .bingo-cell.is-complete .bingo-goal-static,
