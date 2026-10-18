@@ -10,7 +10,7 @@
 			<section class="settings-page">
 				<div class="settings-header">
 					<p class="profile-eyebrow">Community Programming</p>
-					<h1 style="margin: 0; font-size: 2.4em; color: #242320;">Pop-up Events</h1>
+					<h1 style="margin: 0; font-size: 2.4em; color: var(--space-angel);">Pop-up Events</h1>
 					<p class="profile-subtitle">One-off events, special announcements, and spontaneous community activities.</p>
 					<div class="settings-stats-bar">
 						<div class="settings-stat-item">
@@ -36,16 +36,16 @@
 						<div class="account-card">
 							<div class="account-card-header"><h3 class="account-card-title"><span class="material-symbols-outlined">bolt</span><span>Upcoming Pop-up Events</span></h3><span class="account-badge"><%= upcomingEvents.length %> Upcoming</span></div>
 							<% if (!upcomingEvents.length) { %>
-							<div style="background: #1a1917; border: 1px solid #383734; border-radius: 6px; padding: 36px 16px; text-align: center; color: #8e897e;"><span class="material-symbols-outlined" style="font-size: 2.8em; color: #6f6a60;">event_busy</span><h4 style="margin: 8px 0 4px; color: #f3efe6;">No Pop-up Events Scheduled</h4><p style="margin: 0; font-size: .85em;">Special events will appear here once scheduled.</p></div>
+							<div style="background: var(--space-angel); border: 1px solid var(--breonne-blue); border-radius: 6px; padding: 36px 16px; text-align: center; color: var(--galm-day);"><span class="material-symbols-outlined" style="font-size: 2.8em; color: var(--breonne-blue);">event_busy</span><h4 style="margin: 8px 0 4px; color: var(--bridal-white);">No Pop-up Events Scheduled</h4><p style="margin: 0; font-size: .85em;">Special events will appear here once scheduled.</p></div>
 							<% } else { %>
 							<div style="display: flex; flex-direction: column; gap: 14px;">
 								<% upcomingEvents.forEach(function(event) { %>
-								<article style="background: #1a1917; border: 1px solid #383734; border-left: 4px solid #fbbf24; border-radius: 6px; padding: 18px;">
+								<article style="background: var(--space-angel); border: 1px solid var(--breonne-blue); border-left: 4px solid #fbbf24; border-radius: 6px; padding: 18px;">
 									<div style="display: flex; justify-content: space-between; gap: 12px; align-items: flex-start;">
-										<div><h4 style="margin: 0; color: #f3efe6; font-size: 1.2em;"><%= event.title %></h4><span style="display: block; margin-top: 5px; color: #8e897e;">📍 <%= event.location || 'Discord' %></span><% if (event.host) { const hostUser = (users || []).find((user) => user.login?.discordId === event.host); %><span style="display: block; margin-top: 5px; color: #d0cdc5;">Host: <%= hostUser ? (hostUser.displayName || hostUser.discordUser) : event.host %></span><% } %></div>
+										<div><h4 style="margin: 0; color: var(--bridal-white); font-size: 1.2em;"><%= event.title %></h4><span style="display: block; margin-top: 5px; color: var(--galm-day);">📍 <%= event.location || 'Discord' %></span><% if (event.host) { const hostUser = (users || []).find((user) => user.login?.discordId === event.host); %><span style="display: block; margin-top: 5px; color: var(--york-plum);">Host: <%= hostUser ? (hostUser.displayName || hostUser.discordUser) : event.host %></span><% } %></div>
 										<time style="color: #fbbf24; font-weight: bold; text-align: right; white-space: nowrap;"><%= new Date(event.scheduledStartTime).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) %></time>
 									</div>
-									<% if (event.description) { %><p style="margin: 12px 0 0; color: #d0cdc5; line-height: 1.5; white-space: pre-wrap;"><%= event.description %></p><% } %>
+									<% if (event.description) { %><p style="margin: 12px 0 0; color: var(--york-plum); line-height: 1.5; white-space: pre-wrap;"><%= event.description %></p><% } %>
 									<% if (isManager) { %>
 									<div style="display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid #282724; padding-top: 10px; margin-top: 12px;"><button type="button" class="settings-btn settings-btn-secondary settings-btn-sm editPopupBtn" data-id="<%= event.id || event._id %>" data-title="<%= event.title %>" data-location="<%= event.location || 'Discord' %>" data-host="<%= event.host || '' %>" data-description="<%= event.description || '' %>" data-start="<%= event.scheduledStartTime %>" data-end="<%= event.scheduledEndTime || '' %>"><span class="material-symbols-outlined">edit</span>Edit</button><form action="/pop-up/<%= event.id || event._id %>/delete" method="POST" onsubmit="return confirm('Remove this pop-up event?')"><button type="submit" class="settings-btn settings-btn-danger settings-btn-sm"><span class="material-symbols-outlined">delete</span>Delete</button></form></div>
 									<% } %>
@@ -54,7 +54,7 @@
 							</div>
 							<% } %>
 						</div>
-						<% if (pastEvents.length) { %><details class="settings-accordion"><summary><span class="material-symbols-outlined">history</span><span>Past Pop-up Events (<%= pastEvents.length %>)</span></summary><div class="settings-accordion-content"><% pastEvents.forEach(function(event) { %><div style="padding: 10px 0; border-bottom: 1px solid #333;"><strong style="color: #d0cdc5;"><%= event.title %></strong><span style="display: block; color: #8e897e; font-size: .8em;"><%= new Date(event.scheduledStartTime).toLocaleString() %> · <%= event.location || 'Discord' %></span></div><% }); %></div></details><% } %>
+						<% if (pastEvents.length) { %><details class="settings-accordion"><summary><span class="material-symbols-outlined">history</span><span>Past Pop-up Events (<%= pastEvents.length %>)</span></summary><div class="settings-accordion-content"><% pastEvents.forEach(function(event) { %><div style="padding: 10px 0; border-bottom: 1px solid #333;"><strong style="color: var(--york-plum);"><%= event.title %></strong><span style="display: block; color: var(--galm-day); font-size: .8em;"><%= new Date(event.scheduledStartTime).toLocaleString() %> · <%= event.location || 'Discord' %></span></div><% }); %></div></details><% } %>
 					</div>
 
 					<div class="account-column"><% if (isManager) { %>
@@ -69,7 +69,7 @@
 								<button type="submit" class="account-btn account-btn-primary"><span class="material-symbols-outlined">bolt</span>Schedule Pop-up</button>
 							</form>
 						</div>
-					<% } else { %><div class="account-card"><div class="account-card-header"><h3 class="account-card-title"><span class="material-symbols-outlined">info</span><span>About Pop-up Events</span></h3></div><p style="margin: 0; color: #d0cdc5; line-height: 1.6;">Pop-up events are special activities announced for a limited time. Check this page for the latest details and times.</p></div><% } %></div>
+					<% } else { %><div class="account-card"><div class="account-card-header"><h3 class="account-card-title"><span class="material-symbols-outlined">info</span><span>About Pop-up Events</span></h3></div><p style="margin: 0; color: var(--york-plum); line-height: 1.6;">Pop-up events are special activities announced for a limited time. Check this page for the latest details and times.</p></div><% } %></div>
 				</div>
 			</section>
 		</main>

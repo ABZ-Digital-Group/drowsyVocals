@@ -15,7 +15,7 @@
                     <div class="settings-header-top">
                         <div>
                             <p class="profile-eyebrow">Community & Programming</p>
-                            <h1 style="margin: 0; font-size: 2.4em; color: #242320;">Events Schedule & Calendar</h1>
+                            <h1 style="margin: 0; font-size: 2.4em; color: var(--space-angel);">Events Schedule & Calendar</h1>
                             <p class="profile-subtitle">Upcoming karaoke sessions, stage events, staff meetings, and community activities.</p>
                         </div>
                     </div>
@@ -80,31 +80,31 @@
                                 <span class="account-badge"><%= upcomingEvents.length %> Upcoming</span>
                             </div>
 
-                            <div class="events-tz-bar" style="background: #1a1917; border: 1px solid #383734; border-radius: 6px; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; font-size: 0.85em; color: #8e897e;">
+                            <div class="events-tz-bar" style="background: var(--space-angel); border: 1px solid var(--breonne-blue); border-radius: 6px; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; font-size: 0.85em; color: var(--galm-day);">
                                 <div style="display: flex; align-items: center; gap: 8px;">
                                     <span class="material-symbols-outlined" style="font-size: 1.2em; color: #60a5fa; background: transparent; padding: 0;">schedule</span>
-                                    <span>All event times shown in your local timezone: <strong id="eventsUserTimezone" style="color: #f3efe6;">Local Time</strong></span>
+                                    <span>All event times shown in your local timezone: <strong id="eventsUserTimezone" style="color: var(--bridal-white);">Local Time</strong></span>
                                 </div>
                                 <span id="eventsUserOffset" style="font-size: 0.85em; color: #fbbf24; font-weight: bold;"></span>
                             </div>
 
                             <% if (!upcomingEvents || upcomingEvents.length === 0) { %>
-                            <div style="background: #1a1917; border: 1px solid #383734; border-radius: 6px; padding: 36px 16px; text-align: center; color: #8e897e;">
-                                <span class="material-symbols-outlined" style="font-size: 2.8em; color: #6f6a60;" aria-hidden="true">event_busy</span>
-                                <h4 style="margin: 8px 0 4px; color: #f3efe6;">No Upcoming Events Scheduled</h4>
+                            <div style="background: var(--space-angel); border: 1px solid var(--breonne-blue); border-radius: 6px; padding: 36px 16px; text-align: center; color: var(--galm-day);">
+                                <span class="material-symbols-outlined" style="font-size: 2.8em; color: var(--breonne-blue);" aria-hidden="true">event_busy</span>
+                                <h4 style="margin: 8px 0 4px; color: var(--bridal-white);">No Upcoming Events Scheduled</h4>
                                 <p style="margin: 0; font-size: 0.85em;">Check back soon or schedule a new community event using the manager form.</p>
                             </div>
                             <% } else { %>
                             <div style="display: flex; flex-direction: column; gap: 14px;">
                                 <% upcomingEvents.forEach(function(event) { %>
-                                <div style="background: #1a1917; border: 1px solid #383734; border-left: 4px solid <%= event.category === 'Karaoke' ? '#60a5fa' : event.category === 'Staff Meeting' ? '#fbbf24' : '#a78bfa' %>; border-radius: 6px; padding: 18px; display: flex; flex-direction: column; gap: 10px;">
+                                <div style="background: var(--space-angel); border: 1px solid var(--breonne-blue); border-left: 4px solid <%= event.category === 'Karaoke' ? '#60a5fa' : event.category === 'Staff Meeting' ? '#fbbf24' : '#a78bfa' %>; border-radius: 6px; padding: 18px; display: flex; flex-direction: column; gap: 10px;">
                                     <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px;">
                                         <div>
                                             <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                                                <span class="settings-badge" style="background:#242320;border:1px solid #444;font-size:0.75em;"><%= event.category || 'Event' %></span>
-                                                <h4 style="margin: 0; font-size: 1.2em; color: #f3efe6;"><%= event.title %></h4>
+                                                <span class="settings-badge" style="background:var(--space-angel);border:1px solid #444;font-size:0.75em;"><%= event.category || 'Event' %></span>
+                                                <h4 style="margin: 0; font-size: 1.2em; color: var(--bridal-white);"><%= event.title %></h4>
                                             </div>
-                                            <span style="font-size: 0.8em; color: #8e897e; margin-top: 4px; display: block;">
+                                            <span style="font-size: 0.8em; color: var(--galm-day); margin-top: 4px; display: block;">
                                                 📍 <%= event.location || 'Discord Stage' %>
                                             </span>
                                         </div>
@@ -113,7 +113,7 @@
                                             <span class="event-time-primary" style="font-size: 1em; font-weight: bold; color: #fbbf24; display: block;">
                                                 <%= new Date(event.scheduledStartTime).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) %>
                                             </span>
-                                            <small class="event-time-secondary" style="color: #8e897e; display: block;">
+                                            <small class="event-time-secondary" style="color: var(--galm-day); display: block;">
                                                 <% if (event.scheduledEndTime) { %>until <%= new Date(event.scheduledEndTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) %><% } %>
                                             </small>
                                             <span class="event-time-relative" style="display: inline-block; font-size: 0.72em; padding: 2px 6px; border-radius: 4px; margin-top: 4px; font-weight: bold;"></span>
@@ -130,26 +130,26 @@
                                         %>
 
                                         <% if (hostUser || event.host) { %>
-                                        <span class="settings-badge" style="background:#242320; border:1px solid #383734; font-size:0.75em; display: inline-flex; align-items: center; gap: 4px; color: #f3efe6;">
+                                        <span class="settings-badge" style="background:var(--space-angel); border:1px solid var(--breonne-blue); font-size:0.75em; display: inline-flex; align-items: center; gap: 4px; color: var(--bridal-white);">
                                             <span class="material-symbols-outlined" style="font-size: 1.1em; color: #60a5fa; background: transparent; padding: 0;">mic</span>
                                             <strong>Host:</strong> <%= hostUser ? (hostUser.displayName || hostUser.discordUser) : event.host %>
                                         </span>
                                         <% } else { %>
-                                        <span class="settings-badge" style="background:#242320; border:1px solid #383734; font-size:0.75em; display: inline-flex; align-items: center; gap: 4px; color: #8e897e;">
-                                            <span class="material-symbols-outlined" style="font-size: 1.1em; color: #8e897e; background: transparent; padding: 0;">person</span>
+                                        <span class="settings-badge" style="background:var(--space-angel); border:1px solid var(--breonne-blue); font-size:0.75em; display: inline-flex; align-items: center; gap: 4px; color: var(--galm-day);">
+                                            <span class="material-symbols-outlined" style="font-size: 1.1em; color: var(--galm-day); background: transparent; padding: 0;">person</span>
                                             <strong>Organizer:</strong> <%= creatorUser ? (creatorUser.displayName || creatorUser.discordUser) : event.createdBy %>
                                         </span>
                                         <% } %>
 
                                         <% if (coHostUser || event.coHost) { %>
-                                        <span class="settings-badge" style="background:#242320; border:1px solid #383734; font-size:0.75em; display: inline-flex; align-items: center; gap: 4px; color: #f3efe6;">
+                                        <span class="settings-badge" style="background:var(--space-angel); border:1px solid var(--breonne-blue); font-size:0.75em; display: inline-flex; align-items: center; gap: 4px; color: var(--bridal-white);">
                                             <span class="material-symbols-outlined" style="font-size: 1.1em; color: #34d399; background: transparent; padding: 0;">group</span>
                                             <strong>Co-Host:</strong> <%= coHostUser ? (coHostUser.displayName || coHostUser.discordUser) : event.coHost %>
                                         </span>
                                         <% } %>
 
                                         <% if (adminUser || event.admin) { %>
-                                        <span class="settings-badge" style="background:#242320; border:1px solid #383734; font-size:0.75em; display: inline-flex; align-items: center; gap: 4px; color: #f3efe6;">
+                                        <span class="settings-badge" style="background:var(--space-angel); border:1px solid var(--breonne-blue); font-size:0.75em; display: inline-flex; align-items: center; gap: 4px; color: var(--bridal-white);">
                                             <span class="material-symbols-outlined" style="font-size: 1.1em; color: #fbbf24; background: transparent; padding: 0;">shield_person</span>
                                             <strong>Admin:</strong> <%= adminUser ? (adminUser.displayName || adminUser.discordUser) : event.admin %>
                                         </span>
@@ -157,7 +157,7 @@
                                     </div>
 
                                     <% if (event.description) { %>
-                                    <p style="margin: 0; color: #d0cdc5; font-size: 0.9em; line-height: 1.5; white-space: pre-wrap;"><%= event.description %></p>
+                                    <p style="margin: 0; color: var(--york-plum); font-size: 0.9em; line-height: 1.5; white-space: pre-wrap;"><%= event.description %></p>
                                     <% } %>
 
                                     <% if (isManager) { %>
@@ -197,20 +197,20 @@
                                 <span class="account-badge"><%= upcomingPopUps.length %> Upcoming</span>
                             </div>
                             <% if (!upcomingPopUps.length) { %>
-                            <div style="background: #1a1917; border: 1px solid #383734; border-radius: 6px; padding: 24px 16px; text-align: center; color: #8e897e;">
-                                <span class="material-symbols-outlined" style="font-size: 2.2em; color: #6f6a60;">event_busy</span>
-                                <h4 style="margin: 8px 0 4px; color: #f3efe6;">No Pop-up Events Scheduled</h4>
+                            <div style="background: var(--space-angel); border: 1px solid var(--breonne-blue); border-radius: 6px; padding: 24px 16px; text-align: center; color: var(--galm-day);">
+                                <span class="material-symbols-outlined" style="font-size: 2.2em; color: var(--breonne-blue);">event_busy</span>
+                                <h4 style="margin: 8px 0 4px; color: var(--bridal-white);">No Pop-up Events Scheduled</h4>
                                 <p style="margin: 0; font-size: 0.85em;">Special events will appear here once scheduled.</p>
                             </div>
                             <% } else { %>
                             <div style="display: flex; flex-direction: column; gap: 14px;">
                                 <% upcomingPopUps.forEach(function(event) { %>
-                                <article style="background: #1a1917; border: 1px solid #383734; border-left: 4px solid #fbbf24; border-radius: 6px; padding: 18px;">
+                                <article style="background: var(--space-angel); border: 1px solid var(--breonne-blue); border-left: 4px solid #fbbf24; border-radius: 6px; padding: 18px;">
                                     <div style="display: flex; justify-content: space-between; gap: 12px; align-items: flex-start;">
-                                        <div><span class="settings-badge" style="background:#242320;border:1px solid #444;font-size:0.75em;">Pop-up</span><h4 style="margin: 8px 0 0; color: #f3efe6; font-size: 1.2em;"><%= event.title %></h4><span style="display: block; margin-top: 5px; color: #8e897e;">📍 <%= event.location || 'Discord' %></span><% if (event.host) { const hostUser = (users || []).find((user) => user.login?.discordId === event.host); %><span style="display: block; margin-top: 5px; color: #d0cdc5;">Host: <%= hostUser ? (hostUser.displayName || hostUser.discordUser) : event.host %></span><% } %></div>
+                                        <div><span class="settings-badge" style="background:var(--space-angel);border:1px solid #444;font-size:0.75em;">Pop-up</span><h4 style="margin: 8px 0 0; color: var(--bridal-white); font-size: 1.2em;"><%= event.title %></h4><span style="display: block; margin-top: 5px; color: var(--galm-day);">📍 <%= event.location || 'Discord' %></span><% if (event.host) { const hostUser = (users || []).find((user) => user.login?.discordId === event.host); %><span style="display: block; margin-top: 5px; color: var(--york-plum);">Host: <%= hostUser ? (hostUser.displayName || hostUser.discordUser) : event.host %></span><% } %></div>
                                         <time style="color: #fbbf24; font-weight: bold; text-align: right; white-space: nowrap;"><%= new Date(event.scheduledStartTime).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) %></time>
                                     </div>
-                                    <% if (event.description) { %><p style="margin: 12px 0 0; color: #d0cdc5; line-height: 1.5; white-space: pre-wrap;"><%= event.description %></p><% } %>
+                                    <% if (event.description) { %><p style="margin: 12px 0 0; color: var(--york-plum); line-height: 1.5; white-space: pre-wrap;"><%= event.description %></p><% } %>
                                     <% if (isManager) { %><div style="display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid #282724; padding-top: 10px; margin-top: 12px;"><button type="button" class="settings-btn settings-btn-secondary settings-btn-sm editPopupBtn" data-id="<%= event.id || event._id %>" data-title="<%= event.title %>" data-location="<%= event.location || 'Discord' %>" data-host="<%= event.host || '' %>" data-description="<%= event.description || '' %>" data-start="<%= event.scheduledStartTime %>" data-end="<%= event.scheduledEndTime || '' %>"><span class="material-symbols-outlined">edit</span>Edit</button><form action="/pop-up/<%= event.id || event._id %>/delete" method="POST" onsubmit="return confirm('Remove this pop-up event?')"><button type="submit" class="settings-btn settings-btn-danger settings-btn-sm"><span class="material-symbols-outlined">delete</span>Delete</button></form></div><% } %>
                                 </article>
                                 <% }); %>
@@ -230,8 +230,8 @@
                                     <% pastEvents.slice(0, 10).forEach(function(event) { %>
                                     <div style="background: #111; padding: 10px 14px; border-radius: 4px; border: 1px solid #333; display: flex; justify-content: space-between; align-items: center;">
                                         <div>
-                                            <strong style="color: #d0cdc5;"><%= event.title %></strong>
-                                            <span class="past-event-time" data-event-start="<%= event.scheduledStartTime %>" style="font-size: 0.75em; color: #8e897e; display: block;">
+                                            <strong style="color: var(--york-plum);"><%= event.title %></strong>
+                                            <span class="past-event-time" data-event-start="<%= event.scheduledStartTime %>" style="font-size: 0.75em; color: var(--galm-day); display: block;">
                                                 <%= (event.scheduledStartTime || '').slice(0, 10) %> · <%= event.category %>
                                             </span>
                                         </div>
@@ -334,9 +334,9 @@
                                     </div>
                                 </div>
 
-                                <p style="margin: 4px 0 0; font-size: 0.8em; color: #8e897e; display: flex; align-items: center; gap: 6px;">
+                                <p style="margin: 4px 0 0; font-size: 0.8em; color: var(--galm-day); display: flex; align-items: center; gap: 6px;">
                                     <span class="material-symbols-outlined" style="font-size: 1.1em; color: #60a5fa; background: transparent; padding: 0;">schedule</span>
-                                    <span>Times you select above are in your local timezone (<strong class="form-user-tz" style="color: #d0cdc5;">Local</strong>) and automatically converted for all viewers worldwide.</span>
+                                    <span>Times you select above are in your local timezone (<strong class="form-user-tz" style="color: var(--york-plum);">Local</strong>) and automatically converted for all viewers worldwide.</span>
                                 </p>
 
                                 <div class="settings-form-group" style="margin-bottom: 0;">
@@ -371,7 +371,7 @@
                                     <span>Event Participation Guide</span>
                                 </h3>
                             </div>
-                            <p style="margin: 0; color: #d0cdc5; font-size: 0.9em; line-height: 1.6;">
+                            <p style="margin: 0; color: var(--york-plum); font-size: 0.9em; line-height: 1.6;">
                                 Join the specified voice/stage channel on Discord when the event starts. Stage events allow you to join the queue with <code>!join</code> or using the button on the control room embed.
                             </p>
                         </div>
@@ -384,7 +384,7 @@
         <section class="settings-page" style="padding-top: 0;">
             <details class="settings-accordion">
                 <summary><span class="material-symbols-outlined">history</span><span>Past Pop-up Events (<%= pastPopUps.length %>)</span></summary>
-                <div class="settings-accordion-content"><% pastPopUps.forEach(function(event) { %><div style="padding: 10px 0; border-bottom: 1px solid #333;"><strong style="color: #d0cdc5;"><%= event.title %></strong><span style="display: block; color: #8e897e; font-size: .8em;"><%= new Date(event.scheduledStartTime).toLocaleString() %> · <%= event.location || 'Discord' %></span></div><% }); %></div>
+                <div class="settings-accordion-content"><% pastPopUps.forEach(function(event) { %><div style="padding: 10px 0; border-bottom: 1px solid #333;"><strong style="color: var(--york-plum);"><%= event.title %></strong><span style="display: block; color: var(--galm-day); font-size: .8em;"><%= new Date(event.scheduledStartTime).toLocaleString() %> · <%= event.location || 'Discord' %></span></div><% }); %></div>
             </details>
         </section>
         <% } %>
@@ -425,9 +425,9 @@
         <% } %>
         <% if (isManager) { %>
         <dialog id="editEventPopup" class="dialog-wide">
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #242320; padding-bottom: 12px; margin-bottom: 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--space-angel); padding-bottom: 12px; margin-bottom: 16px;">
                 <h3 style="margin: 0; font-size: 1.25em; display: flex; align-items: center; gap: 8px;">
-                    <span class="material-symbols-outlined" style="background: transparent; color: #242320;">edit_calendar</span>
+                    <span class="material-symbols-outlined" style="background: transparent; color: var(--space-angel);">edit_calendar</span>
                     <span>Edit Scheduled Event</span>
                 </h3>
                 <button type="button" id="closeEditEventCross" style="background:none;border:none;color:inherit;cursor:pointer;font-size:1.4em;font-weight:bold;line-height:1;">&times;</button>
@@ -476,7 +476,7 @@
                 </div>
 
                 <p style="margin: 6px 0 0; font-size: 0.8em; color: #4c483f; display: flex; align-items: center; gap: 6px;">
-                    <span class="material-symbols-outlined" style="font-size: 1.1em; color: #242320; background: transparent; padding: 0;">schedule</span>
+                    <span class="material-symbols-outlined" style="font-size: 1.1em; color: var(--space-angel); background: transparent; padding: 0;">schedule</span>
                     <span>Times above are displayed in your local timezone (<strong class="form-user-tz">Local</strong>).</span>
                 </p>
 

@@ -66,7 +66,7 @@
                                 </a>
                                 <% }); %>
                                 <% if (badges.length > 5) { %>
-                                <a href="/account#badges" class="dashboard-badge-pill" style="color: #8e897e; font-size: 0.75em;">
+                                <a href="/account#badges" class="dashboard-badge-pill" style="color: var(--galm-day); font-size: 0.75em;">
                                     +<%= badges.length - 5 %> more
                                 </a>
                                 <% } %>
@@ -164,9 +164,9 @@
                             </div>
 
                             <% if (!announcements || announcements.length === 0) { %>
-                            <div style="background: #1a1917; border: 1px solid #383734; border-radius: 6px; padding: 24px; text-align: center; color: #8e897e;">
-                                <span class="material-symbols-outlined" style="font-size: 2.2em; color: #6f6a60;" aria-hidden="true">notifications_paused</span>
-                                <p style="margin: 8px 0 0; font-weight: bold; color: #d0cdc5;">No active announcements</p>
+                            <div style="background: var(--space-angel); border: 1px solid var(--breonne-blue); border-radius: 6px; padding: 24px; text-align: center; color: var(--galm-day);">
+                                <span class="material-symbols-outlined" style="font-size: 2.2em; color: var(--breonne-blue);" aria-hidden="true">notifications_paused</span>
+                                <p style="margin: 8px 0 0; font-weight: bold; color: var(--york-plum);">No active announcements</p>
                                 <span style="font-size: 0.85em;">Important team updates will appear here when posted by management.</span>
                             </div>
                             <% } else { %>
@@ -193,7 +193,7 @@
 
                                     <% if (isManager) { %>
                                     <div class="dashboard-announcement-footer">
-                                        <span style="font-size:0.75em;color:#8e897e;">Management Actions:</span>
+                                        <span style="font-size:0.75em;color:var(--galm-day);">Management Actions:</span>
                                         <div class="dashboard-announcement-actions">
                                             <form action="/announcements/<%= item._id %>/pin" method="POST" style="margin:0;">
                                                 <input type="hidden" name="pinned" value="<%= item.pinned ? 'false' : 'true' %>">
@@ -237,8 +237,8 @@
                                             </div>
 
                                             <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:18px;">
-                                                <input type="checkbox" name="pinned" value="true" style="width:18px;height:18px;accent-color:#B7B2A7;">
-                                                <span style="font-weight:bold;color:#f3efe6;font-size:0.9em;">📌 Pin to Top</span>
+                                                <input type="checkbox" name="pinned" value="true" style="width:18px;height:18px;accent-color:var(--bridal-white);">
+                                                <span style="font-weight:bold;color:var(--bridal-white);font-size:0.9em;">📌 Pin to Top</span>
                                             </label>
                                         </div>
 
@@ -392,10 +392,10 @@
                 <div class="dashboard-ops-card">
                     <div class="account-card-header">
                         <div style="display:flex;align-items:center;gap:10px;">
-                            <span class="material-symbols-outlined" style="background:#1a1917;color:#fbbf24;padding:6px;border-radius:6px;">admin_panel_settings</span>
+                            <span class="material-symbols-outlined" style="background:var(--space-angel);color:#fbbf24;padding:6px;border-radius:6px;">admin_panel_settings</span>
                             <div>
                                 <h3 class="account-card-title" style="margin:0;">Management Operations Center</h3>
-                                <p style="margin:2px 0 0;font-size:0.85em;color:#8e897e;">Overview of team health, applications, pending leaves, and weekly actions.</p>
+                                <p style="margin:2px 0 0;font-size:0.85em;color:var(--galm-day);">Overview of team health, applications, pending leaves, and weekly actions.</p>
                             </div>
                         </div>
                         <span class="settings-badge badge-neutral"><%= staffSummary.total %> Total Staff</span>
@@ -411,7 +411,7 @@
                                     <span class="dashboard-ops-widget-sub">Review Leave Requests</span>
                                 </div>
                             </div>
-                            <span class="dashboard-ops-widget-badge" style="color:<%= pendingLoaTotal > 0 ? '#fbbf24' : '#8e897e' %>;">
+                            <span class="dashboard-ops-widget-badge" style="color:<%= pendingLoaTotal > 0 ? '#fbbf24' : 'var(--galm-day)' %>;">
                                 <%= pendingLoaTotal %>
                             </span>
                         </a>
@@ -424,7 +424,7 @@
                                     <span class="dashboard-ops-widget-sub">Google Form Submissions</span>
                                 </div>
                             </div>
-                            <span class="dashboard-ops-widget-badge" style="color:<%= (typeof pendingAppsTotal !== 'undefined' && pendingAppsTotal > 0) ? '#a78bfa' : '#8e897e' %>;">
+                            <span class="dashboard-ops-widget-badge" style="color:<%= (typeof pendingAppsTotal !== 'undefined' && pendingAppsTotal > 0) ? '#a78bfa' : 'var(--galm-day)' %>;">
                                 <%= typeof pendingAppsTotal !== 'undefined' ? pendingAppsTotal : 0 %>
                             </span>
                         </a>
@@ -438,7 +438,7 @@
                                     <span class="dashboard-ops-widget-sub">Unreviewed Responses</span>
                                 </div>
                             </div>
-                            <span class="dashboard-ops-widget-badge" style="color:<%= (typeof newFeedbackTotal !== 'undefined' && newFeedbackTotal > 0) ? '#34d399' : '#8e897e' %>;">
+                            <span class="dashboard-ops-widget-badge" style="color:<%= (typeof newFeedbackTotal !== 'undefined' && newFeedbackTotal > 0) ? '#34d399' : 'var(--galm-day)' %>;">
                                 <%= typeof newFeedbackTotal !== 'undefined' ? newFeedbackTotal : 0 %>
                             </span>
                         </a>
@@ -446,13 +446,13 @@
 
                         <a href="/audit-log" class="dashboard-ops-widget">
                             <div class="dashboard-ops-widget-left">
-                                <span class="material-symbols-outlined dashboard-ops-widget-icon" style="color:#f3efe6;">receipt_long</span>
+                                <span class="material-symbols-outlined dashboard-ops-widget-icon" style="color:var(--bridal-white);">receipt_long</span>
                                 <div class="dashboard-ops-widget-info">
                                     <span class="dashboard-ops-widget-title">Audit Log</span>
                                     <span class="dashboard-ops-widget-sub">Recent Manager Actions</span>
                                 </div>
                             </div>
-                            <span class="material-symbols-outlined" style="color:#8e897e;background:transparent;">chevron_right</span>
+                            <span class="material-symbols-outlined" style="color:var(--galm-day);background:transparent;">chevron_right</span>
                         </a>
                     </div>
 
@@ -495,7 +495,7 @@
                     </div>
 
                     <!-- Management Actions Bar -->
-                    <div style="display:flex;gap:12px;flex-wrap:wrap;padding-top:12px;border-top:1px solid #383734;">
+                    <div style="display:flex;gap:12px;flex-wrap:wrap;padding-top:12px;border-top:1px solid var(--breonne-blue);">
                         <a href="/reports" class="action-button action-button-primary">
                             <span class="material-symbols-outlined" aria-hidden="true">summarize</span>
                             <span>Generate Weekly Report</span>
