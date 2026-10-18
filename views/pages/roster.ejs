@@ -14,7 +14,7 @@
                 <div class="settings-header-top">
                     <div>
                         <p class="profile-eyebrow">Personnel & Roster Directory</p>
-                        <h1 style="margin: 0; font-size: 2.4em; color: var(--space-angel);">Staff Roster</h1>
+                        <h1 style="margin: 0; font-size: 2.4em; color: var(--night-indigo);">Staff Roster</h1>
                         <p class="profile-subtitle">Live directory of community hosts, staff ranks, shift allocations, and attendance records.</p>
                     </div>
 
@@ -64,7 +64,7 @@
                 <!-- Stats Summary Ribbon -->
                 <div class="settings-stats-bar" style="margin-top: 18px;">
                     <div class="settings-stat-item">
-                        <span class="material-symbols-outlined settings-stat-icon" style="color: #60a5fa;">group</span>
+                        <span class="material-symbols-outlined settings-stat-icon" style="color: var(--misty-blue);">group</span>
                         <div class="settings-stat-info">
                             <span class="settings-stat-label">Total Staff</span>
                             <span class="settings-stat-val"><%= totalUsers %></span>
@@ -80,18 +80,18 @@
                     </div>
 
                     <div class="settings-stat-item">
-                        <span class="material-symbols-outlined settings-stat-icon" style="color: #fbbf24;">timelapse</span>
+                        <span class="material-symbols-outlined settings-stat-icon" style="color: var(--moonlight-yellow);">timelapse</span>
                         <div class="settings-stat-info">
                             <span class="settings-stat-label">Semi-Active</span>
-                            <span class="settings-stat-val" style="color: #fbbf24;"><%= semiActiveUsers %></span>
+                            <span class="settings-stat-val" style="color: var(--moonlight-yellow);"><%= semiActiveUsers %></span>
                         </div>
                     </div>
 
                     <div class="settings-stat-item">
-                        <span class="material-symbols-outlined settings-stat-icon" style="color: #60a5fa;">flight</span>
+                        <span class="material-symbols-outlined settings-stat-icon" style="color: var(--misty-blue);">flight</span>
                         <div class="settings-stat-info">
                             <span class="settings-stat-label">On LOA</span>
-                            <span class="settings-stat-val" style="color: #60a5fa;"><%= loaUsers %></span>
+                            <span class="settings-stat-val" style="color: var(--misty-blue);"><%= loaUsers %></span>
                         </div>
                     </div>
 
@@ -112,10 +112,10 @@
                     </div>
 
                     <div class="settings-stat-item" style="border: 1px solid #d9770655; background: #78350f22;">
-                        <span class="material-symbols-outlined settings-stat-icon" style="color: #fbbf24;">warning</span>
+                        <span class="material-symbols-outlined settings-stat-icon" style="color: var(--moonlight-yellow);">warning</span>
                         <div class="settings-stat-info">
                             <span class="settings-stat-label">Inactive Alerts</span>
-                            <span class="settings-stat-val" style="color: #fbbf24;"><%= inactivityRiskUsers %> ⚠️</span>
+                            <span class="settings-stat-val" style="color: var(--moonlight-yellow);"><%= inactivityRiskUsers %> ⚠️</span>
                         </div>
                     </div>
                 </div>
@@ -452,7 +452,7 @@
                 <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender' || userType === 'Dreamy Defender' || userIsDeveloper) { %>
                 <!-- Management: Award Commendation Badge -->
                 <details class="settings-accordion" style="margin-top: 14px; padding: 10px 14px;">
-                    <summary style="font-size: 0.85em; font-weight: bold; color: #fbbf24;">
+                    <summary style="font-size: 0.85em; font-weight: bold; color: var(--moonlight-yellow);">
                         <span class="material-symbols-outlined" style="font-size: 1.15em;">military_tech</span>
                         <span>Award Special Commendation Badge</span>
                     </summary>

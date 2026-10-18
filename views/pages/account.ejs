@@ -23,7 +23,7 @@
                             }) %>
                         </div>
                         <div class="account-hero-details">
-                            <p class="profile-eyebrow" style="margin: 0; color: var(--galm-day);">Member Account</p>
+                            <p class="profile-eyebrow" style="margin: 0; color: var(--dusty-blue-purple);">Member Account</p>
                             <h1 class="account-hero-name"><%= user.displayName || user.discordUser || user.login.discordId %></h1>
                             <div class="account-hero-tags">
                                 <% if (user.discordUser) { %>
@@ -47,14 +47,14 @@
 
                                 <% if (user.house) { %>
                                 <span class="account-badge" title="Assigned House">
-                                    <span class="account-color-dot" style="background-color: <%= (typeof houseColorMap !== 'undefined' && houseColorMap[user.house]) ? houseColorMap[user.house] : '#888' %>;"></span>
+                                    <span class="account-color-dot" style="background-color: <%= (typeof houseColorMap !== 'undefined' && houseColorMap[user.house]) ? houseColorMap[user.house] : 'var(--dusty-blue-purple)' %>;"></span>
                                     <span><%= user.house %></span>
                                 </span>
                                 <% } %>
 
                                 <% if (user.shift) { %>
                                 <span class="account-badge" title="Assigned Shift">
-                                    <span class="account-color-dot" style="background-color: <%= (typeof shiftColorMap !== 'undefined' && shiftColorMap[user.shift]) ? shiftColorMap[user.shift] : '#888' %>;"></span>
+                                    <span class="account-color-dot" style="background-color: <%= (typeof shiftColorMap !== 'undefined' && shiftColorMap[user.shift]) ? shiftColorMap[user.shift] : 'var(--dusty-blue-purple)' %>;"></span>
                                     <span><%= user.shift %></span>
                                 </span>
                                 <% } %>
@@ -93,7 +93,7 @@
                         <span class="material-symbols-outlined account-stat-icon">how_to_reg</span>
                         <div class="account-stat-info">
                             <span class="account-stat-label">Attendance Rate</span>
-                            <span class="account-stat-val" style="color: <%= (attendanceRate !== null && attendanceRate >= 80) ? '#34d399' : (attendanceRate !== null && attendanceRate >= 50) ? '#fbbf24' : 'var(--bridal-white)' %>;">
+                            <span class="account-stat-val" style="color: <%= (attendanceRate !== null && attendanceRate >= 80) ? '#34d399' : (attendanceRate !== null && attendanceRate >= 50) ? 'var(--moonlight-yellow)' : 'var(--cloud-white)' %>;">
                                 <%= attendanceRate === null ? 'No Data' : `${attendanceRate}%` %>
                             </span>
                         </div>
@@ -134,10 +134,10 @@
                         <div class="account-card" id="badges">
                             <div class="account-card-header">
                                 <h3 class="account-card-title">
-                                    <span class="material-symbols-outlined" style="color: #fbbf24;">military_tech</span>
+                                    <span class="material-symbols-outlined" style="color: var(--moonlight-yellow);">military_tech</span>
                                     <span>Badges & Milestones</span>
                                 </h3>
-                                <span class="account-badge" style="background: #f59e0b22; color: #fbbf24; border-color: #f59e0b44;">
+                                <span class="account-badge" style="background: #f59e0b22; color: var(--moonlight-yellow); border-color: #f59e0b44;">
                                     <%= (typeof badges !== 'undefined' ? badges.length : 0) %> Earned
                                 </span>
                             </div>
@@ -146,7 +146,7 @@
                             <div>
                                 <span class="account-info-label" style="display: block; margin-bottom: 10px;">Earned Achievements & Commendations</span>
                                 <% if (!badges || !badges.length) { %>
-                                <div style="background: var(--space-angel); border: 1px solid var(--breonne-blue); border-radius: 6px; padding: 18px; text-align: center; color: var(--galm-day); font-size: 0.9em;">
+                                <div style="background: var(--night-indigo); border: 1px solid var(--dusty-blue-purple); border-radius: 6px; padding: 18px; text-align: center; color: var(--dusty-blue-purple); font-size: 0.9em;">
                                     No badges unlocked yet. Attend meetings and participate in community events to earn badges!
                                 </div>
                                 <% } else { %>
@@ -174,24 +174,24 @@
 
                             <!-- Next Milestones Tracker -->
                             <% if (typeof milestoneProgress !== 'undefined' && milestoneProgress.length) { %>
-                            <div style="border-top: 1px solid var(--breonne-blue); padding-top: 16px;">
+                            <div style="border-top: 1px solid var(--dusty-blue-purple); padding-top: 16px;">
                                 <span class="account-info-label" style="display: block; margin-bottom: 12px;">Milestone Progression Tracker</span>
                                 <div style="display: flex; flex-direction: column; gap: 12px;">
                                     <% milestoneProgress.forEach(function(m) { %>
                                     <div class="milestone-track-item">
                                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                                             <div style="display: flex; align-items: center; gap: 6px;">
-                                                <span class="material-symbols-outlined" style="font-size: 1.15em; color: #60a5fa; background: transparent; padding: 0;"><%= m.icon %></span>
-                                                <strong style="color: var(--bridal-white); font-size: 0.92em;"><%= m.title %></strong>
+                                                <span class="material-symbols-outlined" style="font-size: 1.15em; color: var(--misty-blue); background: transparent; padding: 0;"><%= m.icon %></span>
+                                                <strong style="color: var(--cloud-white); font-size: 0.92em;"><%= m.title %></strong>
                                             </div>
-                                            <span style="font-size: 0.82em; color: #fbbf24; font-weight: bold;">
+                                            <span style="font-size: 0.82em; color: var(--moonlight-yellow); font-weight: bold;">
                                                 <%= m.current %> / <%= m.target %> <%= m.unit %> (<%= m.percent %>%)
                                             </span>
                                         </div>
                                         <div class="milestone-progress-bg">
-                                            <div class="milestone-progress-fill" style="width: <%= m.percent %>%; background: <%= m.percent >= 100 ? '#10b981' : '#fbbf24' %>;"></div>
+                                            <div class="milestone-progress-fill" style="width: <%= m.percent %>%; background: <%= m.percent >= 100 ? '#10b981' : 'var(--moonlight-yellow)' %>;"></div>
                                         </div>
-                                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px; font-size: 0.78em; color: var(--galm-day);">
+                                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px; font-size: 0.78em; color: var(--dusty-blue-purple);">
                                             <span>Next Goal: <strong><%= m.nextName %></strong></span>
                                             <% if (m.isCompleted) { %>
                                             <span style="color: #10b981; font-weight: bold;">🏆 Max Milestone!</span>
@@ -240,7 +240,7 @@
                                     <span class="account-info-label">House Team</span>
                                     <span class="account-info-val">
                                         <% if (user.house) { %>
-                                        <span class="account-color-dot" style="background-color: <%= (typeof houseColorMap !== 'undefined' && houseColorMap[user.house]) ? houseColorMap[user.house] : '#888' %>;"></span>
+                                        <span class="account-color-dot" style="background-color: <%= (typeof houseColorMap !== 'undefined' && houseColorMap[user.house]) ? houseColorMap[user.house] : 'var(--dusty-blue-purple)' %>;"></span>
                                         <%= user.house %>
                                         <% } else { %>
                                         Not Assigned
@@ -252,7 +252,7 @@
                                     <span class="account-info-label">Shift Slot</span>
                                     <span class="account-info-val">
                                         <% if (user.shift) { %>
-                                        <span class="account-color-dot" style="background-color: <%= (typeof shiftColorMap !== 'undefined' && shiftColorMap[user.shift]) ? shiftColorMap[user.shift] : '#888' %>;"></span>
+                                        <span class="account-color-dot" style="background-color: <%= (typeof shiftColorMap !== 'undefined' && shiftColorMap[user.shift]) ? shiftColorMap[user.shift] : 'var(--dusty-blue-purple)' %>;"></span>
                                         <%= user.shift %>
                                         <% } else { %>
                                         Not Assigned
@@ -309,7 +309,7 @@
                             <div>
                                 <span class="account-info-label" style="display: block; margin-bottom: 10px;">Recent Weekly Meetings (Last 6 Weeks)</span>
                                 <% if (!attendanceHistory || !attendanceHistory.length) { %>
-                                <div style="background: var(--space-angel); border: 1px solid var(--breonne-blue); border-radius: 6px; padding: 14px; text-align: center; color: var(--galm-day); font-size: 0.9em;">
+                                <div style="background: var(--night-indigo); border: 1px solid var(--dusty-blue-purple); border-radius: 6px; padding: 14px; text-align: center; color: var(--dusty-blue-purple); font-size: 0.9em;">
                                     No meeting attendance records logged yet.
                                 </div>
                                 <% } else { %>
@@ -327,7 +327,7 @@
                             </div>
 
                             <!-- Strikes Section -->
-                            <div style="border-top: 1px solid var(--breonne-blue); padding-top: 16px;">
+                            <div style="border-top: 1px solid var(--dusty-blue-purple); padding-top: 16px;">
                                 <span class="account-info-label" style="display: block; margin-bottom: 10px;">Disciplinary Strikes</span>
                                 <% if (user.strikes && user.strikes.length) { %>
                                 <div class="account-strikes-list">
@@ -348,7 +348,7 @@
 
                                         <% if (!strike.appealStatus) { %>
                                         <details class="settings-accordion" style="margin-top:8px;padding:8px 12px;">
-                                            <summary style="font-size:0.85em;color:#60a5fa;">
+                                            <summary style="font-size:0.85em;color:var(--misty-blue);">
                                                 <span class="material-symbols-outlined" style="font-size:1.1em;">gavel</span>
                                                 <span>Appeal This Strike</span>
                                             </summary>
