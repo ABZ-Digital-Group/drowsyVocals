@@ -74,7 +74,7 @@
                         </div>
 
                         <% if (app.managerNotes) { %>
-                        <div style="background:var(--night-indigo);padding:12px;border-radius:6px;border-left:3px solid #3B82F6;margin-bottom:15px;">
+                        <div class="application-notes" style="background:var(--night-indigo);padding:12px;border-radius:6px;border-left:3px solid #3B82F6;margin-bottom:15px;">
                             <strong style="color:#3B82F6;font-size:0.85em;display:block;margin-bottom:4px;">Management Notes (by <%= app.reviewedBy || 'Manager' %>):</strong>
                             <p style="margin:0;color:#cfcac0;font-size:0.95em;"><%= app.managerNotes %></p>
                         </div>

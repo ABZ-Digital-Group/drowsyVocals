@@ -5293,6 +5293,17 @@ dialog button {
     background: var(--cloud-lilac) !important;
     border-color: var(--misty-blue) !important;
 }
+.application-notes {
+    background: var(--cloud-lilac) !important;
+    border-left-color: var(--dreamy-periwinkle) !important;
+    color: var(--night-indigo);
+}
+.application-notes strong {
+    color: var(--night-indigo) !important;
+}
+.application-notes p {
+    color: var(--dusty-blue-purple) !important;
+}
 .application-card select,
 .application-card input {
     background: var(--cloud-white) !important;
@@ -5359,6 +5370,115 @@ dialog button {
 .bingo-player-cell.is-complete {
     border-color: #10b98199;
     background: linear-gradient(160deg, #DDF7E9, #C7EEDB);
+}
+
+.bingo-admin-empty,
+.bingo-admin-group,
+.bingo-board-container {
+    border-color: var(--misty-blue);
+    background: var(--cloud-lilac);
+}
+.bingo-admin-rank-header,
+.bingo-rank-header th,
+.bingo-super-header th,
+.bingo-table thead th {
+    background: var(--deep-lilac) !important;
+    color: var(--cloud-white) !important;
+    border-color: var(--dreamy-periwinkle) !important;
+}
+.bingo-admin-card {
+    border-color: var(--misty-blue);
+    background: var(--cloud-white);
+}
+.bingo-admin-card.is-open {
+    border-color: var(--dreamy-periwinkle);
+    box-shadow: 0 8px 16px rgba(41, 39, 82, 0.12);
+}
+.bingo-admin-toggle {
+    color: var(--night-indigo);
+}
+.bingo-admin-details {
+    border-top-color: var(--misty-blue);
+    background: var(--cloud-lilac);
+}
+.bingo-admin-chevron {
+    color: var(--dusty-blue-purple);
+}
+.bingo-table tbody td {
+    background: var(--cloud-white);
+    color: var(--night-indigo);
+    border-bottom-color: var(--misty-blue);
+}
+.bingo-table tbody tr:hover td {
+    background: var(--misty-blue) !important;
+}
+.bingo-member-display {
+    color: var(--night-indigo);
+}
+.bingo-member-sub {
+    color: var(--dusty-blue-purple);
+}
+.bingo-cell.is-pending .bingo-goal-btn,
+.bingo-cell.is-pending .bingo-goal-static {
+    background: var(--cloud-lilac);
+    border-color: var(--misty-blue);
+    color: var(--night-indigo);
+}
+.bingo-cell.is-pending .bingo-goal-btn:hover {
+    background: var(--misty-blue);
+    border-color: var(--dreamy-periwinkle);
+}
+.bingo-progress-bar {
+    background: var(--deep-lilac);
+    border-color: var(--dreamy-periwinkle);
+}
+.bingo-board-container::-webkit-scrollbar-track {
+    background: var(--cloud-lilac);
+}
+
+.dashboard-announcements-card {
+    background: var(--cloud-lilac);
+    color: var(--night-indigo);
+    border-color: var(--misty-blue);
+}
+.dashboard-announcements-card .account-card-title {
+    color: var(--night-indigo);
+}
+.dashboard-announcements-card .account-card-title .material-symbols-outlined {
+    color: var(--dreamy-periwinkle);
+}
+.dashboard-announcements-card .account-badge {
+    background: var(--cloud-white);
+    border-color: var(--misty-blue);
+    color: var(--night-indigo);
+}
+.dashboard-announcement-item,
+.dashboard-announcement-item.is-pinned {
+    background: var(--cloud-white);
+    border-color: var(--misty-blue);
+}
+.dashboard-announcement-item.is-pinned {
+    border-left-color: var(--moonlight-yellow);
+}
+.dashboard-announcement-author {
+    color: var(--night-indigo);
+}
+.dashboard-announcement-author .material-symbols-outlined {
+    color: var(--dreamy-periwinkle);
+}
+.dashboard-announcement-body {
+    color: var(--night-indigo);
+}
+.dashboard-announcement-footer {
+    border-top-color: var(--misty-blue);
+}
+.dashboard-announcement-date {
+    color: var(--dusty-blue-purple);
+}
+.dashboard-announcement-actions .settings-btn-secondary {
+    background: var(--dreamy-periwinkle);
+    border-color: var(--dreamy-periwinkle);
+    color: var(--night-indigo);
 }
 .feedback-workflow { display: grid; grid-template-columns: 150px 1fr auto; gap: 10px; align-items: end; margin-top: 12px; }
 .feedback-workflow label { display: grid; gap: 4px; font-size: 0.82em; font-weight: bold; }
