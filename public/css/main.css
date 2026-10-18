@@ -5485,6 +5485,21 @@ dialog button {
     color: var(--night-indigo);
 }
 
+.dashboard-greeting-eyebrow {
+    color: var(--misty-blue);
+}
+.dashboard-shortcut-desc {
+    color: var(--misty-blue);
+}
+.dashboard-shortcut-btn:hover {
+    background: var(--deep-lilac);
+    border-color: var(--dreamy-periwinkle);
+    color: var(--cloud-white);
+}
+.dashboard-shortcut-btn:hover .dashboard-shortcut-desc {
+    color: var(--cloud-white);
+}
+
 .settings-group[data-section="stage-queue"] .settings-card {
     background: var(--cloud-lilac);
     border-color: var(--misty-blue);
