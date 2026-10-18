@@ -5269,6 +5269,97 @@ dialog button {
     .event-feedback-submit button { width: 100%; }
     .event-feedback-footer { align-items: flex-start; flex-direction: column; padding: 18px 6vw; }
 }
+
+/* Light theme surfaces for the applications and bingo workspaces. */
+.application-card {
+    background: var(--cloud-white) !important;
+    color: var(--night-indigo);
+    border: 1px solid var(--misty-blue);
+    box-shadow: 0 8px 20px rgba(41, 39, 82, 0.1);
+}
+.application-card > div:first-child {
+    border-bottom-color: var(--misty-blue) !important;
+}
+.application-card h2,
+.application-card strong,
+.application-card label {
+    color: var(--night-indigo) !important;
+}
+.application-card > div:first-child > div > span,
+.application-card .application-answers span {
+    color: var(--dusty-blue-purple) !important;
+}
+.application-card .application-answers > div {
+    background: var(--cloud-lilac) !important;
+    border-color: var(--misty-blue) !important;
+}
+.application-card select,
+.application-card input {
+    background: var(--cloud-white) !important;
+    color: var(--night-indigo) !important;
+    border-color: var(--misty-blue) !important;
+}
+.application-card button {
+    background: var(--night-indigo);
+    color: var(--cloud-white);
+}
+
+.bingo-challenge-guide,
+.bingo-player-card-wrap,
+.bingo-admin-card,
+.bingo-admin-section {
+    border-color: var(--misty-blue);
+    background: var(--cloud-lilac);
+    color: var(--night-indigo);
+}
+.bingo-challenge-guide-header,
+.bingo-player-card-header h2,
+.bingo-admin-card h2,
+.bingo-admin-section h2 {
+    color: var(--night-indigo);
+}
+.bingo-challenge-item {
+    background: var(--cloud-white);
+    border-color: var(--misty-blue);
+}
+.bingo-challenge-badge {
+    background: var(--deep-lilac);
+    border-color: var(--dreamy-periwinkle);
+    color: var(--cloud-white);
+}
+.bingo-challenge-text,
+.bingo-player-cell-sub {
+    color: var(--dusty-blue-purple);
+}
+.bingo-player-card-progress {
+    background: var(--cloud-white);
+    border-color: var(--misty-blue);
+}
+.bingo-player-grid-head {
+    background: var(--deep-lilac);
+    border-color: var(--dreamy-periwinkle);
+    color: var(--moonlight-yellow);
+}
+.bingo-player-cell {
+    background: var(--cloud-white);
+    border-color: var(--misty-blue);
+}
+.bingo-player-cell.is-pending:hover {
+    background: var(--misty-blue);
+    border-color: var(--dreamy-periwinkle);
+}
+.bingo-player-cell.is-free {
+    border-color: var(--dreamy-periwinkle);
+    background: linear-gradient(150deg, var(--dreamy-periwinkle), var(--cloud-lilac));
+}
+.bingo-player-cell.is-free .bingo-player-cell-title,
+.bingo-player-cell.is-free .bingo-player-cell-sub {
+    color: var(--night-indigo);
+}
+.bingo-player-cell.is-complete {
+    border-color: #10b98199;
+    background: linear-gradient(160deg, #DDF7E9, #C7EEDB);
+}
 .feedback-workflow { display: grid; grid-template-columns: 150px 1fr auto; gap: 10px; align-items: end; margin-top: 12px; }
 .feedback-workflow label { display: grid; gap: 4px; font-size: 0.82em; font-weight: bold; }
 .feedback-workflow select, .feedback-workflow textarea { box-sizing: border-box; width: 100%; padding: 7px; border: 1px solid var(--night-indigo); border-radius: 4px; background: var(--cloud-lilac); color: var(--night-indigo); font: inherit; }
