@@ -664,6 +664,10 @@ tbody tr:not(.rank-group-header):not(.bingo-rank-header):hover {
     color: var(--cloud-white) !important;
 }
 
+.bingo-heading-wrap .profile-eyebrow {
+    color: var(--misty-blue) !important;
+}
+
 .bingo-heading-wrap .profile-subtitle {
     color: var(--misty-blue);
 }
