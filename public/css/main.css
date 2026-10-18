@@ -5513,6 +5513,13 @@ dialog button {
 .bingo-legend-complete {
     color: #087F5B;
 }
+.bingo-player-cell-title {
+    color: var(--night-indigo) !important;
+}
+.bingo-player-cell.is-complete .bingo-player-cell-title,
+.bingo-player-cell.is-complete .bingo-goal-icon {
+    color: #087F5B !important;
+}
 .feedback-workflow { display: grid; grid-template-columns: 150px 1fr auto; gap: 10px; align-items: end; margin-top: 12px; }
 .feedback-workflow label { display: grid; gap: 4px; font-size: 0.82em; font-weight: bold; }
 .feedback-workflow select, .feedback-workflow textarea { box-sizing: border-box; width: 100%; padding: 7px; border: 1px solid var(--night-indigo); border-radius: 4px; background: var(--cloud-lilac); color: var(--night-indigo); font: inherit; }
