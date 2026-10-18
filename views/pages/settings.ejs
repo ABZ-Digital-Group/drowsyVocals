@@ -15,7 +15,7 @@
                     <div class="settings-header-top">
                         <div>
                             <p class="profile-eyebrow">Management Portal</p>
-                            <h1 style="margin: 0; font-size: 2.4em; color: var(--space-angel);">Settings & Preferences</h1>
+                            <h1 style="margin: 0; font-size: 2.4em; color: var(--night-indigo);">Settings & Preferences</h1>
                             <p class="profile-subtitle">Configure system security, Discord webhooks, rank hierarchies, alert thresholds, and roster classification tags.</p>
                         </div>
                     </div>
@@ -36,7 +36,7 @@
                             <div class="settings-stat-info">
                                 <span class="settings-stat-label">Discord Webhooks</span>
                                 <% const activeHooks = [settings.webhooks?.url, settings.webhooks?.housePointsUrl, settings.webhooks?.eventsUrl].filter(Boolean).length; %>
-                                <span class="settings-stat-val" style="color: <%= activeHooks ? '#3b82f6' : 'var(--galm-day)' %>;">
+                                <span class="settings-stat-val" style="color: <%= activeHooks ? '#3b82f6' : 'var(--dusty-blue-purple)' %>;">
                                     <%= activeHooks ? `${activeHooks} Channel${activeHooks === 1 ? '' : 's'} Active` : 'Not Configured' %>
                                 </span>
                             </div>
@@ -99,7 +99,7 @@
                         <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 12px; border: 1px solid #3d3933; border-radius: 8px; background: #211f1b;">
                             <div>
                                 <strong><%= requestLabel %></strong>
-                                <div style="color: var(--galm-day); font-size: 0.9em;">Requested by <%= requesterName %></div>
+                                <div style="color: var(--dusty-blue-purple); font-size: 0.9em;">Requested by <%= requesterName %></div>
                             </div>
                             <div style="display: flex; gap: 8px;">
                                 <form action="/settings/reset-requests/<%= request._id %>/approve" method="POST" style="margin: 0;" onsubmit="return confirm('Approve this reset request?');">
@@ -151,7 +151,7 @@
                     <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userIsDeveloper) { %>
                     <div class="settings-group" data-section="system">
                         <div class="settings-group-header">
-                            <span class="material-symbols-outlined" style="background: var(--space-angel); color: var(--bridal-white); padding: 4px; border-radius: 4px;">shield</span>
+                            <span class="material-symbols-outlined" style="background: var(--night-indigo); color: var(--cloud-white); padding: 4px; border-radius: 4px;">shield</span>
                             <h2>System & Security Controls</h2>
                         </div>
 
@@ -432,7 +432,7 @@ function testSendLatest() {
 
                             <% if (developers && developers.length) { %>
                             <div style="margin-top: 10px;">
-                                <label style="font-size: 0.85em; font-weight: bold; color: var(--galm-day); text-transform: uppercase;">Active Developers</label>
+                                <label style="font-size: 0.85em; font-weight: bold; color: var(--dusty-blue-purple); text-transform: uppercase;">Active Developers</label>
                                 <div class="settings-dev-grid">
                                     <% developers.forEach(function(developer) { %>
                                     <div class="settings-dev-card">
@@ -465,7 +465,7 @@ function testSendLatest() {
                     <!-- SECTION 2: RANKS & HIERARCHY -->
                     <div class="settings-group" data-section="ranks">
                         <div class="settings-group-header">
-                            <span class="material-symbols-outlined" style="background: var(--space-angel); color: var(--bridal-white); padding: 4px; border-radius: 4px;">military_tech</span>
+                            <span class="material-symbols-outlined" style="background: var(--night-indigo); color: var(--cloud-white); padding: 4px; border-radius: 4px;">military_tech</span>
                             <h2>Ranks & Hierarchy</h2>
                         </div>
 
@@ -497,7 +497,7 @@ function testSendLatest() {
                                     <tbody>
                                         <% if (!settings.ranks || settings.ranks.length === 0) { %>
                                         <tr>
-                                            <td colspan="5" style="text-align: center; color: var(--galm-day); padding: 24px;">No ranks configured. Add your first rank below.</td>
+                                            <td colspan="5" style="text-align: center; color: var(--dusty-blue-purple); padding: 24px;">No ranks configured. Add your first rank below.</td>
                                         </tr>
                                         <% } else { %>
                                         <% settings.ranks.forEach(function(rank) { %>
@@ -548,9 +548,9 @@ function testSendLatest() {
                             </div>
 
                             <!-- Add New Rank Form -->
-                            <div style="background: var(--space-angel); border: 1px dashed #444; border-radius: 6px; padding: 18px;">
-                                <h4 style="margin: 0 0 12px; color: var(--bridal-white); font-size: 1em; display: flex; align-items: center; gap: 6px;">
-                                    <span class="material-symbols-outlined" style="background: transparent; color: var(--bridal-white);">add_circle</span>
+                            <div style="background: var(--night-indigo); border: 1px dashed #444; border-radius: 6px; padding: 18px;">
+                                <h4 style="margin: 0 0 12px; color: var(--cloud-white); font-size: 1em; display: flex; align-items: center; gap: 6px;">
+                                    <span class="material-symbols-outlined" style="background: transparent; color: var(--cloud-white);">add_circle</span>
                                     Add New Rank
                                 </h4>
                                 <form action="/settings/add-option" method="POST" style="display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end;">
@@ -588,7 +588,7 @@ function testSendLatest() {
                     <!-- SECTION 3: ALERTS & THRESHOLDS -->
                     <div class="settings-group" data-section="alerts">
                         <div class="settings-group-header">
-                            <span class="material-symbols-outlined" style="background: var(--space-angel); color: var(--bridal-white); padding: 4px; border-radius: 4px;">notification_important</span>
+                            <span class="material-symbols-outlined" style="background: var(--night-indigo); color: var(--cloud-white); padding: 4px; border-radius: 4px;">notification_important</span>
                             <h2>Alerts & Inactivity Rules</h2>
                         </div>
 
@@ -605,27 +605,27 @@ function testSendLatest() {
 
                             <form action="/settings/alerts" method="POST" style="display: flex; flex-direction: column; gap: 20px;">
                                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
-                                    <div style="background: var(--space-angel); padding: 18px; border-radius: 6px; border: 1px solid var(--breonne-blue);">
+                                    <div style="background: var(--night-indigo); padding: 18px; border-radius: 6px; border: 1px solid var(--dusty-blue-purple);">
                                         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-                                            <span class="material-symbols-outlined" style="background: var(--space-angel); color: #f59e0b; padding: 6px; border-radius: 4px;">schedule</span>
-                                            <label for="inactivityDaysThreshold" style="margin:0; font-size: 1em; color: var(--bridal-white); font-weight: bold;">Login Inactivity Threshold</label>
+                                            <span class="material-symbols-outlined" style="background: var(--night-indigo); color: #f59e0b; padding: 6px; border-radius: 4px;">schedule</span>
+                                            <label for="inactivityDaysThreshold" style="margin:0; font-size: 1em; color: var(--cloud-white); font-weight: bold;">Login Inactivity Threshold</label>
                                         </div>
-                                        <p style="font-size: 0.85em; color: var(--galm-day); margin: 0 0 12px;">Flag staff members as inactive if they haven't logged in or performed any activity in this number of days.</p>
+                                        <p style="font-size: 0.85em; color: var(--dusty-blue-purple); margin: 0 0 12px;">Flag staff members as inactive if they haven't logged in or performed any activity in this number of days.</p>
                                         <div style="display: flex; align-items: center; gap: 8px;">
                                             <input type="number" id="inactivityDaysThreshold" name="inactivityDaysThreshold" class="settings-input" min="1" max="365" value="<%= settings.alerts?.inactivityDaysThreshold ?? 14 %>" required style="width: 120px;">
-                                            <span style="font-weight: bold; color: var(--york-plum);">Days</span>
+                                            <span style="font-weight: bold; color: var(--cloud-lilac);">Days</span>
                                         </div>
                                     </div>
 
-                                    <div style="background: var(--space-angel); padding: 18px; border-radius: 6px; border: 1px solid var(--breonne-blue);">
+                                    <div style="background: var(--night-indigo); padding: 18px; border-radius: 6px; border: 1px solid var(--dusty-blue-purple);">
                                         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-                                            <span class="material-symbols-outlined" style="background: var(--space-angel); color: #ef4444; padding: 6px; border-radius: 4px;">event_busy</span>
-                                            <label for="inactivityAttendanceThreshold" style="margin:0; font-size: 1em; color: var(--bridal-white); font-weight: bold;">Consecutive Missed Meetings</label>
+                                            <span class="material-symbols-outlined" style="background: var(--night-indigo); color: #ef4444; padding: 6px; border-radius: 4px;">event_busy</span>
+                                            <label for="inactivityAttendanceThreshold" style="margin:0; font-size: 1em; color: var(--cloud-white); font-weight: bold;">Consecutive Missed Meetings</label>
                                         </div>
-                                        <p style="font-size: 0.85em; color: var(--galm-day); margin: 0 0 12px;">Flag staff members when they have missed this number of consecutive weekly meetings without an approved LOA.</p>
+                                        <p style="font-size: 0.85em; color: var(--dusty-blue-purple); margin: 0 0 12px;">Flag staff members when they have missed this number of consecutive weekly meetings without an approved LOA.</p>
                                         <div style="display: flex; align-items: center; gap: 8px;">
                                             <input type="number" id="inactivityAttendanceThreshold" name="inactivityAttendanceThreshold" class="settings-input" min="1" max="52" value="<%= settings.alerts?.inactivityAttendanceThreshold ?? 2 %>" required style="width: 120px;">
-                                            <span style="font-weight: bold; color: var(--york-plum);">Meetings</span>
+                                            <span style="font-weight: bold; color: var(--cloud-lilac);">Meetings</span>
                                         </div>
                                     </div>
                                 </div>
@@ -643,7 +643,7 @@ function testSendLatest() {
                     <!-- SECTION 4: ROSTER CLASSIFICATIONS (TAGS) -->
                     <div class="settings-group" data-section="tags">
                         <div class="settings-group-header">
-                            <span class="material-symbols-outlined" style="background: var(--space-angel); color: var(--bridal-white); padding: 4px; border-radius: 4px;">category</span>
+                            <span class="material-symbols-outlined" style="background: var(--night-indigo); color: var(--cloud-white); padding: 4px; border-radius: 4px;">category</span>
                             <h2>Roster Classifications</h2>
                         </div>
 
@@ -663,7 +663,7 @@ function testSendLatest() {
 
                                 <div class="settings-tag-list">
                                     <% if (!settings.houses || settings.houses.length === 0) { %>
-                                    <p style="color: var(--galm-day); font-size: 0.85em; text-align: center; padding: 12px;">No houses configured.</p>
+                                    <p style="color: var(--dusty-blue-purple); font-size: 0.85em; text-align: center; padding: 12px;">No houses configured.</p>
                                     <% } else { %>
                                     <% settings.houses.forEach(function(house) { %>
                                     <div class="settings-tag-item">
@@ -696,12 +696,12 @@ function testSendLatest() {
                                 </div>
 
                                 <!-- Add House Form -->
-                                <div style="background: var(--space-angel); border: 1px dashed #444; border-radius: 6px; padding: 12px; margin-top: auto;">
+                                <div style="background: var(--night-indigo); border: 1px dashed #444; border-radius: 6px; padding: 12px; margin-top: auto;">
                                     <form action="/settings/add-option" method="POST" style="display: flex; align-items: center; gap: 8px;">
                                         <input type="hidden" name="category" value="houses">
                                         <label class="settings-color-wrapper" title="Pick Color">
-                                            <span class="settings-color-preview" style="background-color: var(--space-angel);"></span>
-                                            <input type="color" id="newHouseColor" name="color" value="var(--space-angel)" class="settings-color-input" onchange="this.previousElementSibling.style.backgroundColor = this.value">
+                                            <span class="settings-color-preview" style="background-color: var(--night-indigo);"></span>
+                                            <input type="color" id="newHouseColor" name="color" value="var(--night-indigo)" class="settings-color-input" onchange="this.previousElementSibling.style.backgroundColor = this.value">
                                         </label>
                                         <input type="text" name="name" class="settings-input" placeholder="New House name" required>
                                         <button type="submit" class="settings-btn settings-btn-primary settings-btn-sm">
@@ -727,7 +727,7 @@ function testSendLatest() {
 
                                 <div class="settings-tag-list">
                                     <% if (!settings.shifts || settings.shifts.length === 0) { %>
-                                    <p style="color: var(--galm-day); font-size: 0.85em; text-align: center; padding: 12px;">No shifts configured.</p>
+                                    <p style="color: var(--dusty-blue-purple); font-size: 0.85em; text-align: center; padding: 12px;">No shifts configured.</p>
                                     <% } else { %>
                                     <% settings.shifts.forEach(function(shift) { %>
                                     <div class="settings-tag-item">
@@ -760,12 +760,12 @@ function testSendLatest() {
                                 </div>
 
                                 <!-- Add Shift Form -->
-                                <div style="background: var(--space-angel); border: 1px dashed #444; border-radius: 6px; padding: 12px; margin-top: auto;">
+                                <div style="background: var(--night-indigo); border: 1px dashed #444; border-radius: 6px; padding: 12px; margin-top: auto;">
                                     <form action="/settings/add-option" method="POST" style="display: flex; align-items: center; gap: 8px;">
                                         <input type="hidden" name="category" value="shifts">
                                         <label class="settings-color-wrapper" title="Pick Color">
-                                            <span class="settings-color-preview" style="background-color: var(--space-angel);"></span>
-                                            <input type="color" id="newShiftColor" name="color" value="var(--space-angel)" class="settings-color-input" onchange="this.previousElementSibling.style.backgroundColor = this.value">
+                                            <span class="settings-color-preview" style="background-color: var(--night-indigo);"></span>
+                                            <input type="color" id="newShiftColor" name="color" value="var(--night-indigo)" class="settings-color-input" onchange="this.previousElementSibling.style.backgroundColor = this.value">
                                         </label>
                                         <input type="text" name="name" class="settings-input" placeholder="New Shift name" required>
                                         <button type="submit" class="settings-btn settings-btn-primary settings-btn-sm">
@@ -791,7 +791,7 @@ function testSendLatest() {
 
                                 <div class="settings-tag-list">
                                     <% if (!settings.activities || settings.activities.length === 0) { %>
-                                    <p style="color: var(--galm-day); font-size: 0.85em; text-align: center; padding: 12px;">No activities configured.</p>
+                                    <p style="color: var(--dusty-blue-purple); font-size: 0.85em; text-align: center; padding: 12px;">No activities configured.</p>
                                     <% } else { %>
                                     <% settings.activities.forEach(function(activity) { %>
                                     <div class="settings-tag-item">
@@ -824,12 +824,12 @@ function testSendLatest() {
                                 </div>
 
                                 <!-- Add Activity Form -->
-                                <div style="background: var(--space-angel); border: 1px dashed #444; border-radius: 6px; padding: 12px; margin-top: auto;">
+                                <div style="background: var(--night-indigo); border: 1px dashed #444; border-radius: 6px; padding: 12px; margin-top: auto;">
                                     <form action="/settings/add-option" method="POST" style="display: flex; align-items: center; gap: 8px;">
                                         <input type="hidden" name="category" value="activities">
                                         <label class="settings-color-wrapper" title="Pick Color">
-                                            <span class="settings-color-preview" style="background-color: var(--space-angel);"></span>
-                                            <input type="color" id="newActivityColor" name="color" value="var(--space-angel)" class="settings-color-input" onchange="this.previousElementSibling.style.backgroundColor = this.value">
+                                            <span class="settings-color-preview" style="background-color: var(--night-indigo);"></span>
+                                            <input type="color" id="newActivityColor" name="color" value="var(--night-indigo)" class="settings-color-input" onchange="this.previousElementSibling.style.backgroundColor = this.value">
                                         </label>
                                         <input type="text" name="name" class="settings-input" placeholder="New Activity name" required>
                                         <button type="submit" class="settings-btn settings-btn-primary settings-btn-sm">

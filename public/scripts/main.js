@@ -491,7 +491,7 @@ if (viewUserPopup && closeViewUserPopup) {
         }
 
         if (badgeList.length === 0) {
-          viewUserBadgesList.innerHTML = '<span style="color:var(--galm-day);font-size:0.85em;font-style:italic;">No badges earned yet.</span>';
+          viewUserBadgesList.innerHTML = '<span style="color:var(--dusty-blue-purple);font-size:0.85em;font-style:italic;">No badges earned yet.</span>';
         } else {
           viewUserBadgesList.innerHTML = badgeList.map((b) => {
             const removeBtn = b.isCustom
@@ -946,7 +946,7 @@ const initEventsLocalization = () => {
       } else if (isPast) {
         relativeEl.textContent = 'Concluded';
         relativeEl.style.backgroundColor = 'rgba(100, 100, 100, 0.2)';
-        relativeEl.style.color = 'var(--galm-day)';
+        relativeEl.style.color = 'var(--dusty-blue-purple)';
         relativeEl.style.border = '1px solid rgba(100, 100, 100, 0.4)';
       } else {
         const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
@@ -962,7 +962,7 @@ const initEventsLocalization = () => {
         }
         relativeEl.textContent = `⏳ ${badgeText}`;
         relativeEl.style.backgroundColor = 'rgba(251, 191, 36, 0.15)';
-        relativeEl.style.color = '#fbbf24';
+        relativeEl.style.color = 'var(--moonlight-yellow)';
         relativeEl.style.border = '1px solid rgba(251, 191, 36, 0.4)';
       }
     }

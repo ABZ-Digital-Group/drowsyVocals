@@ -40,14 +40,14 @@
 
                                 <% if (house) { %>
                                 <span class="account-badge" title="Assigned House">
-                                    <span class="account-color-dot" style="background-color: <%= (typeof houseColorMap !== 'undefined' && houseColorMap[house]) ? houseColorMap[house] : '#888' %>;"></span>
+                                    <span class="account-color-dot" style="background-color: <%= (typeof houseColorMap !== 'undefined' && houseColorMap[house]) ? houseColorMap[house] : 'var(--dusty-blue-purple)' %>;"></span>
                                     <span><%= house %></span>
                                 </span>
                                 <% } %>
 
                                 <% if (shift) { %>
                                 <span class="account-badge" title="Assigned Shift">
-                                    <span class="account-color-dot" style="background-color: <%= (typeof shiftColorMap !== 'undefined' && shiftColorMap[shift]) ? shiftColorMap[shift] : '#888' %>;"></span>
+                                    <span class="account-color-dot" style="background-color: <%= (typeof shiftColorMap !== 'undefined' && shiftColorMap[shift]) ? shiftColorMap[shift] : 'var(--dusty-blue-purple)' %>;"></span>
                                     <span><%= shift %></span>
                                 </span>
                                 <% } %>
@@ -66,7 +66,7 @@
                                 </a>
                                 <% }); %>
                                 <% if (badges.length > 5) { %>
-                                <a href="/account#badges" class="dashboard-badge-pill" style="color: var(--galm-day); font-size: 0.75em;">
+                                <a href="/account#badges" class="dashboard-badge-pill" style="color: var(--dusty-blue-purple); font-size: 0.75em;">
                                     +<%= badges.length - 5 %> more
                                 </a>
                                 <% } %>
@@ -113,7 +113,7 @@
                         <span class="material-symbols-outlined account-stat-icon">event_available</span>
                         <div class="account-stat-info">
                             <span class="account-stat-label">This Week's Meeting</span>
-                            <span class="account-stat-val" style="color: <%= attendedThisWeek ? '#34d399' : '#fbbf24' %>;">
+                            <span class="account-stat-val" style="color: <%= attendedThisWeek ? '#34d399' : 'var(--moonlight-yellow)' %>;">
                                 <%= attendedThisWeek ? '✅ Attended' : '⏳ Pending / Unmarked' %>
                             </span>
                         </div>
@@ -123,7 +123,7 @@
                         <span class="material-symbols-outlined account-stat-icon">military_tech</span>
                         <div class="account-stat-info">
                             <span class="account-stat-label">House Points</span>
-                            <span class="account-stat-val" style="color: #fbbf24;">
+                            <span class="account-stat-val" style="color: var(--moonlight-yellow);">
                                 <%= housePoints %> Pts
                             </span>
                         </div>
@@ -164,9 +164,9 @@
                             </div>
 
                             <% if (!announcements || announcements.length === 0) { %>
-                            <div style="background: var(--space-angel); border: 1px solid var(--breonne-blue); border-radius: 6px; padding: 24px; text-align: center; color: var(--galm-day);">
-                                <span class="material-symbols-outlined" style="font-size: 2.2em; color: var(--breonne-blue);" aria-hidden="true">notifications_paused</span>
-                                <p style="margin: 8px 0 0; font-weight: bold; color: var(--york-plum);">No active announcements</p>
+                            <div style="background: var(--night-indigo); border: 1px solid var(--dusty-blue-purple); border-radius: 6px; padding: 24px; text-align: center; color: var(--dusty-blue-purple);">
+                                <span class="material-symbols-outlined" style="font-size: 2.2em; color: var(--dusty-blue-purple);" aria-hidden="true">notifications_paused</span>
+                                <p style="margin: 8px 0 0; font-weight: bold; color: var(--cloud-lilac);">No active announcements</p>
                                 <span style="font-size: 0.85em;">Important team updates will appear here when posted by management.</span>
                             </div>
                             <% } else { %>
@@ -178,7 +178,7 @@
                                             <span class="material-symbols-outlined">account_circle</span>
                                             <span><%= item.createdByName %></span>
                                             <% if (item.pinned) { %>
-                                            <span class="settings-badge" style="background:#f59e0b22;color:#fbbf24;border:1px solid #f59e0b44;padding:2px 6px;font-size:0.7em;">📌 PINNED</span>
+                                            <span class="settings-badge" style="background:#f59e0b22;color:var(--moonlight-yellow);border:1px solid #f59e0b44;padding:2px 6px;font-size:0.7em;">📌 PINNED</span>
                                             <% } %>
                                         </div>
                                         <span class="dashboard-announcement-date">
@@ -193,7 +193,7 @@
 
                                     <% if (isManager) { %>
                                     <div class="dashboard-announcement-footer">
-                                        <span style="font-size:0.75em;color:var(--galm-day);">Management Actions:</span>
+                                        <span style="font-size:0.75em;color:var(--dusty-blue-purple);">Management Actions:</span>
                                         <div class="dashboard-announcement-actions">
                                             <form action="/announcements/<%= item._id %>/pin" method="POST" style="margin:0;">
                                                 <input type="hidden" name="pinned" value="<%= item.pinned ? 'false' : 'true' %>">
@@ -237,8 +237,8 @@
                                             </div>
 
                                             <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:18px;">
-                                                <input type="checkbox" name="pinned" value="true" style="width:18px;height:18px;accent-color:var(--bridal-white);">
-                                                <span style="font-weight:bold;color:var(--bridal-white);font-size:0.9em;">📌 Pin to Top</span>
+                                                <input type="checkbox" name="pinned" value="true" style="width:18px;height:18px;accent-color:var(--cloud-white);">
+                                                <span style="font-weight:bold;color:var(--cloud-white);font-size:0.9em;">📌 Pin to Top</span>
                                             </label>
                                         </div>
 
@@ -392,10 +392,10 @@
                 <div class="dashboard-ops-card">
                     <div class="account-card-header">
                         <div style="display:flex;align-items:center;gap:10px;">
-                            <span class="material-symbols-outlined" style="background:var(--space-angel);color:#fbbf24;padding:6px;border-radius:6px;">admin_panel_settings</span>
+                            <span class="material-symbols-outlined" style="background:var(--night-indigo);color:var(--moonlight-yellow);padding:6px;border-radius:6px;">admin_panel_settings</span>
                             <div>
                                 <h3 class="account-card-title" style="margin:0;">Management Operations Center</h3>
-                                <p style="margin:2px 0 0;font-size:0.85em;color:var(--galm-day);">Overview of team health, applications, pending leaves, and weekly actions.</p>
+                                <p style="margin:2px 0 0;font-size:0.85em;color:var(--dusty-blue-purple);">Overview of team health, applications, pending leaves, and weekly actions.</p>
                             </div>
                         </div>
                         <span class="settings-badge badge-neutral"><%= staffSummary.total %> Total Staff</span>
@@ -405,26 +405,26 @@
                     <div class="dashboard-ops-widgets">
                         <a href="/loa" class="dashboard-ops-widget">
                             <div class="dashboard-ops-widget-left">
-                                <span class="material-symbols-outlined dashboard-ops-widget-icon" style="color:#60a5fa;">flight_takeoff</span>
+                                <span class="material-symbols-outlined dashboard-ops-widget-icon" style="color:var(--misty-blue);">flight_takeoff</span>
                                 <div class="dashboard-ops-widget-info">
                                     <span class="dashboard-ops-widget-title">Pending LOAs</span>
                                     <span class="dashboard-ops-widget-sub">Review Leave Requests</span>
                                 </div>
                             </div>
-                            <span class="dashboard-ops-widget-badge" style="color:<%= pendingLoaTotal > 0 ? '#fbbf24' : 'var(--galm-day)' %>;">
+                            <span class="dashboard-ops-widget-badge" style="color:<%= pendingLoaTotal > 0 ? 'var(--moonlight-yellow)' : 'var(--dusty-blue-purple)' %>;">
                                 <%= pendingLoaTotal %>
                             </span>
                         </a>
 
                         <a href="/applications" class="dashboard-ops-widget">
                             <div class="dashboard-ops-widget-left">
-                                <span class="material-symbols-outlined dashboard-ops-widget-icon" style="color:#a78bfa;">description</span>
+                                <span class="material-symbols-outlined dashboard-ops-widget-icon" style="color:var(--dreamy-periwinkle);">description</span>
                                 <div class="dashboard-ops-widget-info">
                                     <span class="dashboard-ops-widget-title">Applications</span>
                                     <span class="dashboard-ops-widget-sub">Google Form Submissions</span>
                                 </div>
                             </div>
-                            <span class="dashboard-ops-widget-badge" style="color:<%= (typeof pendingAppsTotal !== 'undefined' && pendingAppsTotal > 0) ? '#a78bfa' : 'var(--galm-day)' %>;">
+                            <span class="dashboard-ops-widget-badge" style="color:<%= (typeof pendingAppsTotal !== 'undefined' && pendingAppsTotal > 0) ? 'var(--dreamy-periwinkle)' : 'var(--dusty-blue-purple)' %>;">
                                 <%= typeof pendingAppsTotal !== 'undefined' ? pendingAppsTotal : 0 %>
                             </span>
                         </a>
@@ -438,7 +438,7 @@
                                     <span class="dashboard-ops-widget-sub">Unreviewed Responses</span>
                                 </div>
                             </div>
-                            <span class="dashboard-ops-widget-badge" style="color:<%= (typeof newFeedbackTotal !== 'undefined' && newFeedbackTotal > 0) ? '#34d399' : 'var(--galm-day)' %>;">
+                            <span class="dashboard-ops-widget-badge" style="color:<%= (typeof newFeedbackTotal !== 'undefined' && newFeedbackTotal > 0) ? '#34d399' : 'var(--dusty-blue-purple)' %>;">
                                 <%= typeof newFeedbackTotal !== 'undefined' ? newFeedbackTotal : 0 %>
                             </span>
                         </a>
@@ -446,13 +446,13 @@
 
                         <a href="/audit-log" class="dashboard-ops-widget">
                             <div class="dashboard-ops-widget-left">
-                                <span class="material-symbols-outlined dashboard-ops-widget-icon" style="color:var(--bridal-white);">receipt_long</span>
+                                <span class="material-symbols-outlined dashboard-ops-widget-icon" style="color:var(--cloud-white);">receipt_long</span>
                                 <div class="dashboard-ops-widget-info">
                                     <span class="dashboard-ops-widget-title">Audit Log</span>
                                     <span class="dashboard-ops-widget-sub">Recent Manager Actions</span>
                                 </div>
                             </div>
-                            <span class="material-symbols-outlined" style="color:var(--galm-day);background:transparent;">chevron_right</span>
+                            <span class="material-symbols-outlined" style="color:var(--dusty-blue-purple);background:transparent;">chevron_right</span>
                         </a>
                     </div>
 
@@ -469,18 +469,18 @@
                             </div>
 
                             <div class="settings-stat-item">
-                                <span class="material-symbols-outlined settings-stat-icon" style="color:#fbbf24;">timelapse</span>
+                                <span class="material-symbols-outlined settings-stat-icon" style="color:var(--moonlight-yellow);">timelapse</span>
                                 <div class="settings-stat-info">
                                     <span class="settings-stat-label">Semi-Active</span>
-                                    <span class="settings-stat-val" style="color:#fbbf24;"><%= staffSummary.semiActive %></span>
+                                    <span class="settings-stat-val" style="color:var(--moonlight-yellow);"><%= staffSummary.semiActive %></span>
                                 </div>
                             </div>
 
                             <div class="settings-stat-item">
-                                <span class="material-symbols-outlined settings-stat-icon" style="color:#60a5fa;">flight</span>
+                                <span class="material-symbols-outlined settings-stat-icon" style="color:var(--misty-blue);">flight</span>
                                 <div class="settings-stat-info">
                                     <span class="settings-stat-label">On LOA</span>
-                                    <span class="settings-stat-val" style="color:#60a5fa;"><%= staffSummary.loa %></span>
+                                    <span class="settings-stat-val" style="color:var(--misty-blue);"><%= staffSummary.loa %></span>
                                 </div>
                             </div>
 
@@ -495,7 +495,7 @@
                     </div>
 
                     <!-- Management Actions Bar -->
-                    <div style="display:flex;gap:12px;flex-wrap:wrap;padding-top:12px;border-top:1px solid var(--breonne-blue);">
+                    <div style="display:flex;gap:12px;flex-wrap:wrap;padding-top:12px;border-top:1px solid var(--dusty-blue-purple);">
                         <a href="/reports" class="action-button action-button-primary">
                             <span class="material-symbols-outlined" aria-hidden="true">summarize</span>
                             <span>Generate Weekly Report</span>

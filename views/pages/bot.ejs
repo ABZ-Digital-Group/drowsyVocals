@@ -15,7 +15,7 @@
                     <div class="settings-header-top">
                         <div>
                             <p class="profile-eyebrow">Gods & Developer Control</p>
-                            <h1 style="margin: 0; font-size: 2.4em; color: var(--space-angel);">Discord Bot Control Center</h1>
+                            <h1 style="margin: 0; font-size: 2.4em; color: var(--night-indigo);">Discord Bot Control Center</h1>
                             <p class="profile-subtitle">Configure DrowsyBot features, shy stage limits, OBS now-singing overlays, rotating ads, and moderation exceptions.</p>
                         </div>
                     </div>
@@ -26,7 +26,7 @@
                             <span class="material-symbols-outlined settings-stat-icon" style="color: <%= botLiveState.online ? '#10b981' : '#f59e0b' %>;">smart_toy</span>
                             <div class="settings-stat-info">
                                 <span class="settings-stat-label">Bot Service</span>
-                                <span class="settings-stat-val" style="color: <%= botLiveState.online ? '#10b981' : '#fbbf24' %>;">
+                                <span class="settings-stat-val" style="color: <%= botLiveState.online ? '#10b981' : 'var(--moonlight-yellow)' %>;">
                                     <%= botLiveState.online ? 'Connected' : 'Offline' %>
                                 </span>
                                 <% if (!botLiveState.online && botLiveState.connectionError) { %>
@@ -36,7 +36,7 @@
                         </div>
 
                         <div class="settings-stat-item">
-                            <span class="material-symbols-outlined settings-stat-icon" style="color: #60a5fa;">podcasts</span>
+                            <span class="material-symbols-outlined settings-stat-icon" style="color: var(--misty-blue);">podcasts</span>
                             <div class="settings-stat-info">
                                 <span class="settings-stat-label">Tracked Stages</span>
                                 <span class="settings-stat-val">
@@ -46,7 +46,7 @@
                         </div>
 
                         <div class="settings-stat-item">
-                            <span class="material-symbols-outlined settings-stat-icon" style="color: #a78bfa;">featured_video</span>
+                            <span class="material-symbols-outlined settings-stat-icon" style="color: var(--dreamy-periwinkle);">featured_video</span>
                             <div class="settings-stat-info">
                                 <span class="settings-stat-label">OBS Ads</span>
                                 <span class="settings-stat-val">
@@ -66,7 +66,7 @@
                         </div>
 
                         <div class="settings-stat-item">
-                            <span class="material-symbols-outlined settings-stat-icon" style="color: #fbbf24;">timer</span>
+                            <span class="material-symbols-outlined settings-stat-icon" style="color: var(--moonlight-yellow);">timer</span>
                             <div class="settings-stat-info">
                                 <span class="settings-stat-label">Bot Uptime</span>
                                 <span class="settings-stat-val"><%= Number.isFinite(botLiveState.uptimeSeconds) ? Math.floor(botLiveState.uptimeSeconds / 60) + ' min' : 'Unknown' %></span>
@@ -155,15 +155,15 @@
                     <!-- SECTION: LIVE STAGE QUEUE & HOST CONTROLLER -->
                     <div class="settings-group" data-section="stage-queue">
                         <div class="settings-group-header">
-                            <span class="material-symbols-outlined" style="background: var(--space-angel); color: var(--bridal-white); padding: 4px; border-radius: 4px;">podcasts</span>
+                            <span class="material-symbols-outlined" style="background: var(--night-indigo); color: var(--cloud-white); padding: 4px; border-radius: 4px;">podcasts</span>
                             <h2>Live Stage Queue & Host Web Controller</h2>
                         </div>
 
                         <% if (!botLiveState.trackedStages || botLiveState.trackedStages.length === 0) { %>
                         <div class="settings-card">
-                            <div style="text-align: center; padding: 28px 16px; color: var(--galm-day);">
-                                <span class="material-symbols-outlined" style="font-size: 3em; color: var(--breonne-blue);" aria-hidden="true">music_off</span>
-                                <h3 style="margin: 10px 0 4px; color: var(--bridal-white);">No Active Stage Sessions</h3>
+                            <div style="text-align: center; padding: 28px 16px; color: var(--dusty-blue-purple);">
+                                <span class="material-symbols-outlined" style="font-size: 3em; color: var(--dusty-blue-purple);" aria-hidden="true">music_off</span>
+                                <h3 style="margin: 10px 0 4px; color: var(--cloud-white);">No Active Stage Sessions</h3>
                                 <p style="margin: 0; font-size: 0.9em;">Start a stage session in Discord with <code>!startqueue</code> or <code>!stagestart</code> to control performers, radio, and queue orders from the web.</p>
                             </div>
                         </div>
@@ -184,18 +184,18 @@
                             </div>
 
                             <!-- Current Singer Banner & Quick Host Actions -->
-                            <div style="background: #111; border: 1px solid var(--breonne-blue); border-radius: 8px; padding: 18px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+                            <div style="background: #111; border: 1px solid var(--dusty-blue-purple); border-radius: 8px; padding: 18px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
                                 <div style="display: flex; align-items: center; gap: 14px;">
-                                    <div style="width: 54px; height: 54px; border-radius: 50%; background: var(--space-angel); border: 2px solid #fbbf24; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                                    <div style="width: 54px; height: 54px; border-radius: 50%; background: var(--night-indigo); border: 2px solid var(--moonlight-yellow); display: flex; align-items: center; justify-content: center; overflow: hidden;">
                                         <% if (stage.currentSpeakerMember && stage.currentSpeakerMember.avatarUrl) { %>
                                         <img src="<%= stage.currentSpeakerMember.avatarUrl %>" alt="Singer" style="width: 100%; height: 100%; object-fit: cover;">
                                         <% } else { %>
-                                        <span class="material-symbols-outlined" style="color: #fbbf24; background: transparent;">person</span>
+                                        <span class="material-symbols-outlined" style="color: var(--moonlight-yellow); background: transparent;">person</span>
                                         <% } %>
                                     </div>
                                     <div>
-                                        <span style="font-size: 0.75em; text-transform: uppercase; letter-spacing: 0.08em; color: var(--galm-day); font-weight: bold;">CURRENTLY PERFORMING</span>
-                                        <h4 style="margin: 2px 0 0; font-size: 1.3em; color: var(--bridal-white);">
+                                        <span style="font-size: 0.75em; text-transform: uppercase; letter-spacing: 0.08em; color: var(--dusty-blue-purple); font-weight: bold;">CURRENTLY PERFORMING</span>
+                                        <h4 style="margin: 2px 0 0; font-size: 1.3em; color: var(--cloud-white);">
                                             <%= stage.currentSpeakerMember ? stage.currentSpeakerMember.name : (stage.currentSpeaker ? `User ID ${stage.currentSpeaker}` : 'Open Mic / Intermission') %>
                                         </h4>
                                     </div>
@@ -236,23 +236,23 @@
                             <div>
                                 <span class="account-info-label" style="display: block; margin-bottom: 10px;">Queue Lineup (<%= (stage.queueMembers || []).length %> Waiting)</span>
                                 <% if (!stage.queueMembers || stage.queueMembers.length === 0) { %>
-                                <div style="background: var(--space-angel); border: 1px solid var(--breonne-blue); border-radius: 6px; padding: 18px; text-align: center; color: var(--galm-day);">
+                                <div style="background: var(--night-indigo); border: 1px solid var(--dusty-blue-purple); border-radius: 6px; padding: 18px; text-align: center; color: var(--dusty-blue-purple);">
                                     The stage queue is currently empty.
                                 </div>
                                 <% } else { %>
                                 <div style="display: flex; flex-direction: column; gap: 8px;">
                                     <% stage.queueMembers.forEach(function(member, idx) { %>
-                                    <div style="background: var(--space-angel); border: 1px solid var(--breonne-blue); border-radius: 6px; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+                                    <div style="background: var(--night-indigo); border: 1px solid var(--dusty-blue-purple); border-radius: 6px; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px;">
                                         <div style="display: flex; align-items: center; gap: 12px;">
-                                            <span style="font-weight: bold; color: #fbbf24; font-size: 1.1em; width: 24px;">#<%= idx + 1 %></span>
+                                            <span style="font-weight: bold; color: var(--moonlight-yellow); font-size: 1.1em; width: 24px;">#<%= idx + 1 %></span>
                                             <% if (member.avatarUrl) { %>
                                             <img src="<%= member.avatarUrl %>" alt="" style="width: 32px; height: 32px; border-radius: 50%;">
                                             <% } else { %>
-                                            <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--space-angel); display: flex; align-items: center; justify-content: center; color: var(--galm-day); font-size: 0.8em; font-weight: bold;">
+                                            <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--night-indigo); display: flex; align-items: center; justify-content: center; color: var(--dusty-blue-purple); font-size: 0.8em; font-weight: bold;">
                                                 <%= member.name.charAt(0).toUpperCase() %>
                                             </div>
                                             <% } %>
-                                            <span style="font-weight: bold; color: var(--bridal-white);"><%= member.name %></span>
+                                            <span style="font-weight: bold; color: var(--cloud-white);"><%= member.name %></span>
                                         </div>
 
                                         <form action="/bot/stage/remove-user" method="POST" onsubmit="return confirm('Remove <%= member.name %> from queue?');" style="margin: 0;">
@@ -277,7 +277,7 @@
                     <!-- SECTION: DISCORD DISPLAY NAME SYNC -->
                     <div class="settings-group" data-section="rolesync">
                         <div class="settings-group-header">
-                            <span class="material-symbols-outlined" style="background: var(--space-angel); color: var(--bridal-white); padding: 4px; border-radius: 4px;">sync</span>
+                            <span class="material-symbols-outlined" style="background: var(--night-indigo); color: var(--cloud-white); padding: 4px; border-radius: 4px;">sync</span>
                             <h2>Automated Discord Display Name Sync</h2>
                         </div>
 
@@ -294,8 +294,8 @@
 
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                                 <!-- Sync Individual Member Form -->
-                                <div style="background: var(--space-angel); border: 1px solid var(--breonne-blue); border-radius: 8px; padding: 18px;">
-                                    <h4 style="margin: 0 0 10px; color: var(--bridal-white); font-size: 1em;">Sync Single Staff Member</h4>
+                                <div style="background: var(--night-indigo); border: 1px solid var(--dusty-blue-purple); border-radius: 8px; padding: 18px;">
+                                    <h4 style="margin: 0 0 10px; color: var(--cloud-white); font-size: 1em;">Sync Single Staff Member</h4>
                                     <form action="/bot/sync-member" method="POST" style="display: flex; flex-direction: column; gap: 12px;">
                                         <div class="settings-form-group" style="margin-bottom: 0;">
                                             <label for="syncMemberSelect">Select Member</label>
@@ -317,10 +317,10 @@
                                 </div>
 
                                 <!-- Bulk Sync All Members -->
-                                <div style="background: var(--space-angel); border: 1px solid var(--breonne-blue); border-radius: 8px; padding: 18px; display: flex; flex-direction: column; justify-content: space-between;">
+                                <div style="background: var(--night-indigo); border: 1px solid var(--dusty-blue-purple); border-radius: 8px; padding: 18px; display: flex; flex-direction: column; justify-content: space-between;">
                                     <div>
-                                        <h4 style="margin: 0 0 6px; color: var(--bridal-white); font-size: 1em;">Full Server Bulk Sync</h4>
-                                        <p style="margin: 0; font-size: 0.85em; color: var(--galm-day); line-height: 1.5;">
+                                        <h4 style="margin: 0 0 6px; color: var(--cloud-white); font-size: 1em;">Full Server Bulk Sync</h4>
+                                        <p style="margin: 0; font-size: 0.85em; color: var(--dusty-blue-purple); line-height: 1.5;">
                                             Iterate through all <%= users.length %> registered staff members and update only their roster display names from Discord.
                                         </p>
                                     </div>
@@ -340,7 +340,7 @@
                     <!-- SECTION: DISCORD ANNOUNCEMENTS -->
                     <div class="settings-group" data-section="announcements">
                         <div class="settings-group-header">
-                            <span class="material-symbols-outlined" style="background: var(--space-angel); color: var(--bridal-white); padding: 4px; border-radius: 4px;">campaign</span>
+                            <span class="material-symbols-outlined" style="background: var(--night-indigo); color: var(--cloud-white); padding: 4px; border-radius: 4px;">campaign</span>
                             <h2>Discord Announcements</h2>
                         </div>
 
@@ -390,7 +390,7 @@
                     <!-- SECTION 1: SHY STAGES CONFIGURATION -->
                     <div class="settings-group" data-section="shystages">
                         <div class="settings-group-header">
-                            <span class="material-symbols-outlined" style="background: var(--space-angel); color: var(--bridal-white); padding: 4px; border-radius: 4px;">mic</span>
+                            <span class="material-symbols-outlined" style="background: var(--night-indigo); color: var(--cloud-white); padding: 4px; border-radius: 4px;">mic</span>
                             <h2>Shy Stages & Auto-Managed Voice Rooms</h2>
                         </div>
 
@@ -470,7 +470,7 @@
                     <!-- SECTION 2: OBS NOW SINGING OVERLAY -->
                     <div class="settings-group" data-section="obs">
                         <div class="settings-group-header">
-                            <span class="material-symbols-outlined" style="background: var(--space-angel); color: var(--bridal-white); padding: 4px; border-radius: 4px;">live_tv</span>
+                            <span class="material-symbols-outlined" style="background: var(--night-indigo); color: var(--cloud-white); padding: 4px; border-radius: 4px;">live_tv</span>
                             <h2>OBS Stream Overlays</h2>
                         </div>
 
@@ -501,17 +501,17 @@
                                 </div>
 
                                 <!-- Live Stream Overlay Preview Box -->
-                                <div style="background: #111; border: 1px solid var(--breonne-blue); border-radius: 8px; padding: 18px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+                                <div style="background: #111; border: 1px solid var(--dusty-blue-purple); border-radius: 8px; padding: 18px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
                                     <div style="display: flex; align-items: center; gap: 14px;">
-                                        <div style="width: 50px; height: 50px; border-radius: 50%; background: var(--space-angel); border: 2px solid #555; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                                        <div style="width: 50px; height: 50px; border-radius: 50%; background: var(--night-indigo); border: 2px solid #555; display: flex; align-items: center; justify-content: center; overflow: hidden;">
                                             <% if (nowSinging.avatarUrl) { %>
                                             <img src="<%= nowSinging.avatarUrl %>" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover;">
                                             <% } else { %>
-                                            <span class="material-symbols-outlined" style="color: var(--galm-day); background: transparent;">person</span>
+                                            <span class="material-symbols-outlined" style="color: var(--dusty-blue-purple); background: transparent;">person</span>
                                             <% } %>
                                         </div>
                                         <div>
-                                            <span style="font-size: 0.75em; text-transform: uppercase; letter-spacing: 0.08em; color: var(--galm-day); font-weight: bold;">LIVE STREAM PREVIEW</span>
+                                            <span style="font-size: 0.75em; text-transform: uppercase; letter-spacing: 0.08em; color: var(--dusty-blue-purple); font-weight: bold;">LIVE STREAM PREVIEW</span>
                                             <h4 style="margin: 2px 0 0; font-size: 1.25em; color: #34d399;"><%= nowSinging.text || 'Show Offline' %></h4>
                                         </div>
                                     </div>
@@ -534,7 +534,7 @@
                     <!-- SECTION 3: OBS ADVERTISEMENT ROTATION -->
                     <div class="settings-group" data-section="ads">
                         <div class="settings-group-header">
-                            <span class="material-symbols-outlined" style="background: var(--space-angel); color: var(--bridal-white); padding: 4px; border-radius: 4px;">featured_video</span>
+                            <span class="material-symbols-outlined" style="background: var(--night-indigo); color: var(--cloud-white); padding: 4px; border-radius: 4px;">featured_video</span>
                             <h2>OBS Rotating Banner Advertisements</h2>
                         </div>
 
@@ -559,9 +559,9 @@
                             </div>
 
                             <!-- Upload New Ad Form -->
-                            <div style="background: var(--space-angel); border: 1px dashed #444; border-radius: 8px; padding: 18px;">
-                                <h4 style="margin: 0 0 12px; color: var(--bridal-white); font-size: 1em; display: flex; align-items: center; gap: 6px;">
-                                    <span class="material-symbols-outlined" style="background: transparent; color: var(--bridal-white);">cloud_upload</span>
+                            <div style="background: var(--night-indigo); border: 1px dashed #444; border-radius: 8px; padding: 18px;">
+                                <h4 style="margin: 0 0 12px; color: var(--cloud-white); font-size: 1em; display: flex; align-items: center; gap: 6px;">
+                                    <span class="material-symbols-outlined" style="background: transparent; color: var(--cloud-white);">cloud_upload</span>
                                     Upload New Advertisement Banner
                                 </h4>
                                 <form action="/bot/ads/upload" method="POST" enctype="multipart/form-data" style="display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end;">
@@ -583,10 +583,10 @@
                             </div>
 
                             <!-- Ad Rotation Control -->
-                            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; background: var(--space-angel); padding: 14px 18px; border-radius: 6px; border: 1px solid var(--breonne-blue);">
+                            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; background: var(--night-indigo); padding: 14px 18px; border-radius: 6px; border: 1px solid var(--dusty-blue-purple);">
                                 <div>
-                                    <span style="font-weight: bold; color: var(--bridal-white); font-size: 0.95em;">Automatic Timer Rotation</span>
-                                    <p style="margin: 2px 0 0; font-size: 0.85em; color: var(--galm-day);">Automatically switch banners on stream every N seconds.</p>
+                                    <span style="font-weight: bold; color: var(--cloud-white); font-size: 0.95em;">Automatic Timer Rotation</span>
+                                    <p style="margin: 2px 0 0; font-size: 0.85em; color: var(--dusty-blue-purple);">Automatically switch banners on stream every N seconds.</p>
                                 </div>
                                 <form action="/bot/ads/rotate" method="POST" style="display: flex; align-items: center; gap: 8px; margin: 0;">
                                     <input type="number" name="seconds" min="5" max="3600" class="settings-input" style="width: 100px;" value="<%= obsAds.rotationIntervalMs ? Math.floor(obsAds.rotationIntervalMs / 1000) : 30 %>" placeholder="Secs">
@@ -610,15 +610,15 @@
                             <div>
                                 <span class="account-info-label" style="display: block; margin-bottom: 12px;">Active Ad Banners (<%= (obsAds.items || []).length %> Total)</span>
                                 <% if (!obsAds.items || obsAds.items.length === 0) { %>
-                                <div style="background: var(--space-angel); border: 1px solid var(--breonne-blue); border-radius: 6px; padding: 24px; text-align: center; color: var(--galm-day);">
+                                <div style="background: var(--night-indigo); border: 1px solid var(--dusty-blue-purple); border-radius: 6px; padding: 24px; text-align: center; color: var(--dusty-blue-purple);">
                                     <p style="margin: 0;">No banner advertisements uploaded yet.</p>
                                 </div>
                                 <% } else { %>
                                 <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">
                                     <% obsAds.items.forEach(function(ad) { %>
-                                    <div style="background: var(--space-angel); border: 2px solid <%= obsAds.activeId === ad.id ? '#10b981' : 'var(--breonne-blue)' %>; border-radius: 8px; overflow: hidden; display: flex; flex-direction: column;">
+                                    <div style="background: var(--night-indigo); border: 2px solid <%= obsAds.activeId === ad.id ? '#10b981' : 'var(--dusty-blue-purple)' %>; border-radius: 8px; overflow: hidden; display: flex; flex-direction: column;">
                                         <div style="height: 140px; background: #000; display: flex; align-items: center; justify-content: center; position: relative;">
-                                            <img src="/bot-assets/ads/<%= ad.fileName %>" alt="<%= ad.title %>" style="max-width: 100%; max-height: 100%; object-fit: contain;" onerror="this.outerHTML='<span style=\'color:#666;font-size:0.85em;\'>Image not found</span>';">
+                                            <img src="/bot-assets/ads/<%= ad.fileName %>" alt="<%= ad.title %>" style="max-width: 100%; max-height: 100%; object-fit: contain;" onerror="this.outerHTML='<span style=\'color:var(--dusty-blue-purple);font-size:0.85em;\'>Image not found</span>';">
                                             <% if (obsAds.activeId === ad.id) { %>
                                             <span style="position: absolute; top: 8px; right: 8px; background: #10b981; color: #000; font-size: 0.75em; font-weight: bold; padding: 2px 8px; border-radius: 12px;">ACTIVE NOW</span>
                                             <% } %>
@@ -626,8 +626,8 @@
 
                                         <div style="padding: 12px; display: flex; flex-direction: column; gap: 8px; flex: 1;">
                                             <div style="display: flex; justify-content: space-between; align-items: center;">
-                                                <strong style="color: var(--bridal-white); font-size: 0.95em;"><%= ad.title %></strong>
-                                                <span style="font-size: 0.75em; color: var(--galm-day);"><%= (ad.uploadedAt || '').slice(0, 10) %></span>
+                                                <strong style="color: var(--cloud-white); font-size: 0.95em;"><%= ad.title %></strong>
+                                                <span style="font-size: 0.75em; color: var(--dusty-blue-purple);"><%= (ad.uploadedAt || '').slice(0, 10) %></span>
                                             </div>
 
                                             <div style="display: flex; gap: 8px; margin-top: auto; padding-top: 8px; border-top: 1px solid #282724;">
@@ -658,7 +658,7 @@
                     <!-- SECTION 4: INVITE WHITELIST & MODERATION -->
                     <div class="settings-group" data-section="invites">
                         <div class="settings-group-header">
-                            <span class="material-symbols-outlined" style="background: var(--space-angel); color: var(--bridal-white); padding: 4px; border-radius: 4px;">link</span>
+                            <span class="material-symbols-outlined" style="background: var(--night-indigo); color: var(--cloud-white); padding: 4px; border-radius: 4px;">link</span>
                             <h2>Discord Invite Link Whitelist</h2>
                         </div>
 
@@ -717,7 +717,7 @@
                                 </div>
                             </div>
                             <% } else { %>
-                            <div style="background: var(--space-angel); border: 1px solid var(--breonne-blue); border-radius: 6px; padding: 20px; text-align: center; color: var(--galm-day);">
+                            <div style="background: var(--night-indigo); border: 1px solid var(--dusty-blue-purple); border-radius: 6px; padding: 20px; text-align: center; color: var(--dusty-blue-purple);">
                                 No invite link whitelist exceptions registered.
                             </div>
                             <% } %>
@@ -727,7 +727,7 @@
                     <!-- SECTION: BINGO TEMPLATE MANAGEMENT -->
                     <div class="settings-group" data-section="bingo-templates">
                         <div class="settings-group-header">
-                            <span class="material-symbols-outlined" style="background: var(--space-angel); color: var(--bridal-white); padding: 4px; border-radius: 4px;">view_module</span>
+                            <span class="material-symbols-outlined" style="background: var(--night-indigo); color: var(--cloud-white); padding: 4px; border-radius: 4px;">view_module</span>
                             <h2>Bingo Template Management</h2>
                         </div>
 
@@ -788,7 +788,7 @@
                                 <div class="settings-form-group" style="margin-bottom: 0;">
                                     <label for="activeTemplateEditGoals">Goals (one per line)</label>
                                     <textarea id="activeTemplateEditGoals" name="goalsText" class="settings-input" rows="10" required style="resize: vertical;"><%= activeTemplateEditGoalsText %></textarea>
-                                    <small style="color: var(--galm-day);">Format each line as <code>Target | Challenge description</code>.</small>
+                                    <small style="color: var(--dusty-blue-purple);">Format each line as <code>Target | Challenge description</code>.</small>
                                 </div>
                                 <div style="display: flex; justify-content: flex-start;">
                                     <button type="submit" class="settings-btn settings-btn-secondary">
@@ -858,17 +858,17 @@
                             </div>
                             <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 12px;">
                                 <% (bingoTemplates || []).forEach(function(template) { %>
-                                <div style="background: var(--space-angel); border: 1px solid <%= template.id === activeBingoTemplateId ? '#10b981' : 'var(--breonne-blue)' %>; border-radius: 8px; padding: 14px;">
+                                <div style="background: var(--night-indigo); border: 1px solid <%= template.id === activeBingoTemplateId ? '#10b981' : 'var(--dusty-blue-purple)' %>; border-radius: 8px; padding: 14px;">
                                     <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
-                                        <strong style="color: var(--bridal-white);"><%= template.name %></strong>
+                                        <strong style="color: var(--cloud-white);"><%= template.name %></strong>
                                         <% if (template.id === activeBingoTemplateId) { %>
                                         <span class="settings-badge badge-success">Active</span>
                                         <% } else { %>
                                         <span class="settings-badge badge-danger">Inactive</span>
                                         <% } %>
                                     </div>
-                                    <p style="font-size: 0.82em; color: var(--galm-day); margin: 6px 0 10px;"><%= (template.goals || []).length %> goal<%= (template.goals || []).length === 1 ? '' : 's' %></p>
-                                    <ol style="margin: 0 0 12px 18px; padding: 0; color: var(--bridal-white); max-height: 120px; overflow: auto; font-size: 0.85em;">
+                                    <p style="font-size: 0.82em; color: var(--dusty-blue-purple); margin: 6px 0 10px;"><%= (template.goals || []).length %> goal<%= (template.goals || []).length === 1 ? '' : 's' %></p>
+                                    <ol style="margin: 0 0 12px 18px; padding: 0; color: var(--cloud-white); max-height: 120px; overflow: auto; font-size: 0.85em;">
                                         <% (template.goals || []).forEach(function(goal) { %>
                                         <li style="margin-bottom: 6px;">
                                             <div><strong><%= goal.target %></strong></div>
@@ -895,7 +895,7 @@
                     <!-- SECTION 5: BOT CORE CONFIG -->
                     <div class="settings-group" data-section="config">
                         <div class="settings-group-header">
-                            <span class="material-symbols-outlined" style="background: var(--space-angel); color: var(--bridal-white); padding: 4px; border-radius: 4px;">settings</span>
+                            <span class="material-symbols-outlined" style="background: var(--night-indigo); color: var(--cloud-white); padding: 4px; border-radius: 4px;">settings</span>
                             <h2>Bot Core Configuration</h2>
                         </div>
 
