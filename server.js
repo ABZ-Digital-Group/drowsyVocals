@@ -2693,7 +2693,21 @@ app.get('/settings', requireDatabase, async (req, res) => {
                 ? db.collection('resetRequests').find({ status: 'pending' }).sort({ requestedAt: 1 }).toArray()
                 : []
         ]);
-        res.render('pages/settings', { page: 'settings', settings, developers, users, resetRequests });
+        const {
+            templates: bingoTemplates,
+            activeTemplateId: activeBingoTemplateId,
+            activeTemplate: activeBingoTemplate
+        } = getBingoTemplateConfig(settings);
+        res.render('pages/settings', {
+            page: 'settings',
+            settings,
+            developers,
+            users,
+            resetRequests,
+            bingoTemplates,
+            activeBingoTemplateId,
+            activeBingoTemplate
+        });
     } catch (error) {
         console.error('Error loading settings:', error);
         res.status(500).send('Error loading settings.');
