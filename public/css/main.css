@@ -5481,6 +5481,30 @@ dialog button {
     color: var(--night-indigo);
 }
 
+.settings-group[data-section="stage-queue"] .settings-card {
+    background: var(--cloud-lilac);
+    border-color: var(--misty-blue);
+    color: var(--night-indigo);
+}
+.settings-group[data-section="stage-queue"] .settings-card-title {
+    color: var(--night-indigo);
+}
+.settings-group[data-section="stage-queue"] .settings-card-desc {
+    color: var(--dusty-blue-purple);
+}
+.stage-now-playing {
+    background: var(--cloud-white) !important;
+    border-color: var(--misty-blue) !important;
+}
+.stage-now-playing h4 {
+    color: var(--night-indigo) !important;
+}
+.stage-empty-queue {
+    background: var(--cloud-white) !important;
+    border-color: var(--misty-blue) !important;
+    color: var(--dusty-blue-purple) !important;
+}
+
 .bingo-cell.is-complete .bingo-goal-btn,
 .bingo-cell.is-complete .bingo-goal-static,
 .bingo-cell.is-complete .bingo-goal-icon {
