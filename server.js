@@ -3676,6 +3676,44 @@ app.post('/bot/stage/next', requireDatabase, async (req, res) => {
     res.redirect('/bot#stage-queue');
 });
 
+app.post('/bot/stage/stop', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !hasGodAccess(req)) return res.redirect('/dashboard');
+    const result = await sendBotApiPost('/admin/api/stage/stop', { guildId: req.body.guildId, channelId: req.body.channelId });
+    req.flash(result?.ok ? 'success_msg' : 'error_msg', result?.ok ? 'Stage stopped.' : 'Failed to stop stage.');
+    res.redirect('/bot#stage-queue');
+});
+
+app.post('/bot/stage/start', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !hasGodAccess(req)) return res.redirect('/dashboard');
+    const result = await sendBotApiPost('/admin/api/stage/start', {
+        guildId: req.body.guildId,
+        channelId: req.body.channelId,
+        hostId: req.body.hostId,
+        announcementChannelId: req.body.announcementChannelId
+    });
+    req.flash(result?.ok ? 'success_msg' : 'error_msg', result?.ok ? 'Stage started.' : 'Failed to start stage.');
+    res.redirect('/bot#stage-queue');
+});
+
+app.post('/bot/stage/clear', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !hasGodAccess(req)) return res.redirect('/dashboard');
+    const result = await sendBotApiPost('/admin/api/stage/clear', { guildId: req.body.guildId, channelId: req.body.channelId });
+    req.flash(result?.ok ? 'success_msg' : 'error_msg', result?.ok ? `Cleared ${result.result?.cleared || 0} singers.` : 'Failed to clear stage queue.');
+    res.redirect('/bot#stage-queue');
+});
+
+app.post('/bot/stage/role', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !hasGodAccess(req)) return res.redirect('/dashboard');
+    const role = req.body.role === 'host' || req.body.role === 'cohost' ? req.body.role : 'uncohost';
+    const result = await sendBotApiPost(`/admin/api/stage/${role}`, {
+        guildId: req.body.guildId,
+        channelId: req.body.channelId,
+        userId: req.body.userId
+    });
+    req.flash(result?.ok ? 'success_msg' : 'error_msg', result?.ok ? `Stage ${role === 'host' ? 'host' : role === 'cohost' ? 'co-host' : 'co-host removal'} updated.` : 'Failed to update stage role.');
+    res.redirect('/bot#stage-queue');
+});
+
 // TOGGLE INTERMISSION RADIO
 app.post('/bot/stage/radio', requireDatabase, async (req, res) => {
     if (!req.session.loggedin || !hasGodAccess(req)) return res.redirect('/dashboard');
