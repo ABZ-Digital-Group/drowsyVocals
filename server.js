@@ -4023,70 +4023,81 @@ app.post('/house-points/award', requireDatabase, async (req, res) => {
     }
 
     const { discordId, amount, reason } = req.body;
-    const cleanDiscordId = (discordId || '').toString().trim();
+    const cleanDiscordIds = (Array.isArray(discordId) ? discordId : [discordId])
+        .map((id) => (id || '').toString().trim())
+        .filter(Boolean)
+        .filter((id, index, ids) => ids.indexOf(id) === index);
     const cleanAmount = Number(amount);
     const cleanReason = (reason || '').toString().trim();
 
-    if (!cleanDiscordId || !Number.isFinite(cleanAmount) || !cleanReason) {
-        req.flash('error_msg', 'Staff member, valid point amount, and reason are required.');
+    if (!cleanDiscordIds.length || !Number.isFinite(cleanAmount) || !cleanReason) {
+        req.flash('error_msg', 'At least one staff member, a valid point amount, and a reason are required.');
         return res.redirect('/house-points');
     }
 
     try {
-        const targetUser = await db.collection('users').findOne({ 'login.discordId': cleanDiscordId });
-        if (!targetUser) {
-            req.flash('error_msg', 'Target staff member not found.');
+        const targetUsers = await db.collection('users')
+            .find({ 'login.discordId': { $in: cleanDiscordIds } })
+            .toArray();
+        const targetUsersById = new Map(targetUsers.map((user) => [user.login.discordId, user]));
+        const missingDiscordIds = cleanDiscordIds.filter((id) => !targetUsersById.has(id));
+        if (missingDiscordIds.length) {
+            req.flash('error_msg', 'One or more selected staff members could not be found.');
             return res.redirect('/house-points');
         }
 
-        const currentPoints = Number(targetUser.housePoints) || 0;
         const effectiveAmount = cleanAmount;
-        const newPoints = Math.max(0, currentPoints + effectiveAmount);
-
-        await db.collection('users').updateOne(
-            { 'login.discordId': cleanDiscordId },
-            { $set: { housePoints: newPoints } }
-        );
-
         const actor = await db.collection('users').findOne(
             { 'login.discordId': req.session.currentuser },
             { projection: { displayName: 1, discordUser: 1 } }
         );
 
-        const logEntry = {
-            recipientId: cleanDiscordId,
-            recipientName: targetUser.displayName || targetUser.discordUser || cleanDiscordId,
-            recipientHouse: targetUser.house || null,
-            amount: effectiveAmount,
-            reason: cleanReason,
-            actorId: req.session.currentuser,
-            actorName: actor?.displayName || actor?.discordUser || req.session.currentuser,
-            createdAt: new Date().toISOString()
-        };
+        for (const cleanDiscordId of cleanDiscordIds) {
+            const targetUser = targetUsersById.get(cleanDiscordId);
+            const currentPoints = Number(targetUser.housePoints) || 0;
+            const newPoints = Math.max(0, currentPoints + effectiveAmount);
 
-        await db.collection('housePointsLog').insertOne(logEntry);
-        await writeAudit(req, 'Awarded House Points', `${effectiveAmount >= 0 ? '+' : ''}${effectiveAmount} pts to ${logEntry.recipientName} (${cleanReason})`);
+            await db.collection('users').updateOne(
+                { 'login.discordId': cleanDiscordId },
+                { $set: { housePoints: newPoints } }
+            );
 
-        sendDiscordWebhook({
-            title: effectiveAmount >= 0 ? '# 🏆 House Points Awarded! 🏆' : '# ⚠️ House Points Deducted ⚠️',
-            color: effectiveAmount >= 0 ? 0xFBBF24 : 0xEF4444,
-            fields: [
-                { name: 'Staff Member', value: `${logEntry.recipientName} (<@${cleanDiscordId}>)`, inline: true },
-                { name: 'House', value: targetUser.house || 'None', inline: true },
-                { name: 'Change', value: `${effectiveAmount >= 0 ? '+' : ''}${effectiveAmount} Pts (Total: ${newPoints})`, inline: true },
-                { name: 'Reason', value: cleanReason },
-                { name: 'Awarded By', value: `<@${req.session.currentuser}>` }
-            ]
-        }, 'housePoints');
+            const logEntry = {
+                recipientId: cleanDiscordId,
+                recipientName: targetUser.displayName || targetUser.discordUser || cleanDiscordId,
+                recipientHouse: targetUser.house || null,
+                amount: effectiveAmount,
+                reason: cleanReason,
+                actorId: req.session.currentuser,
+                actorName: actor?.displayName || actor?.discordUser || req.session.currentuser,
+                createdAt: new Date().toISOString()
+            };
 
-        createNotification(
-            cleanDiscordId,
-            effectiveAmount >= 0 ? 'House points awarded' : 'House points deducted',
-            `${effectiveAmount >= 0 ? '+' : ''}${effectiveAmount} house points were recorded for your account.`,
-            '/house-points'
-        ).catch((error) => console.error('Failed to create house-points notification:', error.message));
+            await db.collection('housePointsLog').insertOne(logEntry);
+            await writeAudit(req, 'Awarded House Points', `${effectiveAmount >= 0 ? '+' : ''}${effectiveAmount} pts to ${logEntry.recipientName} (${cleanReason})`);
+
+            sendDiscordWebhook({
+                title: effectiveAmount >= 0 ? '# 🏆 House Points Awarded! 🏆' : '# ⚠️ House Points Deducted ⚠️',
+                color: effectiveAmount >= 0 ? 0xFBBF24 : 0xEF4444,
+                fields: [
+                    { name: 'Staff Member', value: `${logEntry.recipientName} (<@${cleanDiscordId}>)`, inline: true },
+                    { name: 'House', value: targetUser.house || 'None', inline: true },
+                    { name: 'Change', value: `${effectiveAmount >= 0 ? '+' : ''}${effectiveAmount} Pts (Total: ${newPoints})`, inline: true },
+                    { name: 'Reason', value: cleanReason },
+                    { name: 'Awarded By', value: `<@${req.session.currentuser}>` }
+                ]
+            }, 'housePoints');
+
+            createNotification(
+                cleanDiscordId,
+                effectiveAmount >= 0 ? 'House points awarded' : 'House points deducted',
+                `${effectiveAmount >= 0 ? '+' : ''}${effectiveAmount} house points were recorded for your account.`,
+                '/house-points'
+            ).catch((error) => console.error('Failed to create house-points notification:', error.message));
+        }
+
         broadcastDataUpdate('users');
-        req.flash('success_msg', `Recorded point change of ${effectiveAmount >= 0 ? '+' : ''}${effectiveAmount} pts for ${logEntry.recipientName}.`);
+        req.flash('success_msg', `Recorded point change of ${effectiveAmount >= 0 ? '+' : ''}${effectiveAmount} pts for ${cleanDiscordIds.length} staff member${cleanDiscordIds.length === 1 ? '' : 's'}.`);
         res.redirect('/house-points');
     } catch (error) {
         console.error('Error awarding points:', error);
