@@ -541,7 +541,7 @@ if (viewUserPopup && closeViewUserPopup) {
             ? Math.max(0, Math.floor((Date.now() - joinedAt.getTime()) / 60000))
             : null;
           viewDiscordPresence.hidden = false;
-          viewDiscordPresence.innerHTML = `<span class="discord-presence-dot" aria-hidden="true"></span><strong>In voice chat</strong><span>${escapeHtml(discordMember.voiceChannelName)}</span>${duration === null ? "" : `<span>for ${duration < 60 ? `${duration} min` : `${Math.floor(duration / 60)}h ${duration % 60}m`}</span>`}`;
+          viewDiscordPresence.innerHTML = `<span class="discord-presence-status"><span class="discord-presence-dot" aria-hidden="true"></span><strong>In voice chat</strong></span><span class="discord-presence-channel"><span class="material-symbols-outlined" aria-hidden="true">headset_mic</span>${escapeHtml(discordMember.voiceChannelName)}</span>${duration === null ? "" : `<span class="discord-presence-duration"><span class="material-symbols-outlined" aria-hidden="true">schedule</span>${duration < 60 ? `${duration} min` : `${Math.floor(duration / 60)}h ${duration % 60}m`}</span>`}`;
         } else {
           viewDiscordPresence.hidden = false;
           viewDiscordPresence.innerHTML = '<span class="discord-presence-dot" aria-hidden="true"></span><strong>Online on Discord</strong>';
