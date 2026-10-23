@@ -542,11 +542,11 @@ if (viewUserPopup && closeViewUserPopup) {
             : null;
           viewDiscordPresence.hidden = false;
           const discordChannelUrl = discordMember.guildId && discordMember.voiceChannelId
-            ? `https://discord.com/channels/${encodeURIComponent(discordMember.guildId)}/${encodeURIComponent(discordMember.voiceChannelId)}`
+            ? `discord://-/channels/${encodeURIComponent(discordMember.guildId)}/${encodeURIComponent(discordMember.voiceChannelId)}`
             : null;
           const channelContent = `<span class="material-symbols-outlined" aria-hidden="true">headset_mic</span>${escapeHtml(discordMember.voiceChannelName)}`;
           const channelMarkup = discordChannelUrl
-            ? `<a class="discord-presence-channel" href="${discordChannelUrl}" target="_blank" rel="noopener noreferrer">${channelContent}<span class="material-symbols-outlined discord-presence-open-icon" aria-hidden="true">open_in_new</span></a>`
+            ? `<a class="discord-presence-channel" href="${discordChannelUrl}">${channelContent}<span class="material-symbols-outlined discord-presence-open-icon" aria-hidden="true">open_in_new</span></a>`
             : `<span class="discord-presence-channel">${channelContent}</span>`;
           viewDiscordPresence.innerHTML = `<span class="discord-presence-status"><span class="discord-presence-dot" aria-hidden="true"></span><strong>In voice chat</strong></span>${channelMarkup}${duration === null ? "" : `<span class="discord-presence-duration"><span class="material-symbols-outlined" aria-hidden="true">schedule</span>${duration < 60 ? `${duration} min` : `${Math.floor(duration / 60)}h ${duration % 60}m`}</span>`}`;
         } else {
