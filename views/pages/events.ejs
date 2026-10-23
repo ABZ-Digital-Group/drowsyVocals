@@ -228,7 +228,18 @@
                             <div class="settings-accordion-content">
                                 <div style="display: flex; flex-direction: column; gap: 8px;">
                                     <% pastEvents.slice(0, 10).forEach(function(event) { %>
-                                    <div style="background: #111; padding: 10px 14px; border-radius: 4px; border: 1px solid #333; display: flex; justify-content: space-between; align-items: center;">
+                                    <div class="event-history-row">
+                                    <button type="button" class="event-history-item"
+                                        data-event-id="<%= event.id || event._id %>"
+                                        data-event-title="<%= event.title %>"
+                                        data-event-category="<%= event.category || 'Event' %>"
+                                        data-event-location="<%= event.location || 'Discord Stage' %>"
+                                        data-event-start="<%= event.scheduledStartTime || '' %>"
+                                        data-event-end="<%= event.scheduledEndTime || '' %>"
+                                        data-event-host="<%= event.host && userMap[event.host] ? (userMap[event.host].displayName || userMap[event.host].discordUser) : (event.host || 'Not assigned') %>"
+                                        data-event-co-host="<%= event.coHost && userMap[event.coHost] ? (userMap[event.coHost].displayName || userMap[event.coHost].discordUser) : (event.coHost || 'Not assigned') %>"
+                                        data-event-admin="<%= event.admin && userMap[event.admin] ? (userMap[event.admin].displayName || userMap[event.admin].discordUser) : (event.admin || 'Not assigned') %>"
+                                        data-event-description="<%= event.description || 'No description provided.' %>">
                                         <div>
                                             <strong style="color: var(--cloud-lilac);"><%= event.title %></strong>
                                             <span class="past-event-time" data-event-start="<%= event.scheduledStartTime %>" style="font-size: 0.75em; color: var(--dusty-blue-purple); display: block;">
@@ -236,6 +247,22 @@
                                             </span>
                                         </div>
                                         <span class="settings-badge badge-neutral" style="font-size: 0.75em;">Concluded</span>
+                                    </button>
+                                    <% if (isManager) { %>
+                                    <button type="button" class="settings-btn settings-btn-secondary settings-btn-sm editEventBtn"
+                                        data-event-id="<%= event.id || event._id %>"
+                                        data-event-title="<%= event.title %>"
+                                        data-event-category="<%= event.category || 'Karaoke' %>"
+                                        data-event-location="<%= event.location || 'Discord Stage' %>"
+                                        data-event-host="<%= event.host || '' %>"
+                                        data-event-co-host="<%= event.coHost || '' %>"
+                                        data-event-admin="<%= event.admin || '' %>"
+                                        data-event-start-iso="<%= event.scheduledStartTime || '' %>"
+                                        data-event-end-iso="<%= event.scheduledEndTime || '' %>"
+                                        data-event-desc="<%= event.description || '' %>">
+                                        Edit
+                                    </button>
+                                    <% } %>
                                     </div>
                                     <% }); %>
                                 </div>
@@ -380,6 +407,31 @@
                 </div>
             </section>
         </main>
+        <dialog id="eventHistoryDetails" class="dialog-wide">
+            <div class="event-history-details-header">
+                <div>
+                    <span id="eventHistoryCategory" class="settings-badge badge-neutral"></span>
+                    <h3 id="eventHistoryTitle"></h3>
+                </div>
+                <button type="button" id="closeEventHistoryDetails" aria-label="Close event details">&times;</button>
+            </div>
+            <div class="event-history-details-grid">
+                <div><span>When</span><strong id="eventHistoryWhen"></strong></div>
+                <div><span>Location</span><strong id="eventHistoryLocation"></strong></div>
+                <div><span>Host</span><strong id="eventHistoryHost"></strong></div>
+                <div><span>Co-host</span><strong id="eventHistoryCoHost"></strong></div>
+                <div><span>Admin on duty</span><strong id="eventHistoryAdmin"></strong></div>
+            </div>
+            <div class="event-history-description">
+                <span>Description</span>
+                <p id="eventHistoryDescription"></p>
+            </div>
+            <% if (isManager) { %>
+            <div class="event-history-details-actions">
+                <button type="button" id="editEventFromHistory" class="settings-btn settings-btn-primary">Edit Event</button>
+            </div>
+            <% } %>
+        </dialog>
         <% if (pastPopUps && pastPopUps.length > 0) { %>
         <section class="settings-page" style="padding-top: 0;">
             <details class="settings-accordion">
