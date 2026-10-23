@@ -6396,6 +6396,25 @@ app.get('/api/online-users', requireDatabase, async (req, res) => {
     }
 });
 
+app.get('/api/discord-presence', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin) return res.status(401).json({ error: 'Not authenticated.' });
+
+    try {
+        const status = await botService.getBotStatus();
+        const membersById = new Map();
+        (status.discordMembers || []).forEach((member) => {
+            const existing = membersById.get(member.userId);
+            if (!existing || (!existing.voiceChannelId && member.voiceChannelId)) {
+                membersById.set(member.userId, member);
+            }
+        });
+        res.json({ members: [...membersById.values()] });
+    } catch (error) {
+        console.error('Error fetching Discord presence:', error.message);
+        res.status(503).json({ error: 'Discord presence is temporarily unavailable.' });
+    }
+});
+
 app.post('/api/presence', requireDatabase, async (req, res) => {
     if (!req.session.loggedin || !req.session.currentuser) return res.status(401).json({ error: 'Not authenticated.' });
 

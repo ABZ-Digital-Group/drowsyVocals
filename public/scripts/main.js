@@ -356,6 +356,21 @@ if (onlineNowBar) {
   setInterval(refreshOnlineUsers, 15000);
 }
 
+let discordMembersById = new Map();
+const refreshDiscordPresence = () => {
+  fetch("/api/discord-presence", { cache: "no-store" })
+    .then((response) => (response.ok ? response.json() : Promise.reject(new Error("Discord presence unavailable"))))
+    .then((payload) => {
+      discordMembersById = new Map((payload.members || []).map((member) => [member.userId, member]));
+      document.querySelectorAll(".avatar-wrapper[data-discord-id]").forEach((avatar) => {
+        avatar.classList.toggle("is-discord-online", discordMembersById.has(avatar.dataset.discordId));
+      });
+    })
+    .catch(() => {});
+};
+refreshDiscordPresence();
+setInterval(refreshDiscordPresence, 30000);
+
 
 const addUserPopup = document.getElementById("addUserPopup");
 const openAddUserPopup = document.getElementById("openAddUserPopup");
@@ -450,6 +465,7 @@ if (viewUserPopup && closeViewUserPopup) {
   const viewButtons = document.querySelectorAll(".viewBtn");
   const viewAvatar = document.getElementById("viewAvatar");
   const viewUserHeader = viewUserPopup.querySelector(".view-user-header");
+  const viewDiscordPresence = document.getElementById("viewDiscordPresence");
   const viewDisplayName = document.getElementById("viewDisplayName");
   const viewDiscordUser = document.getElementById("viewDiscordUser");
   const viewDiscordId = document.getElementById("viewDiscordId");
@@ -512,6 +528,24 @@ if (viewUserPopup && closeViewUserPopup) {
           ? `linear-gradient(rgba(36, 35, 32, 0.5), rgba(36, 35, 32, 0.72)), url("${profileBackgroundUrl}")`
           : "";
         viewUserHeader.classList.toggle("has-background", Boolean(profileBackgroundUrl));
+      }
+
+      if (viewDiscordPresence) {
+        const discordMember = discordMembersById.get(discordId);
+        if (!discordMember) {
+          viewDiscordPresence.hidden = true;
+          viewDiscordPresence.textContent = "";
+        } else if (discordMember.voiceChannelName) {
+          const joinedAt = discordMember.voiceJoinedAt ? new Date(discordMember.voiceJoinedAt) : null;
+          const duration = joinedAt && !Number.isNaN(joinedAt.getTime())
+            ? Math.max(0, Math.floor((Date.now() - joinedAt.getTime()) / 60000))
+            : null;
+          viewDiscordPresence.hidden = false;
+          viewDiscordPresence.innerHTML = `<span class="discord-presence-dot" aria-hidden="true"></span><strong>In voice chat</strong><span>${escapeHtml(discordMember.voiceChannelName)}</span>${duration === null ? "" : `<span>for ${duration < 60 ? `${duration} min` : `${Math.floor(duration / 60)}h ${duration % 60}m`}</span>`}`;
+        } else {
+          viewDiscordPresence.hidden = false;
+          viewDiscordPresence.innerHTML = '<span class="discord-presence-dot" aria-hidden="true"></span><strong>Online on Discord</strong>';
+        }
       }
 
       viewDisplayName.textContent = displayName || "";
