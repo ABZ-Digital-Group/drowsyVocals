@@ -1033,6 +1033,49 @@ const initEventsLocalization = () => {
         year: 'numeric',
         timeZone: userTimezone
       });
+
+      const eventHistoryDetails = document.getElementById('eventHistoryDetails');
+      const closeEventHistoryDetails = document.getElementById('closeEventHistoryDetails');
+      const editEventFromHistory = document.getElementById('editEventFromHistory');
+      let selectedHistoryEditButton = null;
+      document.querySelectorAll('.event-history-item').forEach((item) => {
+        item.addEventListener('click', () => {
+          const formatWhen = (iso) => {
+            if (!iso) return 'Not provided';
+            const date = new Date(iso);
+            return Number.isNaN(date.getTime()) ? 'Not provided' : date.toLocaleString(undefined, {
+              weekday: 'short',
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric',
+              hour: 'numeric',
+              minute: '2-digit',
+              timeZone: userTimezone,
+              timeZoneName: 'short'
+            });
+          };
+
+          document.getElementById('eventHistoryCategory').textContent = item.dataset.eventCategory || 'Event';
+          document.getElementById('eventHistoryTitle').textContent = item.dataset.eventTitle || 'Event';
+          document.getElementById('eventHistoryWhen').textContent = item.dataset.eventEnd
+            ? `${formatWhen(item.dataset.eventStart)} until ${formatWhen(item.dataset.eventEnd)}`
+            : formatWhen(item.dataset.eventStart);
+          document.getElementById('eventHistoryLocation').textContent = item.dataset.eventLocation || 'Not provided';
+          document.getElementById('eventHistoryHost').textContent = item.dataset.eventHost || 'Not assigned';
+          document.getElementById('eventHistoryCoHost').textContent = item.dataset.eventCoHost || 'Not assigned';
+          document.getElementById('eventHistoryAdmin').textContent = item.dataset.eventAdmin || 'Not assigned';
+          document.getElementById('eventHistoryDescription').textContent = item.dataset.eventDescription || 'No description provided.';
+
+          selectedHistoryEditButton = item.parentElement.querySelector('.editEventBtn');
+          if (eventHistoryDetails) eventHistoryDetails.showModal();
+        });
+      });
+
+      closeEventHistoryDetails?.addEventListener('click', () => eventHistoryDetails?.close());
+      editEventFromHistory?.addEventListener('click', () => {
+        eventHistoryDetails?.close();
+        selectedHistoryEditButton?.click();
+      });
       const timeStr = startDate.toLocaleTimeString(undefined, {
         hour: 'numeric',
         minute: '2-digit',
