@@ -4581,7 +4581,12 @@ dialog .checkbox-label input[type="checkbox"] {
     box-sizing: content-box;
 }
 .avatar-wrapper.is-discord-online .avatar-discord-dot {
-    display: block;
+    display: none;
+}
+.avatar-wrapper.is-discord-online {
+    outline: 3px solid #5865f2;
+    outline-offset: 2px;
+    border-radius: 50%;
 }
 .view-discord-presence {
     display: flex;
