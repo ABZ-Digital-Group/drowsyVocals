@@ -7359,6 +7359,537 @@ app.post('/bingo/templates/activate', requireDatabase, async (req, res) => {
     }
 });
 
+// ==========================================
+// NATIVE MOBILE APP REST API (v1)
+// ==========================================
+
+function apiRequireAuth(req, res, next) {
+    if (shuttingDown || !isDatabaseReady || !db) {
+        return res.status(503).json({ success: false, error: 'Database is temporarily unavailable.' });
+    }
+    if (!req.session.loggedin || !req.session.currentuser) {
+        return res.status(401).json({ success: false, error: 'Unauthorized. Please log in.' });
+    }
+    next();
+}
+
+app.post('/api/v1/auth/login', requireDatabase, async (req, res) => {
+    const discordId = (req.body.discordId || '').toString().trim();
+    const password = (req.body.password || '').toString();
+
+    if (!discordId || !password) {
+        return res.status(400).json({ success: false, error: 'Discord ID and password are required.' });
+    }
+
+    try {
+        const userDoc = await db.collection('users').findOne({ 'login.discordId': discordId });
+        if (!userDoc || !userDoc.login?.password) {
+            return res.status(401).json({ success: false, error: 'Invalid Discord ID or password.' });
+        }
+
+        const isMatch = await bcrypt.compare(password, userDoc.login.password);
+        if (!isMatch) {
+            return res.status(401).json({ success: false, error: 'Invalid Discord ID or password.' });
+        }
+
+        if (userDoc.suspended) {
+            return res.status(403).json({ success: false, error: 'Account suspended.' });
+        }
+
+        const currentAccountType = userDoc.accountType || 'Tired Esquire';
+        const currentIsDeveloper = Boolean(userDoc.isDeveloper);
+
+        req.session.regenerate((err) => {
+            if (err) {
+                return res.status(500).json({ success: false, error: 'Session initialization failed.' });
+            }
+            req.session.loggedin = true;
+            req.session.currentuser = discordId;
+            req.session.accountType = currentAccountType;
+            req.session.isDeveloper = currentIsDeveloper;
+
+            return res.json({
+                success: true,
+                user: {
+                    discordId: userDoc.login.discordId,
+                    name: userDoc.displayName || userDoc.discordUser || userDoc.name || userDoc.login.discordId,
+                    accountType: currentAccountType,
+                    isDeveloper: currentIsDeveloper,
+                    avatar: userDoc.avatar || ''
+                }
+            });
+        });
+    } catch (error) {
+        console.error('API login error:', error);
+        return res.status(500).json({ success: false, error: 'Login server error.' });
+    }
+});
+
+app.get('/api/v1/auth/me', apiRequireAuth, async (req, res) => {
+    try {
+        const userDoc = await db.collection('users').findOne({ 'login.discordId': req.session.currentuser });
+        if (!userDoc) {
+            return res.status(404).json({ success: false, error: 'User not found.' });
+        }
+        return res.json({
+            success: true,
+            user: {
+                discordId: userDoc.login?.discordId || req.session.currentuser,
+                name: userDoc.displayName || userDoc.discordUser || userDoc.name || userDoc.login?.discordId || req.session.currentuser,
+                accountType: userDoc.accountType || req.session.accountType,
+                isDeveloper: Boolean(userDoc.isDeveloper),
+                avatar: userDoc.avatar || ''
+            }
+        });
+    } catch (error) {
+        return res.status(500).json({ success: false, error: 'Failed to retrieve profile.' });
+    }
+});
+
+app.post('/api/v1/auth/logout', (req, res) => {
+    req.session.destroy(() => {
+        res.json({ success: true, message: 'Logged out successfully.' });
+    });
+});
+
+app.get('/api/v1/dashboard', apiRequireAuth, async (req, res) => {
+    try {
+        const [totalMembers, activeLoasCount, totalEvents, recentLoas] = await Promise.all([
+            db.collection('users').countDocuments({ suspended: { $ne: true } }),
+            db.collection('loas').countDocuments({ status: 'Approved' }),
+            db.collection('events').countDocuments({}),
+            db.collection('loas').find({ status: 'Approved' }).sort({ _id: -1 }).limit(5).toArray()
+        ]);
+
+        return res.json({
+            success: true,
+            stats: {
+                totalMembers,
+                activeLoas: activeLoasCount,
+                totalEvents
+            },
+            recentLoas: recentLoas.map(l => ({
+                id: l._id.toString(),
+                discordId: l.displayName || l.discordUser || l.discordId || 'Unknown',
+                reason: l.reason || 'N/A',
+                startDate: l.startDate || '',
+                endDate: l.endDate || '',
+                status: l.status || 'Pending'
+            }))
+        });
+    } catch (error) {
+        console.error('API Dashboard error:', error);
+        return res.status(500).json({ success: false, error: 'Failed to load dashboard data.' });
+    }
+});
+
+app.get('/api/v1/roster', apiRequireAuth, async (req, res) => {
+    try {
+        const users = await db.collection('users').find({ suspended: { $ne: true } }).toArray();
+        const members = users.map(u => ({
+            discordId: u.login?.discordId || 'Unknown',
+            name: u.displayName || u.discordUser || u.name || u.login?.discordId || 'Member',
+            discordUser: u.discordUser || u.login?.discordId || '',
+            accountType: u.accountType || 'Tired Esquire',
+            department: u.department || 'General',
+            shift: u.shift || 'EU',
+            house: u.house || 'Stubo United',
+            housePoints: u.housePoints || 0,
+            activity: u.activity || u.status || 'Active',
+            hireDate: u.hireDate || '2024-01-01',
+            timeInService: u.timeInService || 100,
+            daysInGrade: u.daysInGrade || 30,
+            weeksActivity: u.weeksActivity || 0,
+            strikes: Array.isArray(u.strikes) ? u.strikes.length : (Number(u.strikes) || 0),
+            attendanceChecked: Boolean(u.attendanceChecked),
+            avatar: u.avatar || ''
+        }));
+        return res.json({ success: true, members });
+    } catch (error) {
+        return res.status(500).json({ success: false, error: 'Failed to load roster.' });
+    }
+});
+
+app.post('/api/v1/roster/add-user', apiRequireAuth, async (req, res) => {
+    const discordId = (req.body.discordId || '').toString().trim();
+    const displayName = (req.body.displayName || '').toString().trim();
+    const accountType = (req.body.accountType || 'Tired Esquire').toString().trim();
+    const password = (req.body.password || 'DrowsyVocals123!').toString();
+
+    if (!discordId || !displayName) {
+        return res.status(400).json({ success: false, error: 'Discord ID and Display Name are required.' });
+    }
+
+    try {
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const newUser = {
+            login: { discordId, password: hashedPassword },
+            displayName,
+            discordUser: displayName.toLowerCase().replace(/\s+/g, ''),
+            accountType,
+            department: 'General',
+            shift: 'EU',
+            house: 'Stubo United',
+            status: 'Active',
+            activity: 'Active',
+            housePoints: 0,
+            strikes: [],
+            hireDate: new Date().toISOString().split('T')[0],
+            timeInService: 0,
+            daysInGrade: 0,
+            weeksActivity: 0,
+            createdAt: new Date()
+        };
+        await db.collection('users').updateOne(
+            { 'login.discordId': discordId },
+            { $set: newUser },
+            { upsert: true }
+        );
+        return res.json({ success: true, message: `Added ${displayName} to roster.` });
+    } catch (error) {
+        return res.status(500).json({ success: false, error: 'Failed to add user.' });
+    }
+});
+
+app.get('/api/v1/loa', apiRequireAuth, async (req, res) => {
+    try {
+        const currentUserLoas = await db.collection('loas').find({ discordId: req.session.currentuser }).sort({ _id: -1 }).toArray();
+        const activeLoas = await db.collection('loas').find({ status: 'Approved' }).sort({ _id: -1 }).toArray();
+
+        return res.json({
+            success: true,
+            userLoas: currentUserLoas.map(l => ({
+                id: l._id.toString(),
+                discordId: l.displayName || l.discordUser || l.discordId,
+                reason: l.reason || '',
+                startDate: l.startDate || '',
+                endDate: l.endDate || '',
+                status: l.status || 'Pending'
+            })),
+            activeLoas: activeLoas.map(l => ({
+                id: l._id.toString(),
+                discordId: l.displayName || l.discordUser || l.discordId,
+                reason: l.reason || '',
+                startDate: l.startDate || '',
+                endDate: l.endDate || '',
+                status: l.status || 'Approved'
+            }))
+        });
+    } catch (error) {
+        return res.status(500).json({ success: false, error: 'Failed to load LOA data.' });
+    }
+});
+
+app.post('/api/v1/loa/submit', apiRequireAuth, async (req, res) => {
+    const startDate = (req.body.startDate || '').toString().trim();
+    const endDate = (req.body.endDate || '').toString().trim();
+    const reason = (req.body.reason || '').toString().trim();
+
+    if (!startDate || !endDate || !reason) {
+        return res.status(400).json({ success: false, error: 'Start date, end date, and reason are required.' });
+    }
+
+    try {
+        const loaDoc = {
+            discordId: req.session.currentuser,
+            startDate,
+            endDate,
+            reason,
+            status: 'Pending',
+            createdAt: new Date()
+        };
+        await db.collection('loas').insertOne(loaDoc);
+        return res.json({ success: true, message: 'LOA submitted successfully.' });
+    } catch (error) {
+        return res.status(500).json({ success: false, error: 'Failed to submit LOA.' });
+    }
+});
+
+app.get('/api/v1/events', apiRequireAuth, async (req, res) => {
+    try {
+        const events = await db.collection('events').find({}).sort({ date: -1 }).toArray();
+        return res.json({
+            success: true,
+            events: events.map(e => ({
+                id: e._id.toString(),
+                title: e.title || 'Event',
+                description: e.description || '',
+                date: e.date || '',
+                time: e.time || '',
+                location: e.location || 'Discord'
+            }))
+        });
+    } catch (error) {
+        return res.status(500).json({ success: false, error: 'Failed to load events.' });
+    }
+});
+
+app.get('/api/v1/account', apiRequireAuth, async (req, res) => {
+    try {
+        const userDoc = await db.collection('users').findOne({ 'login.discordId': req.session.currentuser });
+        if (!userDoc) {
+            return res.status(404).json({ success: false, error: 'User profile not found.' });
+        }
+        return res.json({
+            success: true,
+            user: {
+                discordId: userDoc.login?.discordId || req.session.currentuser,
+                name: userDoc.displayName || userDoc.discordUser || userDoc.name || req.session.currentuser,
+                discordUser: userDoc.discordUser || req.session.currentuser,
+                accountType: userDoc.accountType || 'Tired Esquire',
+                isDeveloper: Boolean(userDoc.isDeveloper),
+                avatar: userDoc.avatar || '',
+                house: userDoc.house || 'Stubo United',
+                shift: userDoc.shift || 'EU',
+                hireDate: userDoc.hireDate || '2024-01-01',
+                daysInGrade: userDoc.daysInGrade || 152,
+                attendanceRate: userDoc.attendanceRate || '100%',
+                housePoints: userDoc.housePoints || 0,
+                strikes: Array.isArray(userDoc.strikes) ? userDoc.strikes.length : (Number(userDoc.strikes) || 0)
+            }
+        });
+    } catch (error) {
+        return res.status(500).json({ success: false, error: 'Failed to load account profile.' });
+    }
+});
+
+app.get('/api/v1/check-ins', apiRequireAuth, async (req, res) => {
+    try {
+        const checkIns = await db.collection('checkins').find({}).sort({ _id: -1 }).limit(20).toArray();
+        return res.json({
+            success: true,
+            checkIns: checkIns.map(c => ({
+                id: c._id.toString(),
+                user: c.user || c.discordId || 'Unknown',
+                notes: c.notes || '',
+                date: c.date || '',
+                status: c.status || 'Verified'
+            }))
+        });
+    } catch (error) {
+        return res.status(500).json({ success: false, error: 'Failed to load check-ins.' });
+    }
+});
+
+app.get('/api/v1/bingo', apiRequireAuth, async (req, res) => {
+    try {
+        const userDoc = await db.collection('users').findOne({ 'login.discordId': req.session.currentuser });
+        const progress = userDoc?.bingoProgress || {};
+        return res.json({
+            success: true,
+            progress,
+            tiles: [
+                { id: '1', title: 'Host Karaoke Night', category: 'Hosting' },
+                { id: '2', title: 'Attend Staff Meeting', category: 'Attendance' },
+                { id: '3', title: 'Submit 5 Check-Ins', category: 'Activity' },
+                { id: '4', title: 'Assist a New Host', category: 'Community' },
+                { id: '5', title: 'Clean Disciplinary Record', category: 'Conduct' },
+                { id: '6', title: '50 Hours Active Time', category: 'Tenure' },
+                { id: '7', title: 'Participate in Aux Battle', category: 'Event' },
+                { id: '8', title: 'Zero LOA Overuse', category: 'Reliability' },
+                { id: '9', title: 'Complete Staff Onboarding', category: 'Training' }
+            ]
+        });
+    } catch (error) {
+        return res.status(500).json({ success: false, error: 'Failed to load Bingo data.' });
+    }
+});
+
+app.post('/api/v1/bingo/toggle', apiRequireAuth, async (req, res) => {
+    const tileId = (req.body.tileId || '').toString();
+    if (!tileId) return res.status(400).json({ success: false, error: 'Tile ID required.' });
+
+    try {
+        const userDoc = await db.collection('users').findOne({ 'login.discordId': req.session.currentuser });
+        const currentProgress = userDoc?.bingoProgress || {};
+        const isChecked = !currentProgress[tileId];
+        currentProgress[tileId] = isChecked;
+
+        await db.collection('users').updateOne(
+            { 'login.discordId': req.session.currentuser },
+            { $set: { bingoProgress: currentProgress } }
+        );
+        return res.json({ success: true, tileId, isChecked });
+    } catch (error) {
+        return res.status(500).json({ success: false, error: 'Failed to toggle Bingo tile.' });
+    }
+});
+
+app.get('/api/v1/feedback', apiRequireAuth, async (req, res) => {
+    try {
+        const list = await db.collection('feedback').find({ discordId: req.session.currentuser }).sort({ _id: -1 }).toArray();
+        return res.json({
+            success: true,
+            feedback: list.map(f => ({
+                id: f._id.toString(),
+                category: f.category || 'General',
+                message: f.message || '',
+                date: f.date || ''
+            }))
+        });
+    } catch (error) {
+        return res.status(500).json({ success: false, error: 'Failed to load feedback.' });
+    }
+});
+
+app.post('/api/v1/feedback/submit', apiRequireAuth, async (req, res) => {
+    const category = (req.body.category || 'General').toString();
+    const message = (req.body.message || '').toString().trim();
+    if (!message) return res.status(400).json({ success: false, error: 'Message is required.' });
+
+    try {
+        await db.collection('feedback').insertOne({
+            discordId: req.session.currentuser,
+            category,
+            message,
+            date: new Date().toISOString().split('T')[0]
+        });
+        return res.json({ success: true, message: 'Feedback submitted successfully.' });
+    } catch (error) {
+        return res.status(500).json({ success: false, error: 'Failed to submit feedback.' });
+    }
+});
+
+app.get('/api/v1/reports', apiRequireAuth, async (req, res) => {
+    try {
+        const list = await db.collection('reports').find({ discordId: req.session.currentuser }).sort({ _id: -1 }).toArray();
+        return res.json({
+            success: true,
+            reports: list.map(r => ({
+                id: r._id.toString(),
+                title: r.title || 'Incident Report',
+                details: r.details || '',
+                status: r.status || 'Under Review'
+            }))
+        });
+    } catch (error) {
+        return res.status(500).json({ success: false, error: 'Failed to load reports.' });
+    }
+});
+
+app.post('/api/v1/reports/submit', apiRequireAuth, async (req, res) => {
+    const title = (req.body.title || '').toString().trim();
+    const details = (req.body.details || '').toString().trim();
+    if (!title || !details) return res.status(400).json({ success: false, error: 'Title and details required.' });
+
+    try {
+        await db.collection('reports').insertOne({
+            discordId: req.session.currentuser,
+            title,
+            details,
+            status: 'Under Review',
+            createdAt: new Date()
+        });
+        return res.json({ success: true, message: 'Report submitted successfully.' });
+    } catch (error) {
+        return res.status(500).json({ success: false, error: 'Failed to submit report.' });
+    }
+});
+
+app.get('/api/v1/appeals', apiRequireAuth, async (req, res) => {
+    try {
+        const list = await db.collection('appeals').find({ discordId: req.session.currentuser }).sort({ _id: -1 }).toArray();
+        return res.json({
+            success: true,
+            appeals: list.map(a => ({
+                id: a._id.toString(),
+                strikeReason: a.strikeReason || 'Strike Appeal',
+                explanation: a.explanation || '',
+                status: a.status || 'Pending Review'
+            }))
+        });
+    } catch (error) {
+        return res.status(500).json({ success: false, error: 'Failed to load appeals.' });
+    }
+});
+
+app.post('/api/v1/appeals/submit', apiRequireAuth, async (req, res) => {
+    const strikeReason = (req.body.strikeReason || '').toString().trim();
+    const explanation = (req.body.explanation || '').toString().trim();
+    if (!strikeReason || !explanation) return res.status(400).json({ success: false, error: 'Fields are required.' });
+
+    try {
+        await db.collection('appeals').insertOne({
+            discordId: req.session.currentuser,
+            strikeReason,
+            explanation,
+            status: 'Pending Review',
+            createdAt: new Date()
+        });
+        return res.json({ success: true, message: 'Strike appeal submitted.' });
+    } catch (error) {
+        return res.status(500).json({ success: false, error: 'Failed to submit appeal.' });
+    }
+});
+
+app.get('/api/v1/bot', apiRequireAuth, async (req, res) => {
+    return res.json({
+        success: true,
+        botStatus: 'Online',
+        guilds: [
+            { id: '1', name: 'Drowsy Vocals Official', channels: [{ id: '101', name: '#announcements' }, { id: '102', name: '#general' }] }
+        ]
+    });
+});
+
+app.post('/api/v1/bot/announce', apiRequireAuth, async (req, res) => {
+    const message = (req.body.message || '').toString().trim();
+    if (!message) return res.status(400).json({ success: false, error: 'Announcement message required.' });
+    return res.json({ success: true, message: 'Announcement sent to DrowsyBot.' });
+});
+
+app.get('/api/v1/guidelines', apiRequireAuth, async (req, res) => {
+    return res.json({
+        success: true,
+        rules: [
+            { section: 'Community Conduct', text: 'Be respectful, supportive, and maintain a friendly atmosphere across all voice and text stages.' },
+            { section: 'Staff Responsibilities', text: 'Attend mandatory weekly meetings, log check-ins, and file LOA requests in advance.' },
+            { section: 'Stage Hosting', text: 'Follow official stage hosting procedures and keep discussions safe and aligned with community guidelines.' }
+        ]
+    });
+});
+
+app.get('/api/v1/changelog', apiRequireAuth, async (req, res) => {
+    return res.json({
+        success: true,
+        changelogs: CHANGELOG_ENTRIES
+    });
+});
+
+app.get('/api/v1/audit-log', apiRequireAuth, async (req, res) => {
+    try {
+        const logs = await db.collection('audit_logs').find({}).sort({ _id: -1 }).limit(20).toArray();
+        return res.json({
+            success: true,
+            logs: logs.map(l => ({
+                id: l._id.toString(),
+                user: l.user || 'System',
+                action: l.action || 'Updated settings',
+                timestamp: l.timestamp || new Date().toISOString()
+            }))
+        });
+    } catch (error) {
+        return res.status(500).json({ success: false, error: 'Failed to load audit logs.' });
+    }
+});
+
+app.get('/api/v1/settings', apiRequireAuth, async (req, res) => {
+    try {
+        const settings = await getSettings();
+        return res.json({
+            success: true,
+            settings: {
+                maintenanceMode: Boolean(settings.maintenance),
+                checkInAccess: Boolean(settings.checkInAccess),
+                developerAccess: Boolean(settings.developerAccess)
+            }
+        });
+    } catch (error) {
+        return res.status(500).json({ success: false, error: 'Failed to load settings.' });
+    }
+});
+
+
 // GRACEFUL SHUTDOWN
 async function shutdown(signal = 'shutdown') {
     if (shutdownPromise) return shutdownPromise;

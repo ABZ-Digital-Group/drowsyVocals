@@ -223,7 +223,33 @@
                                             online: user.isOnline,
                                             presenceStatus: user.presenceStatus
                                         }) %>
-                                        <span class="roster-display-name" title="<%= user.displayName || user.discordUser || user.login.discordId %>"><%= user.displayName %></span>
+                                        <button class="viewBtn roster-profile-button" type="button"
+                                            data-discord-id="<%= user.login.discordId %>"
+                                            data-display-name="<%= user.displayName || '' %>"
+                                            data-discord-user="<%= user.discordUser || '' %>"
+                                            data-account-type="<%= user.accountType || '' %>"
+                                            data-hire-date="<%= user.hireDate || '' %>"
+                                            data-last-promotion="<%= user.lastPromotion || '' %>"
+                                            data-house="<%= user.house || '' %>"
+                                            data-house-points="<%= user.housePoints || '' %>"
+                                            data-shift="<%= user.shift || '' %>"
+                                            data-activity="<%= user.activity || '' %>"
+                                            data-weeks-activity="<%= user.weeksActivity || '' %>"
+                                            data-avatar-url="<%= user.avatarUrl || '' %>"
+                                            data-profile-background-url="<%= user.profileBackgroundUrl || '' %>"
+                                            data-onboarding-complete="<%= user.onboardingComplete ? '1' : '' %>"
+                                            data-host-training-complete="<%= user.hostTrainingComplete ? '1' : '' %>"
+                                            data-time-in-grade="<%= user.timeInGrade %>"
+                                            data-min-days-required="<%= user.minDaysRequired || '' %>"
+                                            data-promotion-ready="<%= user.isPromotionReady ? '1' : '' %>"
+                                            data-inactive-risk="<%= user.isInactiveRisk ? '1' : '' %>"
+                                            data-inactivity-reason="<%= user.inactivityReason || '' %>"
+                                            data-days-since-seen="<%= user.daysSinceSeen !== null ? user.daysSinceSeen : '' %>"
+                                            data-consecutive-missed="<%= user.consecutiveMissedMeetings || '0' %>"
+                                            data-badges="<%= JSON.stringify(user.badges || []) %>"
+                                            title="View <%= user.displayName || user.discordUser || user.login.discordId %>'s profile">
+                                            <span class="roster-display-name" title="<%= user.displayName || user.discordUser || user.login.discordId %>"><%= user.displayName %></span>
+                                        </button>
                                     </div>
                                 </td>
                                 <td><%= user.discordUser %></td>
@@ -248,34 +274,6 @@
                                             <span class="material-symbols-outlined">more_horiz</span>
                                         </summary>
                                         <div class="roster-action-menu-items">
-                                    <button class="viewBtn" type="button"
-                                        data-discord-id="<%= user.login.discordId %>"
-                                        data-display-name="<%= user.displayName || '' %>"
-                                        data-discord-user="<%= user.discordUser || '' %>"
-                                        data-account-type="<%= user.accountType || '' %>"
-                                        data-hire-date="<%= user.hireDate || '' %>"
-                                        data-last-promotion="<%= user.lastPromotion || '' %>"
-                                        data-house="<%= user.house || '' %>"
-                                        data-house-points="<%= user.housePoints || '' %>"
-                                        data-shift="<%= user.shift || '' %>"
-                                        data-activity="<%= user.activity || '' %>"
-                                        data-weeks-activity="<%= user.weeksActivity || '' %>"
-                                        data-avatar-url="<%= user.avatarUrl || '' %>"
-                                        data-profile-background-url="<%= user.profileBackgroundUrl || '' %>"
-                                        data-onboarding-complete="<%= user.onboardingComplete ? '1' : '' %>"
-                                        data-host-training-complete="<%= user.hostTrainingComplete ? '1' : '' %>"
-                                        data-last-promotion="<%= user.lastPromotion || '' %>"
-                                        data-time-in-grade="<%= user.timeInGrade %>"
-                                        data-min-days-required="<%= user.minDaysRequired || '' %>"
-                                        data-promotion-ready="<%= user.isPromotionReady ? '1' : '' %>"
-                                        data-inactive-risk="<%= user.isInactiveRisk ? '1' : '' %>"
-                                        data-inactivity-reason="<%= user.inactivityReason || '' %>"
-                                        data-days-since-seen="<%= user.daysSinceSeen !== null ? user.daysSinceSeen : '' %>"
-                                        data-consecutive-missed="<%= user.consecutiveMissedMeetings || '0' %>"
-                                        data-badges="<%= JSON.stringify(user.badges || []) %>">
-                                        <span class="material-symbols-outlined">visibility</span>
-                                        <span>View</span>
-                                    </button>
                                     <button class="strikeBtn" type="button"
                                         data-discord-id="<%= user.login.discordId %>"
                                         data-display-name="<%= user.displayName || user.discordUser || user.login.discordId %>"
