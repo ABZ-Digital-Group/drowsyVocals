@@ -66,6 +66,57 @@ if (rosterFilters.slice(0, 4).every(Boolean)) {
   });
 }
 
+const awardTarget = document.getElementById('awardTarget');
+const awardSelectedMembers = document.getElementById('awardSelectedMembers');
+const awardSelectedInputs = document.getElementById('awardSelectedInputs');
+if (awardTarget && awardSelectedMembers && awardSelectedInputs) {
+  const selectedMembers = new Map();
+
+  const renderSelectedMembers = () => {
+    awardSelectedMembers.replaceChildren();
+    awardSelectedInputs.replaceChildren();
+
+    selectedMembers.forEach((displayName, discordId) => {
+      const pill = document.createElement('span');
+      pill.className = 'award-member-pill';
+
+      const name = document.createElement('span');
+      name.textContent = displayName;
+      pill.appendChild(name);
+
+      const removeButton = document.createElement('button');
+      removeButton.type = 'button';
+      removeButton.className = 'award-member-pill-remove';
+      removeButton.setAttribute('aria-label', `Remove ${displayName}`);
+      removeButton.textContent = '×';
+      removeButton.addEventListener('click', () => {
+        selectedMembers.delete(discordId);
+        renderSelectedMembers();
+      });
+      pill.appendChild(removeButton);
+      awardSelectedMembers.appendChild(pill);
+
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = 'discordId';
+      input.value = discordId;
+      awardSelectedInputs.appendChild(input);
+    });
+  };
+
+  awardTarget.addEventListener('change', () => {
+    const selectedOption = awardTarget.options[awardTarget.selectedIndex];
+    if (!selectedOption?.value || selectedMembers.has(selectedOption.value)) {
+      awardTarget.value = '';
+      return;
+    }
+
+    selectedMembers.set(selectedOption.value, selectedOption.dataset.displayName || selectedOption.textContent.trim());
+    renderSelectedMembers();
+    awardTarget.value = '';
+  });
+}
+
 document.querySelectorAll('.nav-notifications-trigger, .nav-account-trigger, .nav-guidelines-trigger').forEach((trigger) => {
   trigger.addEventListener('click', () => {
     const menu = document.getElementById(trigger.getAttribute('aria-controls'));
