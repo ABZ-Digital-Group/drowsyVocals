@@ -4568,6 +4568,43 @@ dialog .checkbox-label input[type="checkbox"] {
 .avatar-wrapper.is-online.is-idle .avatar-online-dot {
     background-color: #f0a43c;
 }
+.avatar-discord-dot {
+    display: none;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: #5865f2;
+    border: 2px solid var(--cloud-white);
+    box-sizing: content-box;
+}
+.avatar-wrapper.is-discord-online .avatar-discord-dot {
+    display: block;
+}
+.view-discord-presence {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 12px 0;
+    padding: 10px 12px;
+    border: 1px solid #5865f2;
+    border-radius: 6px;
+    background: rgba(88, 101, 242, 0.15);
+    color: var(--cloud-white);
+}
+.view-discord-presence[hidden] {
+    display: none;
+}
+.discord-presence-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #5865f2;
+    box-shadow: 0 0 0 2px rgba(88, 101, 242, 0.25);
+}
 
 .online-now-bar {
     display: flex;
