@@ -170,15 +170,15 @@
 
                             <form class="account-form" action="/house-points/award" method="POST">
                                 <div class="settings-form-group" style="margin-bottom: 0;">
-                                    <label for="awardTarget">Select Staff Member</label>
-                                    <select id="awardTarget" name="discordId" class="settings-input" required>
-                                        <option value="">Choose a staff member...</option>
+                                    <label for="awardTarget">Select Staff Members</label>
+                                    <select id="awardTarget" name="discordId" class="settings-input" multiple required size="8">
                                         <% users.forEach(function(u) { %>
                                         <option value="<%= u.login.discordId %>">
                                             <%= u.displayName || u.discordUser || u.login.discordId %> <%= u.house ? `(${u.house})` : '(No House)' %> · <%= u.housePoints || 0 %> pts
                                         </option>
                                         <% }); %>
                                     </select>
+                                    <span class="settings-hint">Hold Ctrl (Windows) or Command (Mac) to select multiple staff members.</span>
                                 </div>
 
                                 <div class="settings-form-group" style="margin-bottom: 0;">
