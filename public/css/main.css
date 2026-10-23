@@ -4254,6 +4254,24 @@ th, td {
     text-overflow: ellipsis;
     white-space: nowrap;
 }
+.roster-profile-button {
+    display: block;
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+.roster-profile-button:hover .roster-display-name,
+.roster-profile-button:focus-visible .roster-display-name {
+    color: var(--misty-blue);
+    text-decoration: underline;
+}
 .rank-group-header th {
     padding: 6px 10px !important;
     background-color: var(--night-indigo) !important;
