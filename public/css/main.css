@@ -641,6 +641,16 @@ tbody tr:not(.rank-group-header):not(.bingo-rank-header):hover {
     outline: none;
 
 }
+.roster-content .roster-profile-button {
+    padding: 0;
+    font-size: inherit;
+    background: transparent;
+    color: inherit;
+    border-radius: 0;
+}
+.roster-content .roster-profile-button:not(:disabled):hover {
+    transform: none;
+}
 
 /* ==========================================================================
    MODERN BINGO PAGE STYLING
