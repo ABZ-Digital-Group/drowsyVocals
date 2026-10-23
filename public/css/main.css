@@ -4587,13 +4587,17 @@ dialog .checkbox-label input[type="checkbox"] {
     display: flex;
     align-items: center;
     flex-wrap: wrap;
-    gap: 8px;
-    margin: 12px 0;
-    padding: 10px 12px;
-    border: 1px solid #5865f2;
-    border-radius: 6px;
-    background: rgba(88, 101, 242, 0.15);
-    color: var(--cloud-white);
+    gap: 10px;
+    margin: 12px 0 18px;
+    padding: 12px 14px;
+    border: 0;
+    border-left: 4px solid #5865f2;
+    border-radius: 8px;
+    background: #292752;
+    color: #ffffff;
+    font-size: 0.95em;
+    line-height: 1.25;
+    box-shadow: 0 3px 10px rgba(41, 39, 82, 0.18);
 }
 .view-discord-presence[hidden] {
     display: none;
@@ -4603,7 +4607,31 @@ dialog .checkbox-label input[type="checkbox"] {
     height: 9px;
     border-radius: 50%;
     background: #5865f2;
-    box-shadow: 0 0 0 2px rgba(88, 101, 242, 0.25);
+    border: 2px solid #ffffff;
+    box-sizing: content-box;
+    box-shadow: 0 0 0 2px rgba(88, 101, 242, 0.35);
+}
+.discord-presence-status,
+.discord-presence-channel,
+.discord-presence-duration {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+}
+.discord-presence-status {
+    font-weight: 700;
+}
+.discord-presence-channel,
+.discord-presence-duration {
+    padding: 5px 9px;
+    border-radius: 5px;
+    background: rgba(255, 255, 255, 0.12);
+    color: #f4f3ff;
+}
+.discord-presence-channel .material-symbols-outlined,
+.discord-presence-duration .material-symbols-outlined {
+    font-size: 1.05em;
+    color: #b9bbff;
 }
 
 .online-now-bar {
@@ -4782,21 +4810,25 @@ dialog button {
 .view-user-details {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
+    gap: 14px 24px;
+    padding: 4px 0;
 }
 .view-user-detail {
     display: flex;
     flex-direction: column;
     gap: 4px;
+    padding-bottom: 4px;
 }
 .view-user-detail span {
-    color: var(--dusty-blue-purple);
+    color: #5d5a86;
     font-size: 0.8em;
     font-weight: bold;
+    letter-spacing: 0.03em;
     text-transform: uppercase;
 }
 .view-user-detail strong {
     font-size: 1.05em;
+    color: #171633;
     overflow-wrap: anywhere;
 }
 #viewUserPopup .dialog-buttons,
