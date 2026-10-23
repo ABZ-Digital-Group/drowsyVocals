@@ -5469,6 +5469,37 @@ app.post('/pop-up/:eventId/delete', requireDatabase, async (req, res) => {
     res.redirect('/pop-up');
 });
 
+const EVENT_TIME_ZONE = 'America/New_York';
+
+function parseEventDateTimeInEasternTime(dateValue, timeValue) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateValue || '') || !/^\d{2}:\d{2}$/.test(timeValue || '')) {
+        return null;
+    }
+
+    const [year, month, day] = dateValue.split('-').map(Number);
+    const [hour, minute] = timeValue.split(':').map(Number);
+    const wallTime = Date.UTC(year, month - 1, day, hour, minute);
+    let timestamp = wallTime;
+
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+        const parts = new Intl.DateTimeFormat('en-US', {
+            timeZone: EVENT_TIME_ZONE,
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            hourCycle: 'h23'
+        }).formatToParts(new Date(timestamp));
+        const values = Object.fromEntries(parts.filter((part) => part.type !== 'literal').map((part) => [part.type, Number(part.value)]));
+        const representedWallTime = Date.UTC(values.year, values.month - 1, values.day, values.hour, values.minute);
+        timestamp = wallTime - (representedWallTime - timestamp);
+    }
+
+    const result = new Date(timestamp);
+    return Number.isNaN(result.getTime()) ? null : result.toISOString();
+}
+
 app.get('/events', requireDatabase, async (req, res) => {
     if (!req.session.loggedin) return res.redirect('/');
 
@@ -5546,20 +5577,20 @@ app.post('/events/create', requireDatabase, async (req, res) => {
     }
 
     let scheduledStartTime;
-    if (startIso && !isNaN(new Date(startIso).getTime())) {
+    if (startDate && startTime) {
+        scheduledStartTime = parseEventDateTimeInEasternTime(startDate, startTime);
+    } else if (startIso && !isNaN(new Date(startIso).getTime())) {
         scheduledStartTime = new Date(startIso).toISOString();
-    } else if (startDate && startTime) {
-        scheduledStartTime = new Date(`${startDate}T${startTime}`).toISOString();
     } else {
         req.flash('error_msg', 'Invalid event start time.');
         return res.redirect('/events');
     }
 
     let scheduledEndTime = null;
-    if (endIso && !isNaN(new Date(endIso).getTime())) {
+    if (endDate && endTime) {
+        scheduledEndTime = parseEventDateTimeInEasternTime(endDate, endTime);
+    } else if (endIso && !isNaN(new Date(endIso).getTime())) {
         scheduledEndTime = new Date(endIso).toISOString();
-    } else if (endDate && endTime) {
-        scheduledEndTime = new Date(`${endDate}T${endTime}`).toISOString();
     }
 
     try {
@@ -5574,7 +5605,7 @@ app.post('/events/create', requireDatabase, async (req, res) => {
             admin: cleanAdmin,
             scheduledStartTime,
             scheduledEndTime,
-            timezone: (clientTimezone || '').toString().slice(0, 100) || 'UTC',
+            timezone: EVENT_TIME_ZONE,
             createdBy: req.session.currentuser,
             createdAt: new Date().toISOString()
         };
@@ -5658,20 +5689,20 @@ app.post('/events/:eventId/update', requireDatabase, async (req, res) => {
     }
 
     let scheduledStartTime;
-    if (startIso && !isNaN(new Date(startIso).getTime())) {
+    if (startDate && startTime) {
+        scheduledStartTime = parseEventDateTimeInEasternTime(startDate, startTime);
+    } else if (startIso && !isNaN(new Date(startIso).getTime())) {
         scheduledStartTime = new Date(startIso).toISOString();
-    } else if (startDate && startTime) {
-        scheduledStartTime = new Date(`${startDate}T${startTime}`).toISOString();
     } else {
         req.flash('error_msg', 'Invalid event start time.');
         return res.redirect('/events');
     }
 
     let scheduledEndTime = null;
-    if (endIso && !isNaN(new Date(endIso).getTime())) {
+    if (endDate && endTime) {
+        scheduledEndTime = parseEventDateTimeInEasternTime(endDate, endTime);
+    } else if (endIso && !isNaN(new Date(endIso).getTime())) {
         scheduledEndTime = new Date(endIso).toISOString();
-    } else if (endDate && endTime) {
-        scheduledEndTime = new Date(`${endDate}T${endTime}`).toISOString();
     }
 
     try {
@@ -5685,7 +5716,7 @@ app.post('/events/:eventId/update', requireDatabase, async (req, res) => {
             admin: cleanAdmin,
             scheduledStartTime,
             scheduledEndTime,
-            timezone: (clientTimezone || '').toString().slice(0, 100) || 'UTC',
+            timezone: EVENT_TIME_ZONE,
             updatedBy: req.session.currentuser,
             updatedAt: new Date().toISOString()
         };

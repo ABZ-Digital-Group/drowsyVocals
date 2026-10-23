@@ -922,7 +922,7 @@ document.querySelectorAll(".nav-guidelines-trigger").forEach((trigger) => {
 
 // EVENTS SCHEDULE TIMEZONE & LOCALIZATION
 const initEventsLocalization = () => {
-  const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  const userTimezone = 'America/New_York';
   
   // Display user's timezone in header badge and form hint
   const tzEl = document.getElementById('eventsUserTimezone');
@@ -965,7 +965,9 @@ const initEventsLocalization = () => {
       month: 'short',
       day: 'numeric',
       hour: 'numeric',
-      minute: '2-digit'
+      minute: '2-digit',
+      timeZone: userTimezone,
+      timeZoneName: 'short'
     });
 
     if (primaryEl) {
@@ -976,8 +978,8 @@ const initEventsLocalization = () => {
       if (endDate && !isNaN(endDate.getTime())) {
         const sameDay = startDate.toDateString() === endDate.toDateString();
         const endStr = sameDay
-          ? endDate.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
-          : endDate.toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+          ? endDate.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', timeZone: userTimezone, timeZoneName: 'short' })
+          : endDate.toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: userTimezone, timeZoneName: 'short' });
         secondaryEl.textContent = `until ${endStr}`;
       } else {
         secondaryEl.textContent = '';
@@ -1028,11 +1030,14 @@ const initEventsLocalization = () => {
       const dateStr = startDate.toLocaleDateString(undefined, {
         month: 'short',
         day: 'numeric',
-        year: 'numeric'
+        year: 'numeric',
+        timeZone: userTimezone
       });
       const timeStr = startDate.toLocaleTimeString(undefined, {
         hour: 'numeric',
-        minute: '2-digit'
+        minute: '2-digit',
+        timeZone: userTimezone,
+        timeZoneName: 'short'
       });
       el.textContent = `${dateStr} at ${timeStr}`;
     }
@@ -1077,6 +1082,18 @@ const initEventsLocalization = () => {
 
   if (editEventPopup && editEventForm) {
     const pad = (n) => String(n).padStart(2, '0');
+    const getEasternParts = (date) => {
+      const parts = new Intl.DateTimeFormat('en-CA', {
+        timeZone: userTimezone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hourCycle: 'h23'
+      }).formatToParts(date);
+      return Object.fromEntries(parts.filter((part) => part.type !== 'literal').map((part) => [part.type, part.value]));
+    };
 
     document.querySelectorAll('.editEventBtn').forEach((btn) => {
       btn.addEventListener('click', () => {
@@ -1118,11 +1135,12 @@ const initEventsLocalization = () => {
         if (eventStartIso) {
           const sDate = new Date(eventStartIso);
           if (!isNaN(sDate.getTime())) {
-            const y = sDate.getFullYear();
-            const m = pad(sDate.getMonth() + 1);
-            const d = pad(sDate.getDate());
-            const hh = pad(sDate.getHours());
-            const mm = pad(sDate.getMinutes());
+            const parts = getEasternParts(sDate);
+            const y = parts.year;
+            const m = parts.month;
+            const d = parts.day;
+            const hh = parts.hour;
+            const mm = parts.minute;
             if (startDateInput) startDateInput.value = `${y}-${m}-${d}`;
             if (startTimeInput) startTimeInput.value = `${hh}:${mm}`;
           }
@@ -1131,11 +1149,12 @@ const initEventsLocalization = () => {
         if (eventEndIso) {
           const eDate = new Date(eventEndIso);
           if (!isNaN(eDate.getTime())) {
-            const y = eDate.getFullYear();
-            const m = pad(eDate.getMonth() + 1);
-            const d = pad(eDate.getDate());
-            const hh = pad(eDate.getHours());
-            const mm = pad(eDate.getMinutes());
+            const parts = getEasternParts(eDate);
+            const y = parts.year;
+            const m = parts.month;
+            const d = parts.day;
+            const hh = parts.hour;
+            const mm = parts.minute;
             if (endDateInput) endDateInput.value = `${y}-${m}-${d}`;
             if (endTimeInput) endTimeInput.value = `${hh}:${mm}`;
           }
