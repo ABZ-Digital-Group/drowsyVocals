@@ -4633,10 +4633,22 @@ dialog .checkbox-label input[type="checkbox"] {
     background: rgba(255, 255, 255, 0.12);
     color: #f4f3ff;
 }
+.discord-presence-channel {
+    text-decoration: none;
+}
+.discord-presence-channel:hover,
+.discord-presence-channel:focus-visible {
+    background: rgba(255, 255, 255, 0.22);
+    color: #ffffff;
+}
 .discord-presence-channel .material-symbols-outlined,
 .discord-presence-duration .material-symbols-outlined {
     font-size: 1.05em;
     color: #b9bbff;
+}
+.discord-presence-open-icon {
+    font-size: 0.9em !important;
+    margin-left: 2px;
 }
 
 .online-now-bar {
