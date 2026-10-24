@@ -5896,7 +5896,7 @@ dialog button {
     padding: 28px;
     border: 1px solid var(--night-indigo-27);
     border-radius: 12px;
-    background: var(--cloud-lilac);
+    background: var(--night-indigo);
     box-shadow: 0 18px 60px rgba(0, 0, 0, 0.45);
 }
 
@@ -5906,7 +5906,7 @@ dialog button {
 }
 
 .password-reset-modal-card p {
-    color: var(--dusty-blue-purple);
+    color: var(--cloud-lilac);
 }
 
 .password-reset-modal-note {
