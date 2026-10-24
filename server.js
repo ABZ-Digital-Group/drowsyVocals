@@ -94,6 +94,9 @@ const sessionStore = mongoUri && dbname
     ? MongoStore.create({
         mongoUrl: mongoUri,
         dbName: dbname,
+        mongoOptions: {
+            tls: mongoTlsEnabled
+        },
         collectionName: 'sessions',
         ttl: 60 * 60 * 24
     })
