@@ -469,6 +469,13 @@
                                 </h3>
                             </div>
 
+                            <% if (user.mustResetPassword) { %>
+                            <div class="settings-alert is-error" role="alert">
+                                <span class="material-symbols-outlined" style="background: transparent; color: #ef4444;">priority_high</span>
+                                <span>An administrator requires you to change your password before you can continue using the site.</span>
+                            </div>
+                            <% } %>
+
                             <form class="account-form" action="/change-password" method="POST">
                                 <div class="settings-form-group" style="margin-bottom: 0;">
                                     <label for="currentPassword">Current Password</label>

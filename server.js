@@ -24,7 +24,19 @@ const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 const mongoUri = process.env.MONGODB_URI;
 const dbname = process.env.MONGODB_DATABASE;
-const sessionSecret = process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex');
+const isProduction = process.env.NODE_ENV === 'production';
+const sessionSecret = process.env.SESSION_SECRET || (isProduction ? null : crypto.randomBytes(32).toString('hex'));
+const mongoTlsEnabled = (() => {
+    if (process.env.MONGODB_TLS === 'true') return true;
+    if (!mongoUri) return false;
+
+    try {
+        const parsedUri = new URL(mongoUri);
+        return parsedUri.protocol === 'mongodb+srv:' || parsedUri.searchParams.get('tls') === 'true';
+    } catch {
+        return false;
+    }
+})();
 const botService = createBotService({
     baseUrl: process.env.BOT_API_URL,
     secret: process.env.BOT_API_SECRET || process.env.BOT_API_TOKEN,
@@ -38,8 +50,12 @@ if (!dbname) {
     console.error('MONGODB_DATABASE is not configured. Add it to the application environment variables.');
 }
 
-if (!process.env.SESSION_SECRET) {
-    console.warn('SESSION_SECRET is not configured in .env. A temporary random secret was generated. Set SESSION_SECRET to persist sessions across restarts.');
+if (!sessionSecret) {
+    throw new Error('SESSION_SECRET is required in production. Configure it outside the repository.');
+}
+
+if (isProduction && !mongoTlsEnabled) {
+    throw new Error('A TLS-enabled MongoDB connection is required in production. Use mongodb+srv, add tls=true, or set MONGODB_TLS=true.');
 }
 
 // SECURITY: DISABLE EXPRESS FINGERPRINTING
@@ -305,6 +321,44 @@ app.use(async (req, res, next) => {
     }
 
     next();
+});
+
+// ACCOUNTS MARKED BY MANAGEMENT MUST CHANGE THEIR PASSWORD BEFORE CONTINUING.
+app.use(async (req, res, next) => {
+    const bypassedPaths = ['/account', '/change-password', '/logout'];
+    const bypassedStatic = ['/css', '/scripts', '/assets', '/uploads'];
+
+    if (
+        !isDatabaseReady
+        || !db
+        || !req.session.loggedin
+        || !req.session.currentuser
+        || bypassedPaths.includes(req.path)
+        || bypassedStatic.some((prefix) => req.path.startsWith(prefix))
+    ) {
+        return next();
+    }
+
+    try {
+        const user = await db.collection('users').findOne(
+            { 'login.discordId': req.session.currentuser },
+            { projection: { mustResetPassword: 1 } }
+        );
+
+        if (!user?.mustResetPassword) return next();
+
+        if (req.path.startsWith('/api/')) {
+            return res.status(403).json({
+                error: 'Password reset required before using this account.'
+            });
+        }
+
+        req.flash('error_msg', 'Please change your password before continuing.');
+        return res.redirect('/account');
+    } catch (error) {
+        console.error('Password reset requirement check failed:', error.message);
+        return next();
+    }
 });
 
 function requireDatabase(req, res, next) {
@@ -1766,6 +1820,7 @@ function connectDB() {
         try {
             if (!mongoClient) {
                 mongoClient = new MongoClient(mongoUri, {
+                    tls: mongoTlsEnabled,
                     serverSelectionTimeoutMS: 10000,
                     connectTimeoutMS: 10000,
                     maxPoolSize: 20,
@@ -2048,6 +2103,10 @@ app.post('/update-user', requireDatabase, async (req, res) => {
             }
             const hash = await bcrypt.hash(cleanPassword, saltRounds);
             updateDoc.$set['login.password'] = hash;
+        }
+
+        if (req.body.forcePasswordReset === 'on') {
+            updateDoc.$set.mustResetPassword = true;
         }
 
         await db.collection('users').updateOne(
@@ -4576,7 +4635,10 @@ app.post('/change-password', requireDatabase, async (req, res) => {
 
         await db.collection('users').updateOne(
             { 'login.discordId': currentDiscordId },
-            { $set: { 'login.password': hash } }
+            {
+                $set: { 'login.password': hash },
+                $unset: { mustResetPassword: '' }
+            }
         );
 
         req.flash('success_msg', 'Password updated successfully.');
