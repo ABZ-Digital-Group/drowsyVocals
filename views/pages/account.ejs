@@ -8,6 +8,34 @@
         <header>
             <%- include('../partials/nav') %>
         </header>
+        <% if (user.mustResetPassword) { %>
+        <div class="password-reset-modal" role="dialog" aria-modal="true" aria-labelledby="passwordResetModalTitle">
+            <div class="password-reset-modal-card">
+                <span class="material-symbols-outlined password-reset-modal-icon" aria-hidden="true">lock_reset</span>
+                <h2 id="passwordResetModalTitle">Password change required</h2>
+                <p>An administrator requires you to change your password before you can continue using the site.</p>
+                <p class="password-reset-modal-note">This message will remain until your password has been changed.</p>
+                <form class="account-form" action="/change-password" method="POST">
+                    <div class="settings-form-group">
+                        <label for="requiredCurrentPassword">Current Password</label>
+                        <input type="password" id="requiredCurrentPassword" name="currentPassword" class="settings-input" required autocomplete="current-password">
+                    </div>
+                    <div class="settings-form-group">
+                        <label for="requiredNewPassword">New Password</label>
+                        <input type="password" id="requiredNewPassword" name="newPassword" class="settings-input" minlength="8" required autocomplete="new-password">
+                    </div>
+                    <div class="settings-form-group">
+                        <label for="requiredConfirmPassword">Confirm New Password</label>
+                        <input type="password" id="requiredConfirmPassword" name="confirmPassword" class="settings-input" minlength="8" required autocomplete="new-password">
+                    </div>
+                    <button type="submit" class="account-btn account-btn-primary">
+                        <span class="material-symbols-outlined">key</span>
+                        <span>Change Password</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+        <% } %>
         <main>
             <section class="account-page">
                 <!-- Hero Profile Card -->
@@ -507,6 +535,13 @@
         </div>
 
         <script>
+            <% if (user.mustResetPassword) { %>
+            document.body.classList.add('password-reset-required');
+            document.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape') event.preventDefault();
+            });
+            <% } %>
+
             function copyDiscordId(buttonEl) {
                 const idEl = document.getElementById('accountDiscordId');
                 if (!idEl) return;
