@@ -5589,6 +5589,13 @@ app.get('/events', requireDatabase, async (req, res) => {
             }
         });
 
+        // Roster-only hosts: value is their Discord ID, or their name when none is set.
+        const rosterHosts = (await db.collection('hosts').find({}).sort({ displayName: 1 }).toArray())
+            .map((h) => ({ value: h.discordId || h.displayName, displayName: h.displayName, discordUser: h.discordUser }));
+        rosterHosts.forEach((h) => {
+            if (!userMap[h.value]) userMap[h.value] = { displayName: h.displayName, discordUser: h.discordUser };
+        });
+
         res.render('pages/events', {
             page: 'events',
             upcomingEvents,
@@ -5597,6 +5604,7 @@ app.get('/events', requireDatabase, async (req, res) => {
             pastPopUps,
             isManager,
             users,
+            rosterHosts,
             userMap
         });
     } catch (error) {

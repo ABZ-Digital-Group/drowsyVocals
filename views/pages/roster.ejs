@@ -365,7 +365,10 @@
                             <td>
                                 <form action="/remove-host" method="POST" onsubmit="return confirm('Remove this host?');" style="margin: 0;">
                                     <input type="hidden" name="hostId" value="<%= host._id %>">
-                                    <button type="submit">Remove</button>
+                                    <button class="action-button action-button-danger host-remove-button" type="submit">
+                                        <span class="material-symbols-outlined" aria-hidden="true">delete</span>
+                                        Remove
+                                    </button>
                                 </form>
                             </td>
                             <% } %>
