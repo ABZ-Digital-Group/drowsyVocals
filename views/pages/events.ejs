@@ -339,6 +339,9 @@
                                             <% (users || []).forEach(function(u) { %>
                                             <option value="<%= u.login.discordId %>"><%= u.displayName || u.discordUser %> (<%= u.accountType %>)</option>
                                             <% }); %>
+                                            <% (rosterHosts || []).forEach(function(h) { %>
+                                            <option value="<%= h.value %>"><%= h.displayName %> (Host)</option>
+                                            <% }); %>
                                         </select>
                                     </div>
                                     <div class="settings-form-group" style="margin-bottom: 0;">
@@ -347,6 +350,9 @@
                                             <option value="">-- None / Optional --</option>
                                             <% (users || []).forEach(function(u) { %>
                                             <option value="<%= u.login.discordId %>"><%= u.displayName || u.discordUser %> (<%= u.accountType %>)</option>
+                                            <% }); %>
+                                            <% (rosterHosts || []).forEach(function(h) { %>
+                                            <option value="<%= h.value %>"><%= h.displayName %> (Host)</option>
                                             <% }); %>
                                         </select>
                                     </div>
@@ -540,6 +546,9 @@
                             <% (users || []).forEach(function(u) { %>
                             <option value="<%= u.login.discordId %>"><%= u.displayName || u.discordUser %> (<%= u.accountType %>)</option>
                             <% }); %>
+                            <% (rosterHosts || []).forEach(function(h) { %>
+                            <option value="<%= h.value %>"><%= h.displayName %> (Host)</option>
+                            <% }); %>
                         </select>
                     </div>
                     <div>
@@ -548,6 +557,9 @@
                             <option value="">-- None / Optional --</option>
                             <% (users || []).forEach(function(u) { %>
                             <option value="<%= u.login.discordId %>"><%= u.displayName || u.discordUser %> (<%= u.accountType %>)</option>
+                            <% }); %>
+                            <% (rosterHosts || []).forEach(function(h) { %>
+                            <option value="<%= h.value %>"><%= h.displayName %> (Host)</option>
                             <% }); %>
                         </select>
                     </div>
