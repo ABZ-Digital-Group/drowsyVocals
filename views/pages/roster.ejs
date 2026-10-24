@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+    <% const canBulkResetPasswords = userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender' || userType === 'Dreamy Defender' || userIsDeveloper; %>
     <head>
         <%- include('../partials/head') %>
         <title>Drowsy Roster - Staff Directory</title>
@@ -40,6 +41,12 @@
                                     <%= userIsDeveloper || userType === 'Mr. Sandman' || userType === 'Realm God' ? 'Reset' : 'Request Reset' %>
                                 </button>
                             </form>
+                            <% if (canBulkResetPasswords) { %>
+                            <button class="action-button action-button-primary" type="submit" form="passwordResetForm" id="bulkPasswordResetButton" disabled>
+                                <span class="material-symbols-outlined" aria-hidden="true">lock_reset</span>
+                                Reset Selected Passwords
+                            </button>
+                            <% } %>
                         </div>
                         <% } %>
                     </div>
@@ -158,6 +165,10 @@
             </div>
             <% } %>
 
+            <% if (canBulkResetPasswords) { %>
+            <form id="passwordResetForm" action="/force-password-reset-bulk" method="POST" onsubmit="return confirm('Require selected users to change their password on their next sign-in?');"></form>
+            <% } %>
+
             <!-- Attendance Form Wrap -->
             <form id="attendanceForm" action="/mark-attendance" method="POST">
                 <input type="hidden" name="week" value="<%= currentWeek %>">
@@ -169,6 +180,12 @@
                             <tr>
                                 <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender' || userType === 'Dreamy Defender' || userIsDeveloper) { %>
                                 <th>Meeting <br>Attendance</th>
+                                <% } %>
+                                <% if (canBulkResetPasswords) { %>
+                                <th>
+                                    <label for="selectAllPasswordResets" style="font-size: 0.8em;">Reset<br>Passwords</label>
+                                    <input type="checkbox" id="selectAllPasswordResets" title="Select all users for password reset">
+                                </th>
                                 <% } %>
                                 <th>Account <br>Type</th>
                                 <th>Display Name</th>
@@ -193,7 +210,7 @@
                             <% users.forEach(function(user, index) { %>
                             <% if (index === 0 || users[index - 1].accountType !== user.accountType) { %>
                             <tr class="rank-group-header" data-rank-group="<%= (user.accountType || '').toLowerCase() %>">
-                                <th colspan="<%= (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender' || userType === 'Dreamy Defender' || userIsDeveloper) ? 16 : 13 %>">
+                                <th colspan="<%= (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender' || userType === 'Dreamy Defender' || userIsDeveloper) ? (canBulkResetPasswords ? 17 : 16) : (canBulkResetPasswords ? 14 : 13) %>">
                                     <span><%= user.accountType %></span>
                                     <span>Vacant slots: <%= rankVacancyCounts[user.accountType] || 0 %></span>
                                 </th>
@@ -202,6 +219,9 @@
                             <% if (user.isVacant) { %>
                             <tr class="vacant-row" data-rank="<%= (user.accountType || '').toLowerCase() %>">
                                 <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender' || userType === 'Dreamy Defender' || userIsDeveloper) { %>
+                                <td></td>
+                                <% } %>
+                                <% if (canBulkResetPasswords) { %>
                                 <td></td>
                                 <% } %>
                                 <td><%= user.accountType %></td>
@@ -215,6 +235,11 @@
                             <tr class="roster-user-row<%= user.suspended ? ' suspended-row' : '' %>" data-rank="<%= (user.accountType || '').toLowerCase() %>" data-house="<%= (user.house || '').toLowerCase() %>" data-activity="<%= (user.activity || '').toLowerCase() %>" data-promotion-ready="<%= user.isPromotionReady ? '1' : '' %>" data-inactive-risk="<%= user.isInactiveRisk ? '1' : '' %>" data-search="<%= [user.displayName, user.discordUser, user.login.discordId].join(' ').toLowerCase() %>">
                                 <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender' || userType === 'Dreamy Defender' || userIsDeveloper) { %>
                                 <td><input type="checkbox" name="attendees" value="<%= user.login.discordId %>" <%= user.attendedThisWeek ? 'checked' : '' %>></td>
+                                <% } %>
+                                <% if (canBulkResetPasswords) { %>
+                                <td>
+                                    <input type="checkbox" name="resetUsers" value="<%= user.login.discordId %>" form="passwordResetForm" class="password-reset-selection">
+                                </td>
                                 <% } %>
                                 <td><%= user.accountType %></td>
                                 <td class="roster-display-name-cell">
@@ -788,6 +813,26 @@
                     document.getElementById('removeBadgeForm').submit();
                 }
             }
+
+            const passwordResetSelections = document.querySelectorAll('.password-reset-selection');
+            const selectAllPasswordResets = document.getElementById('selectAllPasswordResets');
+            const bulkPasswordResetButton = document.getElementById('bulkPasswordResetButton');
+
+            function updatePasswordResetSelection() {
+                if (!bulkPasswordResetButton) return;
+                const selectedCount = [...passwordResetSelections].filter((checkbox) => checkbox.checked).length;
+                bulkPasswordResetButton.disabled = selectedCount === 0;
+                bulkPasswordResetButton.title = selectedCount ? `Reset ${selectedCount} selected password${selectedCount === 1 ? '' : 's'}` : 'Select users first';
+            }
+
+            selectAllPasswordResets?.addEventListener('change', () => {
+                passwordResetSelections.forEach((checkbox) => {
+                    checkbox.checked = selectAllPasswordResets.checked;
+                });
+                updatePasswordResetSelection();
+            });
+
+            passwordResetSelections.forEach((checkbox) => checkbox.addEventListener('change', updatePasswordResetSelection));
         </script>
     </body>
 </html>

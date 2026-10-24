@@ -2228,6 +2228,42 @@ app.post('/update-user', requireDatabase, async (req, res) => {
     }
 });
 
+// REQUIRE PASSWORD RESET FOR SELECTED USERS (MANAGEMENT ONLY)
+app.post('/force-password-reset-bulk', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !hasManagementAccess(req)) {
+        req.flash('error_msg', 'You are not authorized to require password resets.');
+        return res.redirect('/roster');
+    }
+
+    const submittedIds = Array.isArray(req.body.resetUsers) ? req.body.resetUsers : [req.body.resetUsers];
+    const discordIds = [...new Set(
+        submittedIds
+            .filter((discordId) => typeof discordId === 'string')
+            .map((discordId) => discordId.trim())
+            .filter(Boolean)
+    )];
+
+    if (!discordIds.length) {
+        req.flash('error_msg', 'Select at least one user for a password reset.');
+        return res.redirect('/roster');
+    }
+
+    try {
+        const result = await db.collection('users').updateMany(
+            { 'login.discordId': { $in: discordIds } },
+            { $set: { mustResetPassword: true } }
+        );
+
+        await writeAudit(req, 'Required bulk password resets', `${result.matchedCount} user account(s) marked for password reset.`);
+        req.flash('success_msg', `${result.matchedCount} user account(s) will be required to reset their password on next sign-in.`);
+        res.redirect('/roster');
+    } catch (error) {
+        console.error('Error requiring bulk password resets:', error);
+        req.flash('error_msg', 'Unable to require password resets right now.');
+        res.redirect('/roster');
+    }
+});
+
 // PROMOTE USER (MANAGEMENT ONLY)
 app.post('/promote-user', requireDatabase, async (req, res) => {
     if (!req.session.loggedin || !hasManagementAccess(req)) {
