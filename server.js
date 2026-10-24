@@ -12,6 +12,7 @@ const https = require('https');
 // LOAD NPM PACKAGES
 const express = require('express');
 const session = require('express-session');
+const MongoStore = require('connect-mongo').default;
 const flash = require('connect-flash');
 const multer = require('multer');
 const { MongoClient, ObjectId } = require('mongodb');
@@ -89,7 +90,17 @@ app.use((req, res, next) => {
 });
 
 // APP CONFIGURATION
+const sessionStore = mongoUri && dbname
+    ? MongoStore.create({
+        mongoUrl: mongoUri,
+        dbName: dbname,
+        collectionName: 'sessions',
+        ttl: 60 * 60 * 24
+    })
+    : undefined;
+
 app.use(session({
+    store: sessionStore,
     secret: sessionSecret,
     resave: false,
     saveUninitialized: false,
