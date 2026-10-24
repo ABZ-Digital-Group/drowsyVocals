@@ -78,6 +78,47 @@
                 </div>
                 <% } %>
 
+                <% const canBulkResetPasswords = userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender' || userType === 'Dreamy Defender' || userIsDeveloper; %>
+                <% if (canBulkResetPasswords) { %>
+                <section class="settings-card" style="margin-bottom: 24px;">
+                    <div class="settings-card-header">
+                        <div class="settings-card-title-wrap">
+                            <h3 class="settings-card-title">
+                                <span class="material-symbols-outlined">lock_reset</span>
+                                Password Reset Management
+                            </h3>
+                            <p class="settings-card-desc">Select staff accounts that must change their password at their next sign-in. No passwords are displayed or generated here.</p>
+                        </div>
+                    </div>
+                    <form id="passwordResetForm" action="/force-password-reset-bulk" method="POST" onsubmit="return confirm('Require the selected users to change their password on their next sign-in?');">
+                        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px;">
+                            <label class="checkbox-label" for="selectAllPasswordResets">
+                                <input type="checkbox" id="selectAllPasswordResets">
+                                Select all staff
+                            </label>
+                            <button class="settings-btn settings-btn-primary" type="submit" id="bulkPasswordResetButton" disabled>
+                                <span class="material-symbols-outlined">lock_reset</span>
+                                Reset Selected Passwords
+                            </button>
+                        </div>
+                        <div style="display: grid; gap: 8px; max-height: 360px; overflow-y: auto;">
+                            <% (users || []).forEach(function(user) { %>
+                            <label style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid #3d3933; border-radius: 8px; background: #211f1b;">
+                                <input type="checkbox" name="resetUsers" value="<%= user.login.discordId %>" class="password-reset-selection">
+                                <span style="flex: 1;">
+                                    <strong><%= user.displayName || user.discordUser || user.login.discordId %></strong>
+                                    <span style="display: block; color: var(--dusty-blue-purple); font-size: 0.85em;"><%= user.accountType || 'Staff' %> · <%= user.login.discordId %></span>
+                                </span>
+                                <% if (user.mustResetPassword) { %>
+                                <span class="settings-badge badge-warning">Reset already required</span>
+                                <% } %>
+                            </label>
+                            <% }); %>
+                        </div>
+                    </form>
+                </section>
+                <% } %>
+
                 <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userIsDeveloper) { %>
                 <section class="settings-card" style="margin-bottom: 24px;">
                     <div class="settings-card-header">
@@ -1018,6 +1059,28 @@ function testSendLatest() {
         </div>
 
         <script>
+            const passwordResetSelections = document.querySelectorAll('.password-reset-selection');
+            const selectAllPasswordResets = document.getElementById('selectAllPasswordResets');
+            const bulkPasswordResetButton = document.getElementById('bulkPasswordResetButton');
+
+            function updatePasswordResetSelection() {
+                if (!bulkPasswordResetButton) return;
+                const selectedCount = [...passwordResetSelections].filter((checkbox) => checkbox.checked).length;
+                bulkPasswordResetButton.disabled = selectedCount === 0;
+                bulkPasswordResetButton.title = selectedCount ? `Reset ${selectedCount} selected password${selectedCount === 1 ? '' : 's'}` : 'Select users first';
+            }
+
+            if (selectAllPasswordResets) {
+                selectAllPasswordResets.addEventListener('change', () => {
+                    passwordResetSelections.forEach((checkbox) => {
+                        checkbox.checked = selectAllPasswordResets.checked;
+                    });
+                    updatePasswordResetSelection();
+                });
+            }
+
+            passwordResetSelections.forEach((checkbox) => checkbox.addEventListener('change', updatePasswordResetSelection));
+
             // Client-side Tab Switcher
             document.querySelectorAll('.settings-tab-btn').forEach(button => {
                 button.addEventListener('click', () => {

@@ -2867,7 +2867,7 @@ app.get('/settings', requireDatabase, async (req, res) => {
         const [settings, developers, users, resetRequests] = await Promise.all([
             getSettings(),
             db.collection('users').find({ isDeveloper: true }, { projection: { displayName: 1, discordUser: 1, 'login.discordId': 1 } }).toArray(),
-            db.collection('users').find({}, { projection: { displayName: 1, discordUser: 1, accountType: 1, 'login.discordId': 1 } }).sort({ displayName: 1 }).toArray(),
+            db.collection('users').find({}, { projection: { displayName: 1, discordUser: 1, accountType: 1, mustResetPassword: 1, 'login.discordId': 1 } }).sort({ displayName: 1 }).toArray(),
             hasGodAccess(req)
                 ? db.collection('resetRequests').find({ status: 'pending' }).sort({ requestedAt: 1 }).toArray()
                 : []
