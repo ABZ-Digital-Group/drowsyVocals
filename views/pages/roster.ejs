@@ -25,6 +25,10 @@
                                 <span class="material-symbols-outlined" aria-hidden="true">person_add</span>
                                 Add User
                             </button>
+                            <button class="action-button action-button-primary" type="button" id="openAddHostPopup">
+                                <span class="material-symbols-outlined" aria-hidden="true">mic</span>
+                                Add Host
+                            </button>
                             <button class="action-button action-button-primary" form="attendanceForm" type="submit">
                                 <span class="material-symbols-outlined" aria-hidden="true">check_circle</span>
                                 Save Attendance
@@ -328,6 +332,102 @@
                     </table>
                 </div>
             </form>
+
+            <% const canManageHosts = userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender' || userType === 'Dreamy Defender' || userIsDeveloper; %>
+            <section style="margin-top: 24px;">
+                <h2>Hosts (no account)</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Discord User</th>
+                            <th>Discord ID</th>
+                            <th>House</th>
+                            <th>Shift</th>
+                            <th>Hire Date</th>
+                            <th>Notes</th>
+                            <% if (canManageHosts) { %><th></th><% } %>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% if (!hosts || hosts.length === 0) { %>
+                        <tr><td colspan="8">No hosts added yet.</td></tr>
+                        <% } else { hosts.forEach(function(host) { %>
+                        <tr>
+                            <td><%= host.displayName %></td>
+                            <td><%= host.discordUser %></td>
+                            <td><%= host.discordId %></td>
+                            <td><%= host.house %></td>
+                            <td><%= host.shift %></td>
+                            <td><%= host.hireDate %></td>
+                            <td><%= host.notes %></td>
+                            <% if (canManageHosts) { %>
+                            <td>
+                                <form action="/remove-host" method="POST" onsubmit="return confirm('Remove this host?');" style="margin: 0;">
+                                    <input type="hidden" name="hostId" value="<%= host._id %>">
+                                    <button class="action-button action-button-danger host-remove-button" type="submit">
+                                        <span class="material-symbols-outlined" aria-hidden="true">delete</span>
+                                        Remove
+                                    </button>
+                                </form>
+                            </td>
+                            <% } %>
+                        </tr>
+                        <% }); } %>
+                    </tbody>
+                </table>
+            </section>
+
+            <dialog id="addHostPopup">
+                <form action="/add-host" method="POST">
+                    <p>Hosts are stored on the roster only and do not receive a login account.</p>
+                    <label for="hostDisplayName">Display Name:</label>
+                    <input type="text" id="hostDisplayName" name="displayName" required>
+                    <br>
+                    <label for="hostDiscordUser">Discord User:</label>
+                    <input type="text" id="hostDiscordUser" name="discordUser">
+                    <br>
+                    <label for="hostDiscordId">Discord ID:</label>
+                    <input type="text" id="hostDiscordId" name="discordId">
+                    <br>
+                    <label for="hostHireDate">Hire Date:</label>
+                    <input type="date" id="hostHireDate" name="hireDate">
+                    <br>
+                    <label for="hostHouse"><b>House</b></label>
+                    <select name="house" id="hostHouse">
+                        <option value=""></option>
+                        <% settings.houses.forEach(function(house) { %>
+                        <option value="<%= house.name %>"><%= house.name %></option>
+                        <% }); %>
+                    </select>
+                    <br>
+                    <label for="hostShift"><b>Shift</b></label>
+                    <select name="shift" id="hostShift">
+                        <option value=""></option>
+                        <% settings.shifts.forEach(function(shift) { %>
+                        <option value="<%= shift.name %>"><%= shift.name %></option>
+                        <% }); %>
+                    </select>
+                    <br>
+                    <label for="hostNotes">Notes:</label>
+                    <input type="text" id="hostNotes" name="notes">
+                    <div class="dialog-buttons">
+                        <button type="submit">Add Host</button>
+                        <button type="button" id="closeAddHostPopup">Cancel</button>
+                    </div>
+                </form>
+            </dialog>
+            <script>
+                (function () {
+                    var dialog = document.getElementById('addHostPopup');
+                    var open = document.getElementById('openAddHostPopup');
+                    var close = document.getElementById('closeAddHostPopup');
+                    if (dialog && open && close) {
+                        open.addEventListener('click', function () { dialog.showModal(); });
+                        close.addEventListener('click', function () { dialog.close(); });
+                    }
+                })();
+            </script>
 
             <dialog id="addUserPopup">
                 <form action="/add-user" method="POST">

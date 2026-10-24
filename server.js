@@ -2000,6 +2000,71 @@ app.post('/add-user', requireDatabase, async (req, res) => {
     }
 });
 
+// ADD HOST (MANAGEMENT ONLY) - hosts are roster records with no login account
+app.post('/add-host', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !hasManagementAccess(req)) {
+        req.flash('error_msg', 'You are not authorized to add hosts.');
+        return res.redirect('/roster');
+    }
+
+    const clean = (value) => (value || '').toString().trim();
+    const displayName = clean(req.body.displayName);
+    const discordId = clean(req.body.discordId);
+
+    if (!displayName) {
+        req.flash('error_msg', 'Host display name is required.');
+        return res.redirect('/roster');
+    }
+
+    try {
+        if (discordId && await db.collection('hosts').findOne({ discordId })) {
+            req.flash('error_msg', 'A host with that Discord ID already exists.');
+            return res.redirect('/roster');
+        }
+
+        await db.collection('hosts').insertOne({
+            displayName,
+            discordId,
+            discordUser: clean(req.body.discordUser),
+            hireDate: clean(req.body.hireDate) || new Date().toISOString().slice(0, 10),
+            house: clean(req.body.house),
+            shift: clean(req.body.shift),
+            notes: clean(req.body.notes),
+            created: new Date().toISOString().slice(0, 19)
+        });
+        await writeAudit(req, 'Added Host', displayName);
+        req.flash('success_msg', `Added host ${displayName} to the roster.`);
+    } catch (error) {
+        console.error('Error adding host:', error);
+        req.flash('error_msg', 'Unable to add host.');
+    }
+    res.redirect('/roster');
+});
+
+// REMOVE HOST (MANAGEMENT ONLY)
+app.post('/remove-host', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !hasManagementAccess(req)) {
+        req.flash('error_msg', 'You are not authorized to remove hosts.');
+        return res.redirect('/roster');
+    }
+
+    if (!ObjectId.isValid((req.body.hostId || '').toString())) {
+        req.flash('error_msg', 'Invalid host.');
+        return res.redirect('/roster');
+    }
+
+    try {
+        const host = await db.collection('hosts').findOneAndDelete({ _id: new ObjectId(req.body.hostId.toString()) });
+        const removed = host?.value || host;
+        await writeAudit(req, 'Removed Host', removed?.displayName || req.body.hostId);
+        req.flash('success_msg', 'Host removed.');
+    } catch (error) {
+        console.error('Error removing host:', error);
+        req.flash('error_msg', 'Unable to remove host.');
+    }
+    res.redirect('/roster');
+});
+
 // UPDATE USER (MANAGEMENT ONLY)
 app.post('/update-user', requireDatabase, async (req, res) => {
     if (!req.session.loggedin || !hasManagementAccess(req)) {
@@ -5586,6 +5651,13 @@ app.get('/events', requireDatabase, async (req, res) => {
             }
         });
 
+        // Roster-only hosts: value is their Discord ID, or their name when none is set.
+        const rosterHosts = (await db.collection('hosts').find({}).sort({ displayName: 1 }).toArray())
+            .map((h) => ({ value: h.discordId || h.displayName, displayName: h.displayName, discordUser: h.discordUser }));
+        rosterHosts.forEach((h) => {
+            if (!userMap[h.value]) userMap[h.value] = { displayName: h.displayName, discordUser: h.discordUser };
+        });
+
         res.render('pages/events', {
             page: 'events',
             upcomingEvents,
@@ -5594,6 +5666,7 @@ app.get('/events', requireDatabase, async (req, res) => {
             pastPopUps,
             isManager,
             users,
+            rosterHosts,
             userMap
         });
     } catch (error) {
@@ -6663,8 +6736,11 @@ app.get('/roster', requireDatabase, async (req, res) => {
         const promotionReadyUsers = usersWithService.filter((u) => u.isPromotionReady).length;
         const inactivityRiskUsers = usersWithService.filter((u) => u.isInactiveRisk).length;
 
+        const hosts = await db.collection('hosts').find({}).sort({ displayName: 1 }).toArray();
+
         res.render('pages/roster', {
             page: 'roster',
+            hosts,
             users: rosterRows,
             totalUsers,
             activeUsers,
