@@ -25,6 +25,7 @@ const PORT = Number(process.env.PORT) || 3000;
 const mongoUri = process.env.MONGODB_URI;
 const dbname = process.env.MONGODB_DATABASE;
 const isProduction = process.env.NODE_ENV === 'production';
+const allowInsecureMongo = process.env.MONGODB_ALLOW_INSECURE === 'true';
 const sessionSecret = process.env.SESSION_SECRET || (isProduction ? null : crypto.randomBytes(32).toString('hex'));
 const mongoTlsEnabled = (() => {
     if (process.env.MONGODB_TLS === 'true') return true;
@@ -54,8 +55,12 @@ if (!sessionSecret) {
     throw new Error('SESSION_SECRET is required in production. Configure it outside the repository.');
 }
 
-if (isProduction && !mongoTlsEnabled) {
+if (isProduction && !mongoTlsEnabled && !allowInsecureMongo) {
     throw new Error('A TLS-enabled MongoDB connection is required in production. Use mongodb+srv, add tls=true, or set MONGODB_TLS=true.');
+}
+
+if (isProduction && !mongoTlsEnabled && allowInsecureMongo) {
+    console.warn('WARNING: MongoDB TLS is disabled by explicit MONGODB_ALLOW_INSECURE=true. Configure MongoDB TLS and remove this setting as soon as possible.');
 }
 
 // SECURITY: DISABLE EXPRESS FINGERPRINTING
