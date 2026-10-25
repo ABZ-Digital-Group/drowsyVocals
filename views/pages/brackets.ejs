@@ -373,8 +373,8 @@
                         round.style.minWidth = '0';
                         round.style.maxWidth = `${roundWidth}px`;
                         round.querySelectorAll('.bracket-match').forEach((match) => {
-                            match.style.width = `${Math.max(1, roundWidth - 2)}px`;
-                            match.style.maxWidth = `${Math.max(1, roundWidth - 2)}px`;
+                            match.style.width = '100%';
+                            match.style.maxWidth = '100%';
                             match.style.boxSizing = 'border-box';
                         });
                     });
