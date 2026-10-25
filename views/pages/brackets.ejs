@@ -219,14 +219,22 @@
                     state.participants.forEach((name, index) => {
                         const row = document.createElement('div');
                         row.className = 'bracket-participant-row';
-                        row.innerHTML = `<span>${index + 1}</span><input class="settings-input" maxlength="80" value="${escapeHtml(name)}" aria-label="Participant ${index + 1}"><button type="button" class="bracket-remove" aria-label="Remove participant">&times;</button>`;
+                        row.innerHTML = `<span>${index + 1}</span><input class="settings-input" maxlength="80" value="${escapeHtml(name)}" aria-label="Participant ${index + 1}" ${canEdit ? '' : 'disabled'}>${canEdit ? '<button type="button" class="bracket-remove" aria-label="Remove participant">&times;</button>' : ''}`;
                         row.querySelector('input').addEventListener('input', (event) => {
                             state.participants[index] = event.target.value;
                             const openingMatch = state.rounds[0]?.[Math.floor(index / 2)];
                             if (openingMatch) openingMatch.players[index % 2] = event.target.value || 'BYE';
                             renderBoard();
                         });
-                        row.querySelector('button').addEventListener('click', () => { state.participants.splice(index, 1); generateRounds(); render(); });
+                        if (canEdit) {
+                            row.querySelector('input').addEventListener('change', () => persistState('Saving participant...'));
+                            row.querySelector('button').addEventListener('click', () => {
+                                state.participants.splice(index, 1);
+                                generateRounds();
+                                render();
+                                persistState('Removing participant...');
+                            });
+                        }
                         list.appendChild(row);
                     });
                     document.getElementById('participantCount').textContent = `${state.participants.length}/${state.maxParticipants} players`;
@@ -280,6 +288,22 @@
                         if (loading) loading.hidden = true;
                     });
                 }
+                async function persistState(statusText = 'Saving...') {
+                    const status = document.getElementById('bracketSaveStatus');
+                    if (status) status.textContent = statusText;
+                    state.notes = notes.value.slice(0, 1000);
+                    state.eventId = document.getElementById('bracketEventAssignment')?.value || '';
+                    state.maxParticipants = Number(document.getElementById('bracketCapacityAssignment')?.value || state.maxParticipants);
+                    state.format = document.getElementById('bracketFormatAssignment')?.value || state.format;
+                    state.bestOf = document.getElementById('bracketBestOfAssignment')?.value || state.bestOf;
+                    try {
+                        const response = await fetch(`/brackets/${bracketId}/save`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(state) });
+                        if (!response.ok) throw new Error('Save failed');
+                        if (status) status.textContent = 'Saved just now';
+                    } catch (error) {
+                        if (status) status.textContent = 'Could not save participant changes.';
+                    }
+                }
                 document.getElementById('addParticipant')?.addEventListener('click', () => {
                     if (state.participants.length >= state.maxParticipants) return;
                     state.participants.push('');
@@ -329,18 +353,7 @@
                     }
                 });
                 document.getElementById('saveBracket')?.addEventListener('click', async () => {
-                    state.notes = notes.value.slice(0, 1000);
-                    const status = document.getElementById('bracketSaveStatus');
-                    status.textContent = 'Saving...';
-                    try {
-                        state.eventId = document.getElementById('bracketEventAssignment')?.value || '';
-                        state.maxParticipants = Number(document.getElementById('bracketCapacityAssignment')?.value || state.maxParticipants);
-                        state.format = document.getElementById('bracketFormatAssignment')?.value || state.format;
-                        state.bestOf = document.getElementById('bracketBestOfAssignment')?.value || state.bestOf;
-                        const response = await fetch(`/brackets/${bracketId}/save`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(state) });
-                        if (!response.ok) throw new Error('Save failed');
-                        status.textContent = 'Saved just now';
-                    } catch (error) { status.textContent = 'Could not save changes. Please try again.'; }
+                    await persistState();
                 });
                 if (!state.rounds.length) generateRounds();
                 render();
