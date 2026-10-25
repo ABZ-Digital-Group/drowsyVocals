@@ -6854,6 +6854,17 @@ dialog button {
     width: clamp(20px, 2.4vw, 34px);
     min-height: clamp(16px, 2.5vh, 22px);
 }
+.bracket-editor:fullscreen .bracket-round,
+.bracket-editor.is-streaming .bracket-round {
+    display: flex;
+    width: auto;
+    height: 100%;
+    justify-content: space-between;
+}
+.bracket-editor:fullscreen .bracket-round:not(.is-stream-visible),
+.bracket-editor.is-streaming .bracket-round:not(.is-stream-visible) {
+    display: flex;
+}
 .bracket-stream-pagination {
     display: flex;
     align-items: center;
@@ -6903,4 +6914,17 @@ dialog button {
 .bracket-editor:fullscreen .bracket-round.is-stream-visible .bracket-match,
 .bracket-editor.is-streaming .bracket-round.is-stream-visible .bracket-match {
     width: 100%;
+}
+
+/* Fullscreen shows every round; fitStreamBoard scales the complete board. */
+.bracket-editor:fullscreen .bracket-board,
+.bracket-editor.is-streaming .bracket-board {
+    grid-template-columns: repeat(var(--round-count, 1), minmax(0, 1fr));
+}
+.bracket-editor:fullscreen .bracket-round,
+.bracket-editor.is-streaming .bracket-round,
+.bracket-editor:fullscreen .bracket-round:not(.is-stream-visible),
+.bracket-editor.is-streaming .bracket-round:not(.is-stream-visible) {
+    display: flex;
+    width: auto;
 }

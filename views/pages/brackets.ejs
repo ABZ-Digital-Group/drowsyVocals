@@ -269,18 +269,12 @@
                 function renderBoard() {
                     board.innerHTML = '';
                     const presentation = document.fullscreenElement === bracketEditor || bracketEditor.classList.contains('is-streaming');
-                    const activeRound = state.rounds[streamRoundPage] || [];
-                    const totalMatchPages = Math.max(1, Math.ceil(activeRound.length / streamMatchesPerPage));
-                    streamMatchPage = Math.min(streamMatchPage, totalMatchPages - 1);
-                    const startMatch = streamMatchPage * streamMatchesPerPage;
-                    const visibleRoundIndex = presentation ? streamRoundPage : null;
-                    board.style.setProperty('--round-count', presentation ? 1 : Math.max(1, state.rounds.length));
+                    board.style.setProperty('--round-count', Math.max(1, state.rounds.length));
                     state.rounds.forEach((round, roundIndex) => {
-                        if (presentation && roundIndex !== visibleRoundIndex) return;
                         const column = document.createElement('div');
-                        column.className = `bracket-round${presentation ? ' is-stream-visible' : ''}`;
+                        column.className = 'bracket-round';
                         column.innerHTML = `<h4>${roundIndex === state.rounds.length - 1 ? 'Final' : `Round ${roundIndex + 1}`}</h4>`;
-                        const matches = presentation ? round.slice(startMatch, startMatch + streamMatchesPerPage).map((match, index) => ({ match, matchIndex: startMatch + index })) : round.map((match, matchIndex) => ({ match, matchIndex }));
+                        const matches = round.map((match, matchIndex) => ({ match, matchIndex }));
                         matches.forEach(({ match, matchIndex }) => {
                             const card = document.createElement('div');
                             card.className = 'bracket-match';
@@ -306,8 +300,8 @@
                     });
                     const pagination = document.getElementById('bracketStreamPagination');
                     const pageLabel = document.getElementById('bracketStreamPageLabel');
-                    if (pagination) pagination.hidden = !presentation;
-                    if (pageLabel && presentation) pageLabel.textContent = `Round ${streamRoundPage + 1} of ${Math.max(1, state.rounds.length)} · Matches ${activeRound.length ? `${startMatch + 1}-${Math.min(startMatch + streamMatchesPerPage, activeRound.length)}` : '0'} of ${activeRound.length}`;
+                    if (pagination) pagination.hidden = true;
+                    if (pageLabel) pageLabel.textContent = '';
                     document.getElementById('roundCount').textContent = state.rounds.length ? `${state.rounds.length} round${state.rounds.length === 1 ? '' : 's'}` : 'Add participants to begin';
                     window.requestAnimationFrame(fitStreamBoard);
                 }
