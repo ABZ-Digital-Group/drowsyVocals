@@ -312,12 +312,46 @@
                         board.style.transformOrigin = '';
                         board.style.zoom = '';
                         board.style.width = '';
+                        board.style.display = '';
+                        board.style.flexWrap = '';
+                        board.style.minWidth = '';
+                        board.style.maxWidth = '';
+                        board.style.overflow = '';
+                        board.querySelectorAll('.bracket-round').forEach((round) => {
+                            round.style.flex = '';
+                            round.style.width = '';
+                            round.style.minWidth = '';
+                            round.style.maxWidth = '';
+                            round.querySelectorAll('.bracket-match').forEach((match) => {
+                                match.style.width = '';
+                                match.style.maxWidth = '';
+                                match.style.boxSizing = '';
+                            });
+                        });
                         return;
                     }
                     board.style.transform = '';
                     board.style.transformOrigin = '';
                     board.style.zoom = '';
-                    board.style.width = '';
+                    board.style.display = 'flex';
+                    board.style.flexWrap = 'nowrap';
+                    board.style.minWidth = '0';
+                    board.style.maxWidth = '100%';
+                    board.style.overflow = 'hidden';
+                    const boardWrap = board.parentElement;
+                    const availableWidth = boardWrap ? boardWrap.clientWidth : 0;
+                    if (availableWidth > 0) board.style.width = `${availableWidth}px`;
+                    board.querySelectorAll('.bracket-round').forEach((round) => {
+                        round.style.flex = '1 1 0';
+                        round.style.width = '0';
+                        round.style.minWidth = '0';
+                        round.style.maxWidth = '100%';
+                        round.querySelectorAll('.bracket-match').forEach((match) => {
+                            match.style.width = '100%';
+                            match.style.maxWidth = '100%';
+                            match.style.boxSizing = 'border-box';
+                        });
+                    });
                 }
                 function render() { renderParticipants(); renderBoard(); }
                 function escapeHtml(value) { return value.replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[character])); }
