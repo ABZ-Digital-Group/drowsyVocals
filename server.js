@@ -5749,24 +5749,31 @@ app.post('/brackets/create', requireDatabase, async (req, res) => {
    const title = String(req.body.title || '').trim().slice(0, 120);
    const eventId = String(req.body.eventId || '').trim();
    const format = req.body.format === 'double' ? 'double' : 'single';
-   if (!title || !eventId) {
-       req.flash('error_msg', 'Bracket name and event are required.');
+   const maxParticipants = [2, 4, 8, 16, 32, 64].includes(Number(req.body.maxParticipants))
+       ? Number(req.body.maxParticipants)
+       : 16;
+   if (!title) {
+       req.flash('error_msg', 'Bracket name is required.');
        return res.redirect('/brackets');
    }
    try {
-       const event = await db.collection('scheduledEvents').findOne({
-           $or: [{ id: eventId }, ...(ObjectId.isValid(eventId) ? [{ _id: new ObjectId(eventId) }] : [])]
-       });
-       if (!event) {
-           req.flash('error_msg', 'The selected event could not be found.');
-           return res.redirect('/brackets');
+       let event = null;
+       if (eventId) {
+           event = await db.collection('scheduledEvents').findOne({
+               $or: [{ id: eventId }, ...(ObjectId.isValid(eventId) ? [{ _id: new ObjectId(eventId) }] : [])]
+           });
+           if (!event) {
+               req.flash('error_msg', 'The selected event could not be found.');
+               return res.redirect('/brackets');
+           }
        }
        const bracket = {
            id: crypto.randomUUID(),
            title,
            eventId,
-           eventTitle: event.title,
+           eventTitle: event ? event.title : 'Unassigned event',
            format,
+           maxParticipants,
            participants: [],
            rounds: [],
            notes: '',
@@ -5788,9 +5795,21 @@ app.post('/brackets/:bracketId/save', requireDatabase, async (req, res) => {
    if (!req.session.loggedin || !hasManagementAccess(req)) return res.status(403).json({ error: 'Unauthorized.' });
    const state = sanitizeBracketState(req.body);
    try {
+       const eventId = String(req.body.eventId || '').trim();
+       const maxParticipants = [2, 4, 8, 16, 32, 64].includes(Number(req.body.maxParticipants))
+           ? Number(req.body.maxParticipants)
+           : 16;
+       let eventTitle = 'Unassigned event';
+       if (eventId) {
+           const event = await db.collection('scheduledEvents').findOne({
+               $or: [{ id: eventId }, ...(ObjectId.isValid(eventId) ? [{ _id: new ObjectId(eventId) }] : [])]
+           });
+           if (!event) return res.status(400).json({ error: 'Event not found.' });
+           eventTitle = event.title;
+       }
        const result = await db.collection('eventBrackets').updateOne(
            bracketIdFilter(req.params.bracketId),
-           { $set: { ...state, updatedAt: new Date().toISOString(), updatedBy: req.session.currentuser } }
+           { $set: { ...state, participants: state.participants.slice(0, maxParticipants), maxParticipants, eventId: eventId || null, eventTitle, updatedAt: new Date().toISOString(), updatedBy: req.session.currentuser } }
        );
        if (!result.matchedCount) return res.status(404).json({ error: 'Bracket not found.' });
        res.json({ success: true });

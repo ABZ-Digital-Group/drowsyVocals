@@ -51,8 +51,8 @@
                             <label for="bracketTitle">Bracket name</label>
                             <input id="bracketTitle" name="title" class="settings-input" placeholder="Friday Night Finals" required>
                             <label for="bracketEvent">Event</label>
-                            <select id="bracketEvent" name="eventId" class="settings-input" required>
-                                <option value="">Choose an event</option>
+                            <select id="bracketEvent" name="eventId" class="settings-input">
+                                <option value="">Assign an event later</option>
                                 <% events.forEach(function(event) { %>
                                 <option value="<%= event.id || event._id %>"><%= event.title %></option>
                                 <% }); %>
@@ -60,6 +60,12 @@
                             <label for="bracketFormat">Format</label>
                             <select id="bracketFormat" name="format" class="settings-input">
                                 <option value="single">Single elimination</option>
+                            </select>
+                            <label for="bracketCapacity">Maximum participants</label>
+                            <select id="bracketCapacity" name="maxParticipants" class="settings-input">
+                                <% [2, 4, 8, 16, 32, 64].forEach(function(size) { %>
+                                <option value="<%= size %>" <%= size === 16 ? 'selected' : '' %>><%= size %> participants</option>
+                                <% }); %>
                             </select>
                             <button class="settings-btn settings-btn-primary" type="submit"><span class="material-symbols-outlined">add</span>Create bracket</button>
                         </form>
@@ -93,6 +99,19 @@
                         <% if (isManager) { %>
                         <div class="bracket-controls">
                             <div>
+                                <label for="bracketEventAssignment">Assigned event</label>
+                                <select id="bracketEventAssignment" class="settings-input">
+                                    <option value="">Unassigned - link this bracket later</option>
+                                    <% events.forEach(function(event) { %>
+                                    <option value="<%= event.id || event._id %>" <%= String(selectedBracket.eventId || '') === String(event.id || event._id) ? 'selected' : '' %>><%= event.title %></option>
+                                    <% }); %>
+                                </select>
+                                <label for="bracketCapacityAssignment">Maximum participants</label>
+                                <select id="bracketCapacityAssignment" class="settings-input">
+                                    <% [2, 4, 8, 16, 32, 64].forEach(function(size) { %>
+                                    <option value="<%= size %>" <%= Number(selectedBracket.maxParticipants || 16) === size ? 'selected' : '' %>><%= size %> participants</option>
+                                    <% }); %>
+                                </select>
                                 <label for="bracketNotes">Event notes</label>
                                 <textarea id="bracketNotes" class="settings-input" rows="2" placeholder="Rules, judging notes, or stream details..."></textarea>
                             </div>
@@ -105,7 +124,7 @@
                         <% } %>
                         <div class="bracket-workspace">
                             <div class="bracket-participants">
-                                <div class="bracket-section-heading"><h3>Participants</h3><span id="participantCount"></span></div>
+                                            <div class="bracket-section-heading"><h3>Participants</h3><span id="participantCount"></span></div>
                                 <div id="participantList"></div>
                                 <% if (isManager) { %><button type="button" class="settings-btn settings-btn-secondary settings-btn-sm" id="addParticipant"><span class="material-symbols-outlined">person_add</span>Add participant</button><% } %>
                             </div>
@@ -134,7 +153,8 @@
                 let state = {
                     participants: Array.isArray(initial.participants) ? initial.participants.map((name) => String(name).slice(0, 80)) : [],
                     rounds: Array.isArray(initial.rounds) ? initial.rounds : [],
-                    notes: String(initial.notes || '').slice(0, 1000)
+                    notes: String(initial.notes || '').slice(0, 1000),
+                    maxParticipants: [2, 4, 8, 16, 32, 64].includes(Number(<%= Number(selectedBracket.maxParticipants || 16) %>)) ? Number(<%= Number(selectedBracket.maxParticipants || 16) %>) : 16
                 };
                 const list = document.getElementById('participantList');
                 const board = document.getElementById('bracketBoard');
@@ -180,7 +200,9 @@
                         row.querySelector('button').addEventListener('click', () => { state.participants.splice(index, 1); generateRounds(); render(); });
                         list.appendChild(row);
                     });
-                    document.getElementById('participantCount').textContent = `${state.participants.length} player${state.participants.length === 1 ? '' : 's'}`;
+                    document.getElementById('participantCount').textContent = `${state.participants.length}/${state.maxParticipants} players`;
+                    const addButton = document.getElementById('addParticipant');
+                    if (addButton) addButton.disabled = state.participants.length >= state.maxParticipants;
                 }
                 function renderBoard() {
                     board.innerHTML = '';
@@ -208,7 +230,19 @@
                 }
                 function render() { renderParticipants(); renderBoard(); }
                 function escapeHtml(value) { return value.replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[character])); }
-                document.getElementById('addParticipant')?.addEventListener('click', () => { state.participants.push(''); generateRounds(); render(); list.lastElementChild?.querySelector('input')?.focus(); });
+                document.getElementById('addParticipant')?.addEventListener('click', () => {
+                    if (state.participants.length >= state.maxParticipants) return;
+                    state.participants.push('');
+                    generateRounds();
+                    render();
+                    list.lastElementChild?.querySelector('input')?.focus();
+                });
+                document.getElementById('bracketCapacityAssignment')?.addEventListener('change', (event) => {
+                    state.maxParticipants = Number(event.target.value);
+                    state.participants = state.participants.slice(0, state.maxParticipants);
+                    generateRounds();
+                    render();
+                });
                 document.getElementById('seedBracket')?.addEventListener('click', () => { state.participants.sort(() => Math.random() - 0.5); generateRounds(); render(); });
                 const bracketEditor = document.querySelector('.bracket-editor');
                 const fullscreenButton = document.getElementById('toggleBracketFullscreen');
@@ -243,6 +277,8 @@
                     const status = document.getElementById('bracketSaveStatus');
                     status.textContent = 'Saving...';
                     try {
+                        state.eventId = document.getElementById('bracketEventAssignment')?.value || '';
+                        state.maxParticipants = Number(document.getElementById('bracketCapacityAssignment')?.value || state.maxParticipants);
                         const response = await fetch(`/brackets/${bracketId}/save`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(state) });
                         if (!response.ok) throw new Error('Save failed');
                         status.textContent = 'Saved just now';
