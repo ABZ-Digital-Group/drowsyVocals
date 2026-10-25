@@ -6823,7 +6823,7 @@ dialog button {
     min-width: 0;
     min-height: 0;
     gap: clamp(8px, 1.4vw, 22px);
-    transform: none !important;
+    transform: none;
 }
 .bracket-editor:fullscreen .bracket-board-wrap,
 .bracket-editor.is-streaming .bracket-board-wrap {

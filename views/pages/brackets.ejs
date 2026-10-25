@@ -303,7 +303,7 @@
                     if (pagination) pagination.hidden = true;
                     if (pageLabel) pageLabel.textContent = '';
                     document.getElementById('roundCount').textContent = state.rounds.length ? `${state.rounds.length} round${state.rounds.length === 1 ? '' : 's'}` : 'Add participants to begin';
-                    window.requestAnimationFrame(fitStreamBoard);
+                    window.requestAnimationFrame(() => window.requestAnimationFrame(fitStreamBoard));
                 }
                 function fitStreamBoard() {
                     const presentation = document.fullscreenElement === bracketEditor || bracketEditor.classList.contains('is-streaming');
@@ -315,6 +315,7 @@
                     const wrapper = board.parentElement;
                     const rounds = Array.from(board.querySelectorAll('.bracket-round'));
                     if (!wrapper || !rounds.length) return;
+                    board.style.transform = 'none';
                     const contentHeight = Math.max(...rounds.map((round) => round.scrollHeight));
                     const availableHeight = Math.max(1, wrapper.clientHeight - 12);
                     const scale = Math.min(1, availableHeight / contentHeight);
