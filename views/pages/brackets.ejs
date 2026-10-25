@@ -310,22 +310,26 @@
                     if (!presentation) {
                         board.style.transform = '';
                         board.style.transformOrigin = '';
+                        board.style.zoom = '';
+                        board.style.width = '';
                         return;
                     }
-                    const wrapper = board.parentElement;
                     const rounds = Array.from(board.querySelectorAll('.bracket-round'));
-                    if (!wrapper || !rounds.length) return;
+                    if (!rounds.length) return;
                     board.style.transform = 'none';
+                    board.style.zoom = '1';
+                    const boardTop = board.getBoundingClientRect().top;
                     const contentHeight = Math.max(...rounds.map((round) => {
-                        const roundTop = round.getBoundingClientRect().top;
                         const matchBottoms = Array.from(round.querySelectorAll('.bracket-match'))
                             .map((match) => match.getBoundingClientRect().bottom);
-                        return matchBottoms.length ? Math.max(...matchBottoms) - roundTop : round.scrollHeight;
+                        return matchBottoms.length ? Math.max(...matchBottoms) - boardTop : round.scrollHeight;
                     }));
-                    const availableHeight = Math.max(1, wrapper.clientHeight - 12);
+                    const availableHeight = Math.max(1, window.innerHeight - boardTop - 12);
                     const scale = Math.min(1, availableHeight / contentHeight);
-                    board.style.transform = `scale(${scale})`;
-                    board.style.transformOrigin = 'top left';
+                    board.style.zoom = scale;
+                    board.style.width = `${100 / scale}%`;
+                    board.style.transform = 'none';
+                    board.style.transformOrigin = '';
                 }
                 function render() { renderParticipants(); renderBoard(); }
                 function escapeHtml(value) { return value.replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[character])); }
