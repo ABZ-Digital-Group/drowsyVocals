@@ -293,7 +293,19 @@
                 }
                 function fitStreamBoard() {
                     const presentation = document.fullscreenElement === bracketEditor || bracketEditor.classList.contains('is-streaming');
-                    board.style.transform = presentation ? '' : '';
+                    if (!presentation) {
+                        board.style.transform = '';
+                        board.style.transformOrigin = '';
+                        return;
+                    }
+                    const wrapper = board.parentElement;
+                    const rounds = Array.from(board.querySelectorAll('.bracket-round'));
+                    if (!wrapper || !rounds.length) return;
+                    const contentHeight = Math.max(...rounds.map((round) => round.scrollHeight));
+                    const availableHeight = Math.max(1, wrapper.clientHeight - 12);
+                    const scale = Math.min(1, availableHeight / contentHeight);
+                    board.style.transform = `scale(${scale})`;
+                    board.style.transformOrigin = 'top center';
                 }
                 function render() { renderParticipants(); renderBoard(); }
                 function escapeHtml(value) { return value.replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[character])); }
