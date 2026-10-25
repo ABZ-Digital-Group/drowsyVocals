@@ -6854,3 +6854,53 @@ dialog button {
     width: clamp(20px, 2.4vw, 34px);
     min-height: clamp(16px, 2.5vh, 22px);
 }
+.bracket-stream-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    margin: -8px 0 12px;
+}
+.bracket-stream-pagination[hidden] {
+    display: none;
+}
+.bracket-stream-pagination > span {
+    min-width: 210px;
+    color: var(--dusty-blue-purple);
+    font-size: .85em;
+    text-align: center;
+}
+.bracket-editor:fullscreen .bracket-stream-pagination,
+.bracket-editor.is-streaming .bracket-stream-pagination {
+    margin: 0 0 12px;
+}
+.bracket-editor:fullscreen .bracket-stream-pagination > span,
+.bracket-editor.is-streaming .bracket-stream-pagination > span {
+    color: var(--misty-blue);
+}
+.bracket-editor:fullscreen .bracket-board,
+.bracket-editor.is-streaming .bracket-board {
+    grid-template-columns: minmax(0, 1fr);
+    height: calc(100% - 34px);
+}
+.bracket-editor:fullscreen .bracket-round.is-stream-visible,
+.bracket-editor.is-streaming .bracket-round.is-stream-visible {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-content: center;
+    align-items: center;
+    gap: clamp(12px, 2vw, 28px);
+    width: 100%;
+}
+.bracket-editor:fullscreen .bracket-round.is-stream-visible h4,
+.bracket-editor.is-streaming .bracket-round.is-stream-visible h4 {
+    grid-column: 1 / -1;
+}
+.bracket-editor:fullscreen .bracket-round:not(.is-stream-visible),
+.bracket-editor.is-streaming .bracket-round:not(.is-stream-visible) {
+    display: none;
+}
+.bracket-editor:fullscreen .bracket-round.is-stream-visible .bracket-match,
+.bracket-editor.is-streaming .bracket-round.is-stream-visible .bracket-match {
+    width: 100%;
+}
