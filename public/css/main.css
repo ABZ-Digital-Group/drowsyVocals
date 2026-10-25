@@ -561,6 +561,14 @@ nav ul > li > a:focus-visible {
 .nav-guidelines-menu {
     position: relative;
 }
+.nav-events-menu {
+    position: relative;
+}
+.nav-events-menu > a {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
 .nav-account-trigger {
     display: flex;
     align-items: center;
@@ -667,6 +675,10 @@ nav ul > li > a:focus-visible {
 .nav-guidelines-menu:hover .nav-guidelines-dropdown,
 .nav-guidelines-menu:focus-within .nav-guidelines-dropdown,
 .nav-guidelines-menu.is-open .nav-guidelines-dropdown {
+    display: block;
+}
+.nav-events-menu:hover .nav-events-dropdown,
+.nav-events-menu:focus-within .nav-events-dropdown {
     display: block;
 }
 .nav-account-dropdown a {
@@ -5634,7 +5646,8 @@ dialog button {
     }
     .nav-account-menu, .nav-notifications-menu { margin-left: 0; }
     .nav-account-trigger, .nav-guidelines-trigger { justify-content: center; width: 100%; }
-    .nav-account-dropdown, .nav-guidelines-dropdown, .nav-notifications-dropdown { position: static; margin: 8px auto 0; text-align: left; }
+    .nav-events-menu > a { justify-content: center; }
+    .nav-account-dropdown, .nav-guidelines-dropdown, .nav-events-dropdown, .nav-notifications-dropdown { position: static; margin: 8px auto 0; text-align: left; }
     .feedback-workflow { grid-template-columns: 1fr; }
     .event-feedback-summary { align-items: flex-start; flex-direction: column; }
     .event-feedback-summary > span { text-align: left; }

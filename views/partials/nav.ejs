@@ -22,8 +22,12 @@
     <ul id="primaryNavigation">
         <li><a href="/dashboard">Dashboard</a></li>
         <li><a href="/roster">Roster</a></li>
-        <li><a href="/events">Events</a></li>
-        <li><a href="/brackets">Brackets</a></li>
+        <li class="nav-events-menu">
+            <a href="/events">Events <span class="material-symbols-outlined nav-guidelines-arrow" aria-hidden="true">expand_more</span></a>
+            <div class="nav-guidelines-dropdown nav-events-dropdown">
+                <a href="/brackets">Brackets</a>
+            </div>
+        </li>
         <li><a href="/house-points">House Points</a></li>
         <li><a href="/bingo">Bingo</a></li>
         <li class="nav-guidelines-menu">
