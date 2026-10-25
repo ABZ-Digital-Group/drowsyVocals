@@ -16,6 +16,26 @@
 .bracket-empty-large .material-symbols-outlined { font-size: 4em; color: var(--dreamy-periwinkle); }
 .bracket-empty-large h2, .bracket-empty-large p { margin: 0; }
 .bracket-editor .account-card-header { align-items: flex-start; }
+.bracket-header-actions { display: flex; align-items: center; gap: 8px; }
+.bracket-editor:fullscreen, .bracket-editor.is-streaming { overflow: auto; width: 100%; min-height: 100vh; margin: 0; padding: clamp(24px, 5vw, 72px); box-sizing: border-box; border: 0; border-radius: 0; background: var(--night-indigo); color: var(--cloud-white); }
+.bracket-editor:fullscreen .account-card-header, .bracket-editor.is-streaming .account-card-header { border-bottom-color: var(--dusty-blue-purple); }
+.bracket-editor:fullscreen .account-card-title, .bracket-editor.is-streaming .account-card-title { color: var(--cloud-white); font-size: clamp(1.5em, 3vw, 2.4em); }
+.bracket-editor:fullscreen .bracket-event-label, .bracket-editor.is-streaming .bracket-event-label { color: var(--misty-blue); font-size: 1.05em; }
+.bracket-editor:fullscreen .bracket-controls, .bracket-editor:fullscreen .bracket-participants, .bracket-editor.is-streaming .bracket-controls, .bracket-editor.is-streaming .bracket-participants { display: none; }
+.bracket-editor:fullscreen .bracket-workspace, .bracket-editor.is-streaming .bracket-workspace { display: block; padding-top: 32px; }
+.bracket-editor:fullscreen .bracket-board-wrap, .bracket-editor.is-streaming .bracket-board-wrap { overflow: visible; }
+.bracket-editor:fullscreen .bracket-section-heading, .bracket-editor.is-streaming .bracket-section-heading { color: var(--cloud-white); }
+.bracket-editor:fullscreen .bracket-section-heading h3, .bracket-editor.is-streaming .bracket-section-heading h3 { font-size: 1.15em; }
+.bracket-editor:fullscreen .bracket-section-heading span, .bracket-editor.is-streaming .bracket-section-heading span { color: var(--misty-blue); }
+.bracket-editor:fullscreen .bracket-board, .bracket-editor.is-streaming .bracket-board { justify-content: center; gap: clamp(24px, 4vw, 72px); min-height: 55vh; padding: 24px 0; }
+.bracket-editor:fullscreen .bracket-round, .bracket-editor.is-streaming .bracket-round { flex-basis: clamp(210px, 19vw, 310px); gap: 22px; }
+.bracket-editor:fullscreen .bracket-round h4, .bracket-editor.is-streaming .bracket-round h4 { color: var(--misty-blue); font-size: 1em; }
+.bracket-editor:fullscreen .bracket-match, .bracket-editor.is-streaming .bracket-match { border-color: var(--dreamy-periwinkle); box-shadow: 0 8px 24px rgba(0,0,0,.22); }
+.bracket-editor:fullscreen .bracket-player, .bracket-editor.is-streaming .bracket-player { min-height: 48px; padding: 9px 12px; background: var(--cloud-white); font-size: 1em; }
+.bracket-editor:fullscreen .bracket-player input, .bracket-editor.is-streaming .bracket-player input { width: 48px; font-size: 1.05em; }
+.bracket-editor:fullscreen .bracket-header-actions .settings-btn-danger, .bracket-editor.is-streaming .bracket-header-actions .settings-btn-danger { display: none; }
+.bracket-editor:fullscreen .settings-btn-secondary, .bracket-editor.is-streaming .settings-btn-secondary { border-color: var(--misty-blue); color: var(--cloud-white); background: transparent; }
+.bracket-editor:fullscreen .settings-btn-secondary:hover, .bracket-editor.is-streaming .settings-btn-secondary:hover { background: var(--deep-lilac); }
 .bracket-controls { display: flex; align-items: end; gap: 16px; padding: 16px; background: var(--cloud-lilac); }
 .bracket-controls > div:first-child { flex: 1; }
 .bracket-controls label { display: block; margin-bottom: 5px; font-weight: bold; }

@@ -74,16 +74,21 @@
                             <p>Brackets are saved independently for each event, so every event can have its own format and participants.</p>
                         </div>
                     <% } else { %>
-                        <div class="account-card-header">
+                        <div class="account-card-header bracket-editor-header">
                             <div>
                                 <h2 class="account-card-title"><span class="material-symbols-outlined">emoji_events</span><span><%= selectedBracket.title %></span></h2>
                                 <p class="bracket-event-label"><%= selectedBracket.eventTitle %></p>
                             </div>
-                            <% if (isManager) { %>
-                            <form action="/brackets/<%= selectedBracket._id %>/delete" method="POST" onsubmit="return confirm('Delete this bracket?')">
-                                <button class="settings-btn settings-btn-danger settings-btn-sm" type="submit">Delete</button>
-                            </form>
-                            <% } %>
+                            <div class="bracket-header-actions">
+                                <button type="button" class="settings-btn settings-btn-secondary settings-btn-sm" id="toggleBracketFullscreen">
+                                    <span class="material-symbols-outlined">fullscreen</span><span class="fullscreen-button-label">Stream fullscreen</span>
+                                </button>
+                                <% if (isManager) { %>
+                                <form action="/brackets/<%= selectedBracket._id %>/delete" method="POST" onsubmit="return confirm('Delete this bracket?')">
+                                    <button class="settings-btn settings-btn-danger settings-btn-sm" type="submit">Delete</button>
+                                </form>
+                                <% } %>
+                            </div>
                         </div>
                         <% if (isManager) { %>
                         <div class="bracket-controls">
@@ -205,6 +210,34 @@
                 function escapeHtml(value) { return value.replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[character])); }
                 document.getElementById('addParticipant')?.addEventListener('click', () => { state.participants.push(''); generateRounds(); render(); list.lastElementChild?.querySelector('input')?.focus(); });
                 document.getElementById('seedBracket')?.addEventListener('click', () => { state.participants.sort(() => Math.random() - 0.5); generateRounds(); render(); });
+                const bracketEditor = document.querySelector('.bracket-editor');
+                const fullscreenButton = document.getElementById('toggleBracketFullscreen');
+                function updateFullscreenButton() {
+                    const active = document.fullscreenElement === bracketEditor || bracketEditor.classList.contains('is-streaming');
+                    fullscreenButton.querySelector('.material-symbols-outlined').textContent = active ? 'fullscreen_exit' : 'fullscreen';
+                    fullscreenButton.querySelector('.fullscreen-button-label').textContent = active ? 'Exit fullscreen' : 'Stream fullscreen';
+                }
+                fullscreenButton.addEventListener('click', async () => {
+                    try {
+                        if (document.fullscreenElement === bracketEditor) {
+                            await document.exitFullscreen();
+                        } else if (document.fullscreenEnabled && bracketEditor.requestFullscreen) {
+                            await bracketEditor.requestFullscreen();
+                        } else {
+                            bracketEditor.classList.toggle('is-streaming');
+                        }
+                    } catch (error) {
+                        bracketEditor.classList.toggle('is-streaming');
+                    }
+                    updateFullscreenButton();
+                });
+                document.addEventListener('fullscreenchange', updateFullscreenButton);
+                document.addEventListener('keydown', (event) => {
+                    if (event.key === 'Escape' && bracketEditor.classList.contains('is-streaming')) {
+                        bracketEditor.classList.remove('is-streaming');
+                        updateFullscreenButton();
+                    }
+                });
                 document.getElementById('saveBracket')?.addEventListener('click', async () => {
                     state.notes = notes.value.slice(0, 1000);
                     const status = document.getElementById('bracketSaveStatus');
