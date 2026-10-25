@@ -6941,3 +6941,11 @@ dialog button {
 .bracket-editor.is-streaming .bracket-board {
     width: 100%;
 }
+.bracket-editor:fullscreen,
+.bracket-editor.is-streaming,
+.bracket-editor:fullscreen .bracket-workspace,
+.bracket-editor.is-streaming .bracket-workspace,
+.bracket-editor:fullscreen .bracket-board-wrap,
+.bracket-editor.is-streaming .bracket-board-wrap {
+    overflow: hidden !important;
+}

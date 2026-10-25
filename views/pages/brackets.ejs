@@ -409,6 +409,8 @@
                 const fullscreenButton = document.getElementById('toggleBracketFullscreen');
                 function updateFullscreenButton() {
                     const active = document.fullscreenElement === bracketEditor || bracketEditor.classList.contains('is-streaming');
+                    document.documentElement.style.overflow = active ? 'hidden' : '';
+                    document.body.style.overflow = active ? 'hidden' : '';
                     fullscreenButton.querySelector('.material-symbols-outlined').textContent = active ? 'fullscreen_exit' : 'fullscreen';
                     fullscreenButton.querySelector('.fullscreen-button-label').textContent = active ? 'Exit fullscreen' : 'Stream fullscreen';
                 }
