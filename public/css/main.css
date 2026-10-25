@@ -6928,3 +6928,16 @@ dialog button {
     display: flex;
     width: auto;
 }
+.bracket-editor:fullscreen .bracket-editor-header,
+.bracket-editor.is-streaming .bracket-editor-header,
+.bracket-editor:fullscreen .bracket-workspace,
+.bracket-editor.is-streaming .bracket-workspace,
+.bracket-editor:fullscreen .bracket-board-wrap,
+.bracket-editor.is-streaming .bracket-board-wrap {
+    width: 100%;
+    max-width: none;
+}
+.bracket-editor:fullscreen .bracket-board,
+.bracket-editor.is-streaming .bracket-board {
+    width: 100%;
+}
