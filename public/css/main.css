@@ -155,6 +155,147 @@ main{
         transform: translateY(0);
     }
 }
+
+/* Final fullscreen layout: restrained broadcast presentation. */
+.bracket-editor:fullscreen,
+.bracket-editor.is-streaming {
+    display: flex;
+    flex-direction: column;
+    width: 100vw;
+    min-height: 100vh;
+    max-height: 100vh;
+    margin: 0;
+    padding: 28px 42px;
+    box-sizing: border-box;
+    overflow: auto;
+    background: #202044;
+}
+.bracket-editor:fullscreen .bracket-editor-header,
+.bracket-editor.is-streaming .bracket-editor-header {
+    width: min(1320px, 100%);
+    min-height: 76px;
+    margin: 0 auto;
+    padding: 0 0 18px;
+    border-bottom: 1px solid #5f6090;
+    box-sizing: border-box;
+}
+.bracket-editor:fullscreen .account-card-title,
+.bracket-editor.is-streaming .account-card-title {
+    color: #ffffff;
+    font-size: clamp(1.5rem, 2.8vw, 2.25rem);
+    line-height: 1.1;
+}
+.bracket-editor:fullscreen .account-card-title .material-symbols-outlined,
+.bracket-editor.is-streaming .account-card-title .material-symbols-outlined {
+    color: #f6d875;
+}
+.bracket-editor:fullscreen .bracket-event-label,
+.bracket-editor.is-streaming .bracket-event-label {
+    margin-top: 7px;
+    color: #c7c8e8;
+    font-size: .95rem;
+}
+.bracket-editor:fullscreen .bracket-header-actions,
+.bracket-editor.is-streaming .bracket-header-actions {
+    align-self: center;
+}
+.bracket-editor:fullscreen .bracket-workspace,
+.bracket-editor.is-streaming .bracket-workspace {
+    display: block;
+    width: min(1320px, 100%);
+    margin: 0 auto;
+    padding: 26px 0 10px;
+}
+.bracket-editor:fullscreen .bracket-board-wrap,
+.bracket-editor.is-streaming .bracket-board-wrap {
+    width: 100%;
+    padding: 0;
+    overflow-x: auto;
+}
+.bracket-editor:fullscreen .bracket-section-heading,
+.bracket-editor.is-streaming .bracket-section-heading {
+    margin-bottom: 18px;
+}
+.bracket-editor:fullscreen .bracket-section-heading h3,
+.bracket-editor.is-streaming .bracket-section-heading h3 {
+    color: #ffffff;
+    font-size: 1rem;
+    font-weight: 700;
+}
+.bracket-editor:fullscreen .bracket-section-heading span,
+.bracket-editor.is-streaming .bracket-section-heading span {
+    color: #b9bae0;
+}
+.bracket-editor:fullscreen .bracket-board,
+.bracket-editor.is-streaming .bracket-board {
+    align-items: flex-start;
+    justify-content: center;
+    gap: clamp(32px, 5vw, 80px);
+    min-height: 0;
+    padding: 10px 0 30px;
+}
+.bracket-editor:fullscreen .bracket-round,
+.bracket-editor.is-streaming .bracket-round {
+    flex: 0 0 clamp(210px, 19vw, 270px);
+    gap: 24px;
+}
+.bracket-editor:fullscreen .bracket-round h4,
+.bracket-editor.is-streaming .bracket-round h4 {
+    display: block;
+    margin: 0;
+    color: #b9bae0;
+    font-size: .72rem;
+    letter-spacing: .14em;
+}
+.bracket-editor:fullscreen .bracket-round h4::after,
+.bracket-editor.is-streaming .bracket-round h4::after {
+    display: none;
+}
+.bracket-editor:fullscreen .bracket-match,
+.bracket-editor.is-streaming .bracket-match {
+    border: 1px solid #7778a7;
+    border-radius: 6px;
+    background: #7778a7;
+    box-shadow: 0 8px 18px rgba(0, 0, 0, .2);
+}
+.bracket-editor:fullscreen .bracket-player,
+.bracket-editor.is-streaming .bracket-player {
+    min-height: 46px;
+    padding: 8px 12px;
+    background: #f8f7ff;
+    color: #292752;
+    font-size: .95rem;
+}
+.bracket-editor:fullscreen .bracket-player.is-winner,
+.bracket-editor.is-streaming .bracket-player.is-winner {
+    border-left: 4px solid #299865;
+    padding-left: 8px;
+    background: #e1f4e9;
+    color: #145c3b;
+}
+.bracket-editor:fullscreen .bracket-player input,
+.bracket-editor.is-streaming .bracket-player input {
+    width: 42px;
+    min-height: 26px;
+    border: 1px solid #c4c2d9;
+    border-radius: 4px;
+    color: #292752;
+    text-align: center;
+}
+@media (max-width: 800px) {
+    .bracket-editor:fullscreen,
+    .bracket-editor.is-streaming {
+        padding: 18px;
+    }
+    .bracket-editor:fullscreen .bracket-editor-header,
+    .bracket-editor.is-streaming .bracket-editor-header {
+        min-height: 64px;
+    }
+    .bracket-editor:fullscreen .bracket-board,
+    .bracket-editor.is-streaming .bracket-board {
+        justify-content: flex-start;
+    }
+}
 @media (prefers-reduced-motion: reduce) {
     .splash-page,
     .splash {

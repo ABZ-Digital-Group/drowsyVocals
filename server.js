@@ -5812,19 +5812,43 @@ app.post('/brackets/:bracketId/save', requireDatabase, async (req, res) => {
            if (!event) return res.status(400).json({ error: 'Event not found.' });
            eventTitle = event.title;
        }
+       const updatedAt = new Date().toISOString();
        const result = await db.collection('eventBrackets').updateOne(
            bracketIdFilter(req.params.bracketId),
-           { $set: { ...state, format, bestOf, participants: state.participants.slice(0, maxParticipants), maxParticipants, eventId: eventId || null, eventTitle, updatedAt: new Date().toISOString(), updatedBy: req.session.currentuser } }
+           { $set: { ...state, format, bestOf, participants: state.participants.slice(0, maxParticipants), maxParticipants, eventId: eventId || null, eventTitle, updatedAt, updatedBy: req.session.currentuser } }
        );
        if (!result.matchedCount) return res.status(404).json({ error: 'Bracket not found.' });
        io?.emit('bracket-updated', {
            bracketId: req.params.bracketId,
+           updatedAt,
            state: { ...state, format, bestOf, maxParticipants }
        });
        res.json({ success: true });
    } catch (error) {
        console.error('Error saving bracket:', error);
        res.status(500).json({ error: 'Failed to save bracket.' });
+   }
+});
+
+app.get('/brackets/:bracketId/state', requireDatabase, async (req, res) => {
+   if (!req.session.loggedin) return res.status(401).json({ error: 'Unauthorized.' });
+   try {
+       const bracket = await db.collection('eventBrackets').findOne(bracketIdFilter(req.params.bracketId));
+       if (!bracket) return res.status(404).json({ error: 'Bracket not found.' });
+       res.json({
+           updatedAt: bracket.updatedAt || '',
+           state: {
+               participants: bracket.participants || [],
+               rounds: bracket.rounds || [],
+               notes: bracket.notes || '',
+               format: bracket.format || 'single',
+               bestOf: bracket.bestOf || 'bo1',
+               maxParticipants: bracket.maxParticipants || 16
+           }
+       });
+   } catch (error) {
+       console.error('Error loading bracket state:', error);
+       res.status(500).json({ error: 'Failed to load bracket state.' });
    }
 });
 
