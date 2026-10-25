@@ -319,6 +319,11 @@
                         board.style.overflow = '';
                         board.style.gap = '';
                         board.style.justifyContent = '';
+                        bracketEditor.style.position = '';
+                        bracketEditor.style.inset = '';
+                        bracketEditor.style.width = '';
+                        bracketEditor.style.height = '';
+                        bracketEditor.style.margin = '';
                         board.querySelectorAll('.bracket-round').forEach((round) => {
                             round.style.flex = '';
                             round.style.width = '';
@@ -336,6 +341,11 @@
                     document.documentElement.scrollLeft = 0;
                     document.body.scrollLeft = 0;
                     bracketEditor.scrollLeft = 0;
+                    bracketEditor.style.position = 'fixed';
+                    bracketEditor.style.inset = '0';
+                    bracketEditor.style.width = '100vw';
+                    bracketEditor.style.height = '100vh';
+                    bracketEditor.style.margin = '0';
                     board.style.transform = '';
                     board.style.transformOrigin = '';
                     board.style.zoom = '';
