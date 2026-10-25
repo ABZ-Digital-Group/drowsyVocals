@@ -186,6 +186,16 @@
                     bestOf: <%- JSON.stringify(selectedBracket.bestOf || 'bo1') %>
                 };
                 let lastUpdateAt = <%- JSON.stringify(selectedBracket.updatedAt || '') %>;
+                function stateFingerprint(value) {
+                    return JSON.stringify({
+                        participants: value.participants || [],
+                        rounds: value.rounds || [],
+                        notes: value.notes || '',
+                        format: value.format || 'single',
+                        bestOf: value.bestOf || 'bo1',
+                        maxParticipants: value.maxParticipants || 16
+                    });
+                }
                 const list = document.getElementById('participantList');
                 const board = document.getElementById('bracketBoard');
                 const notes = document.getElementById('bracketNotes');
@@ -370,10 +380,13 @@
                 setInterval(async () => {
                     try {
                         const response = await fetch(`/brackets/${bracketId}/state`, { cache: 'no-store' });
-                        if (!response.ok) return;
+                        if (!response.ok) {
+                            console.warn('Bracket state request returned:', response.status);
+                            return;
+                        }
                         const payload = await response.json();
-                        if (payload.updatedAt && payload.updatedAt !== lastUpdateAt && payload.state) {
-                            lastUpdateAt = payload.updatedAt;
+                        if (payload.state && (payload.updatedAt !== lastUpdateAt || stateFingerprint(payload.state) !== stateFingerprint(state))) {
+                            lastUpdateAt = payload.updatedAt || lastUpdateAt;
                             applyRemoteState(payload.state);
                         }
                     } catch (error) {
