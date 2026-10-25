@@ -151,6 +151,7 @@ app.use((req, res, next) => {
 
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
+app.disable('view cache');
 
 // MIDDLEWARE
 app.use(express.json({ limit: '1mb' }));
