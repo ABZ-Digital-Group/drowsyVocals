@@ -6949,3 +6949,83 @@ dialog button {
 .bracket-editor.is-streaming .bracket-board-wrap {
     overflow: hidden !important;
 }
+
+/* The stream is a fixed viewport, so the board must receive a real height. */
+.bracket-editor:fullscreen,
+.bracket-editor.is-streaming {
+    display: flex;
+    flex-direction: column;
+    width: 100vw;
+    height: 100vh;
+    min-height: 0;
+    padding: 24px 32px;
+    box-sizing: border-box;
+    overflow: hidden !important;
+}
+.bracket-editor:fullscreen .bracket-editor-header,
+.bracket-editor.is-streaming .bracket-editor-header {
+    flex: 0 0 auto;
+    min-height: 0;
+    padding: 12px 0;
+}
+.bracket-editor:fullscreen .bracket-workspace,
+.bracket-editor.is-streaming .bracket-workspace {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto;
+    padding: 18px 0 0;
+}
+.bracket-editor:fullscreen .bracket-board-wrap,
+.bracket-editor.is-streaming .bracket-board-wrap {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden !important;
+}
+.bracket-editor:fullscreen .bracket-board-wrap > .bracket-section-heading,
+.bracket-editor.is-streaming .bracket-board-wrap > .bracket-section-heading {
+    flex: 0 0 auto;
+    margin-bottom: 8px;
+}
+.bracket-editor:fullscreen .bracket-board,
+.bracket-editor.is-streaming .bracket-board {
+    flex: 1 1 auto;
+    align-items: stretch;
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    padding: 4px 0 0;
+    gap: clamp(8px, 2vw, 28px);
+    overflow: hidden;
+}
+.bracket-editor:fullscreen .bracket-round,
+.bracket-editor.is-streaming .bracket-round {
+    height: 100%;
+    min-height: 0;
+    justify-content: space-evenly;
+    gap: 4px;
+}
+.bracket-editor:fullscreen .bracket-round h4,
+.bracket-editor.is-streaming .bracket-round h4 {
+    flex: 0 0 auto;
+    margin-bottom: 4px;
+}
+.bracket-editor:fullscreen .bracket-match,
+.bracket-editor.is-streaming .bracket-match {
+    flex: 0 0 auto;
+}
+.bracket-editor:fullscreen .bracket-player,
+.bracket-editor.is-streaming .bracket-player {
+    min-height: clamp(18px, 3.5vh, 32px);
+    padding: clamp(2px, .35vh, 5px) clamp(4px, .5vw, 8px);
+    font-size: clamp(.55rem, .72vw, .78rem);
+}
+.bracket-editor:fullscreen .bracket-player input,
+.bracket-editor.is-streaming .bracket-player input {
+    width: clamp(20px, 2.2vw, 34px);
+    min-height: 16px;
+}
