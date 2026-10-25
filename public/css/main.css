@@ -5980,6 +5980,84 @@ dialog button {
     font-size: 38px;
 }
 
+/* Keep the stream view quiet and readable. */
+.bracket-editor:fullscreen,
+.bracket-editor.is-streaming {
+    padding: 32px 48px;
+    background: var(--night-indigo);
+}
+.bracket-editor:fullscreen .bracket-editor-header,
+.bracket-editor.is-streaming .bracket-editor-header {
+    max-width: none;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--dusty-blue-purple);
+}
+.bracket-editor:fullscreen .bracket-header-actions::before,
+.bracket-editor:fullscreen .bracket-header-actions::after,
+.bracket-editor.is-streaming .bracket-header-actions::before,
+.bracket-editor.is-streaming .bracket-header-actions::after {
+    display: none;
+}
+.bracket-editor:fullscreen .bracket-workspace,
+.bracket-editor.is-streaming .bracket-workspace {
+    max-width: none;
+    padding: 28px 0;
+}
+.bracket-editor:fullscreen .bracket-board-wrap,
+.bracket-editor.is-streaming .bracket-board-wrap {
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+}
+.bracket-editor:fullscreen .bracket-board,
+.bracket-editor.is-streaming .bracket-board {
+    justify-content: center;
+    gap: 48px;
+    padding: 12px 0 24px;
+}
+.bracket-editor:fullscreen .bracket-round,
+.bracket-editor.is-streaming .bracket-round {
+    flex-basis: 240px;
+    gap: 24px;
+}
+.bracket-editor:fullscreen .bracket-round h4,
+.bracket-editor.is-streaming .bracket-round h4 {
+    display: block;
+    color: var(--misty-blue);
+    font-size: .8em;
+    letter-spacing: .1em;
+}
+.bracket-editor:fullscreen .bracket-round h4::after,
+.bracket-editor.is-streaming .bracket-round h4::after {
+    display: none;
+}
+.bracket-editor:fullscreen .bracket-match,
+.bracket-editor.is-streaming .bracket-match {
+    border: 1px solid var(--dusty-blue-purple);
+    border-radius: 6px;
+    background: var(--dusty-blue-purple);
+    box-shadow: none;
+}
+.bracket-editor:fullscreen .bracket-player,
+.bracket-editor.is-streaming .bracket-player {
+    min-height: 44px;
+    padding: 8px 11px;
+    font-size: .95em;
+}
+@media (max-width: 800px) {
+    .bracket-editor:fullscreen,
+    .bracket-editor.is-streaming {
+        padding: 18px;
+    }
+    .bracket-editor:fullscreen .bracket-board,
+    .bracket-editor.is-streaming .bracket-board {
+        justify-content: flex-start;
+        gap: 28px;
+    }
+}
+
 /* Bracket workspace */
 .brackets-page {
     max-width: 1540px;
