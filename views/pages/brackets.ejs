@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <%- include('../partials/head') %>
+        <title>Event Brackets - Drowsy Vocals</title>
+    </head>
+    <body>
+        <header><%- include('../partials/nav') %></header>
+        <main>
+            <section class="settings-page brackets-page">
+                <div class="settings-header">
+                    <div class="settings-header-top">
+                        <div>
+                            <p class="profile-eyebrow">Competition tools</p>
+                            <h1 style="margin: 0; font-size: 2.4em; color: var(--night-indigo);">Event Brackets</h1>
+                            <p class="profile-subtitle">Build a bracket that fits each event, then update results as the competition runs.</p>
+                        </div>
+                        <span class="bracket-header-icon material-symbols-outlined" aria-hidden="true">account_tree</span>
+                    </div>
+                </div>
+
+                <% if (typeof success_msg !== 'undefined' && success_msg && success_msg.length) { %>
+                <div class="settings-alert is-success"><span><%= success_msg %></span></div>
+                <% } %>
+                <% if (typeof error_msg !== 'undefined' && error_msg && error_msg.length) { %>
+                <div class="settings-alert is-error"><span><%= error_msg %></span></div>
+                <% } %>
+
+                <div class="brackets-layout">
+                    <aside class="account-card bracket-sidebar">
+                        <div class="account-card-header">
+                            <h2 class="account-card-title"><span class="material-symbols-outlined">trophy</span><span>Event brackets</span></h2>
+                            <span class="account-badge"><%= brackets.length %></span>
+                        </div>
+                        <% if (!brackets.length) { %>
+                        <p class="bracket-empty">No brackets have been created yet.</p>
+                        <% } else { %>
+                        <div class="bracket-list">
+                            <% brackets.forEach(function(bracket) { %>
+                            <a class="bracket-list-item <%= selectedBracket && String(selectedBracket._id) === String(bracket._id) ? 'is-selected' : '' %>" href="/brackets?id=<%= bracket._id %>">
+                                <strong><%= bracket.title %></strong>
+                                <span><%= bracket.eventTitle %></span>
+                                <small><%= bracket.format === 'double' ? 'Double elimination' : 'Single elimination' %> · <%= (bracket.participants || []).length %> players</small>
+                            </a>
+                            <% }); %>
+                        </div>
+                        <% } %>
+                        <% if (isManager) { %>
+                        <form class="bracket-create-form" action="/brackets/create" method="POST">
+                            <h3>Create a bracket</h3>
+                            <label for="bracketTitle">Bracket name</label>
+                            <input id="bracketTitle" name="title" class="settings-input" placeholder="Friday Night Finals" required>
+                            <label for="bracketEvent">Event</label>
+                            <select id="bracketEvent" name="eventId" class="settings-input" required>
+                                <option value="">Choose an event</option>
+                                <% events.forEach(function(event) { %>
+                                <option value="<%= event.id || event._id %>"><%= event.title %></option>
+                                <% }); %>
+                            </select>
+                            <label for="bracketFormat">Format</label>
+                            <select id="bracketFormat" name="format" class="settings-input">
+                                <option value="single">Single elimination</option>
+                            </select>
+                            <button class="settings-btn settings-btn-primary" type="submit"><span class="material-symbols-outlined">add</span>Create bracket</button>
+                        </form>
+                        <% } %>
+                    </aside>
+
+                    <section class="account-card bracket-editor">
+                    <% if (!selectedBracket) { %>
+                        <div class="bracket-empty bracket-empty-large">
+                            <span class="material-symbols-outlined">account_tree</span>
+                            <h2>Select or create a bracket</h2>
+                            <p>Brackets are saved independently for each event, so every event can have its own format and participants.</p>
+                        </div>
+                    <% } else { %>
+                        <div class="account-card-header">
+                            <div>
+                                <h2 class="account-card-title"><span class="material-symbols-outlined">emoji_events</span><span><%= selectedBracket.title %></span></h2>
+                                <p class="bracket-event-label"><%= selectedBracket.eventTitle %></p>
+                            </div>
+                            <% if (isManager) { %>
+                            <form action="/brackets/<%= selectedBracket._id %>/delete" method="POST" onsubmit="return confirm('Delete this bracket?')">
+                                <button class="settings-btn settings-btn-danger settings-btn-sm" type="submit">Delete</button>
+                            </form>
+                            <% } %>
+                        </div>
+                        <% if (isManager) { %>
+                        <div class="bracket-controls">
+                            <div>
+                                <label for="bracketNotes">Event notes</label>
+                                <textarea id="bracketNotes" class="settings-input" rows="2" placeholder="Rules, judging notes, or stream details..."></textarea>
+                            </div>
+                            <div class="bracket-control-actions">
+                                <button type="button" class="settings-btn settings-btn-secondary" id="seedBracket"><span class="material-symbols-outlined">shuffle</span>Seed bracket</button>
+                                <button type="button" class="settings-btn settings-btn-primary" id="saveBracket"><span class="material-symbols-outlined">save</span>Save changes</button>
+                            </div>
+                            <p class="bracket-save-status" id="bracketSaveStatus" role="status"></p>
+                        </div>
+                        <% } %>
+                        <div class="bracket-workspace">
+                            <div class="bracket-participants">
+                                <div class="bracket-section-heading"><h3>Participants</h3><span id="participantCount"></span></div>
+                                <div id="participantList"></div>
+                                <% if (isManager) { %><button type="button" class="settings-btn settings-btn-secondary settings-btn-sm" id="addParticipant"><span class="material-symbols-outlined">person_add</span>Add participant</button><% } %>
+                            </div>
+                            <div class="bracket-board-wrap">
+                                <div class="bracket-section-heading"><h3><%= selectedBracket.format === 'double' ? 'Double elimination' : 'Single elimination' %></h3><span id="roundCount"></span></div>
+                                <div class="bracket-board" id="bracketBoard"></div>
+                            </div>
+                        </div>
+                    <% } %>
+                    </section>
+                </div>
+            </section>
+        </main>
+        <%- include('../partials/footer') %>
+        <% if (selectedBracket) { %>
+        <script>
+            (() => {
+                const canEdit = <%= isManager ? 'true' : 'false' %>;
+                const bracketId = <%- JSON.stringify(String(selectedBracket._id)) %>;
+                const initial = <%- JSON.stringify({
+                    participants: selectedBracket.participants || [],
+                    rounds: selectedBracket.rounds || [],
+                    notes: selectedBracket.notes || '',
+                    format: selectedBracket.format || 'single'
+                }).replace(/</g, '\\u003c') %>;
+                let state = {
+                    participants: Array.isArray(initial.participants) ? initial.participants.map((name) => String(name).slice(0, 80)) : [],
+                    rounds: Array.isArray(initial.rounds) ? initial.rounds : [],
+                    notes: String(initial.notes || '').slice(0, 1000)
+                };
+                const list = document.getElementById('participantList');
+                const board = document.getElementById('bracketBoard');
+                const notes = document.getElementById('bracketNotes');
+                if (notes) notes.value = state.notes;
+
+                function makeMatch(a, b) {
+                    return { players: [a || 'BYE', b || 'BYE'], scores: ['', ''], winner: a && !b ? 0 : b && !a ? 1 : null };
+                }
+                function generateRounds() {
+                    const names = state.participants.filter(Boolean);
+                    if (!names.length) { state.rounds = []; return; }
+                    const size = Math.pow(2, Math.ceil(Math.log2(Math.max(2, names.length))));
+                    const seeded = names.concat(Array(size - names.length).fill('BYE'));
+                    const rounds = [[...Array(size / 2)].map((_, i) => makeMatch(seeded[i * 2], seeded[i * 2 + 1]))];
+                    while (rounds[rounds.length - 1].length > 1) {
+                        rounds.push([...Array(Math.ceil(rounds[rounds.length - 1].length / 2))].map(() => makeMatch('', '')));
+                    }
+                    state.rounds = rounds;
+                }
+                function setWinner(roundIndex, matchIndex, slot) {
+                    const match = state.rounds[roundIndex][matchIndex];
+                    match.winner = match.winner === slot ? null : slot;
+                    if (roundIndex < state.rounds.length - 1) {
+                        const nextMatch = state.rounds[roundIndex + 1][Math.floor(matchIndex / 2)];
+                        const nextSlot = matchIndex % 2;
+                        nextMatch.players[nextSlot] = match.winner === null ? '' : (match.players[match.winner] || 'TBD');
+                        nextMatch.winner = null;
+                    }
+                }
+                function renderParticipants() {
+                    list.innerHTML = '';
+                    state.participants.forEach((name, index) => {
+                        const row = document.createElement('div');
+                        row.className = 'bracket-participant-row';
+                        row.innerHTML = `<span>${index + 1}</span><input class="settings-input" maxlength="80" value="${escapeHtml(name)}" aria-label="Participant ${index + 1}"><button type="button" class="bracket-remove" aria-label="Remove participant">&times;</button>`;
+                        row.querySelector('input').addEventListener('input', (event) => {
+                            state.participants[index] = event.target.value;
+                            const openingMatch = state.rounds[0]?.[Math.floor(index / 2)];
+                            if (openingMatch) openingMatch.players[index % 2] = event.target.value || 'BYE';
+                            renderBoard();
+                        });
+                        row.querySelector('button').addEventListener('click', () => { state.participants.splice(index, 1); generateRounds(); render(); });
+                        list.appendChild(row);
+                    });
+                    document.getElementById('participantCount').textContent = `${state.participants.length} player${state.participants.length === 1 ? '' : 's'}`;
+                }
+                function renderBoard() {
+                    board.innerHTML = '';
+                    state.rounds.forEach((round, roundIndex) => {
+                        const column = document.createElement('div');
+                        column.className = 'bracket-round';
+                        column.innerHTML = `<h4>${roundIndex === state.rounds.length - 1 ? 'Final' : `Round ${roundIndex + 1}`}</h4>`;
+                        round.forEach((match, matchIndex) => {
+                            const card = document.createElement('div');
+                            card.className = 'bracket-match';
+                            card.innerHTML = match.players.map((player, slot) => `<div class="bracket-player ${match.winner === slot ? 'is-winner' : ''}"><span>${escapeHtml(player || 'TBD')}</span><input type="number" min="0" max="999" aria-label="Score" value="${escapeHtml(String(match.scores?.[slot] || ''))}" ${!canEdit ? 'disabled' : ''}></div>`).join('');
+                            if (canEdit) {
+                                card.querySelectorAll('.bracket-player').forEach((player, slot) => player.addEventListener('click', (event) => {
+                                    if (event.target.tagName === 'INPUT') return;
+                                    setWinner(roundIndex, matchIndex, slot);
+                                    renderBoard();
+                                }));
+                                card.querySelectorAll('input').forEach((input, slot) => input.addEventListener('input', (event) => { match.scores[slot] = event.target.value; }));
+                            }
+                            column.appendChild(card);
+                        });
+                        board.appendChild(column);
+                    });
+                    document.getElementById('roundCount').textContent = state.rounds.length ? `${state.rounds.length} round${state.rounds.length === 1 ? '' : 's'}` : 'Add participants to begin';
+                }
+                function render() { renderParticipants(); renderBoard(); }
+                function escapeHtml(value) { return value.replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[character])); }
+                document.getElementById('addParticipant')?.addEventListener('click', () => { state.participants.push(''); generateRounds(); render(); list.lastElementChild?.querySelector('input')?.focus(); });
+                document.getElementById('seedBracket')?.addEventListener('click', () => { state.participants.sort(() => Math.random() - 0.5); generateRounds(); render(); });
+                document.getElementById('saveBracket')?.addEventListener('click', async () => {
+                    state.notes = notes.value.slice(0, 1000);
+                    const status = document.getElementById('bracketSaveStatus');
+                    status.textContent = 'Saving...';
+                    try {
+                        const response = await fetch(`/brackets/${bracketId}/save`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(state) });
+                        if (!response.ok) throw new Error('Save failed');
+                        status.textContent = 'Saved just now';
+                    } catch (error) { status.textContent = 'Could not save changes. Please try again.'; }
+                });
+                if (!state.rounds.length) generateRounds();
+                render();
+            })();
+        </script>
+        <% } %>
+    </body>
+</html>

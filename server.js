@@ -5682,6 +5682,139 @@ function parseEventDateTimeInEasternTime(dateValue, timeValue) {
     return Number.isNaN(result.getTime()) ? null : result.toISOString();
 }
 
+function bracketIdFilter(bracketId) {
+   return {
+       $or: [
+           { id: bracketId },
+           ...(ObjectId.isValid(bracketId) ? [{ _id: new ObjectId(bracketId) }] : [])
+       ]
+   };
+}
+
+function sanitizeBracketState(body) {
+   const participants = Array.isArray(body?.participants)
+       ? body.participants.map((name) => String(name || '').trim().slice(0, 80)).filter(Boolean).slice(0, 64)
+       : [];
+   const rounds = Array.isArray(body?.rounds) ? body.rounds.slice(0, 8).map((round) => (
+       Array.isArray(round) ? round.slice(0, 64).map((match) => ({
+           players: Array.isArray(match?.players) ? match.players.slice(0, 2).map((player) => String(player || '').slice(0, 80)) : ['', ''],
+           scores: Array.isArray(match?.scores) ? match.scores.slice(0, 2).map((score) => String(score || '').slice(0, 4)) : ['', ''],
+           winner: match?.winner === 0 || match?.winner === 1 ? match.winner : null
+       })) : []
+   )) : [];
+   return {
+       participants,
+       rounds,
+       notes: String(body?.notes || '').trim().slice(0, 1000)
+   };
+}
+
+app.get('/brackets', requireDatabase, async (req, res) => {
+   if (!req.session.loggedin) return res.redirect('/');
+
+   try {
+       const [bracketDocuments, events] = await Promise.all([
+           db.collection('eventBrackets').find().sort({ updatedAt: -1 }).toArray(),
+           db.collection('scheduledEvents').find({}, { projection: { id: 1, title: 1, scheduledStartTime: 1 } }).sort({ scheduledStartTime: 1 }).toArray()
+       ]);
+       const eventTitles = new Map(events.map((event) => [String(event.id || event._id), event.title]));
+       const brackets = bracketDocuments.map((bracket) => ({
+           ...bracket,
+           eventTitle: eventTitles.get(String(bracket.eventId)) || bracket.eventTitle || 'Event'
+       }));
+       let selectedBracket = null;
+       if (req.query.id) {
+           selectedBracket = brackets.find((bracket) => String(bracket._id) === String(req.query.id) || String(bracket.id) === String(req.query.id)) || null;
+       }
+       if (!selectedBracket && brackets.length) selectedBracket = brackets[0];
+
+       res.render('pages/brackets', {
+           page: 'brackets',
+           brackets,
+           events,
+           selectedBracket,
+           isManager: hasManagementAccess(req)
+       });
+   } catch (error) {
+       console.error('Error loading brackets:', error);
+       res.status(500).send('Error loading brackets.');
+   }
+});
+
+app.post('/brackets/create', requireDatabase, async (req, res) => {
+   if (!req.session.loggedin || !hasManagementAccess(req)) {
+       req.flash('error_msg', 'You are not authorized to create brackets.');
+       return res.redirect('/brackets');
+   }
+   const title = String(req.body.title || '').trim().slice(0, 120);
+   const eventId = String(req.body.eventId || '').trim();
+   const format = req.body.format === 'double' ? 'double' : 'single';
+   if (!title || !eventId) {
+       req.flash('error_msg', 'Bracket name and event are required.');
+       return res.redirect('/brackets');
+   }
+   try {
+       const event = await db.collection('scheduledEvents').findOne({
+           $or: [{ id: eventId }, ...(ObjectId.isValid(eventId) ? [{ _id: new ObjectId(eventId) }] : [])]
+       });
+       if (!event) {
+           req.flash('error_msg', 'The selected event could not be found.');
+           return res.redirect('/brackets');
+       }
+       const bracket = {
+           id: crypto.randomUUID(),
+           title,
+           eventId,
+           eventTitle: event.title,
+           format,
+           participants: [],
+           rounds: [],
+           notes: '',
+           createdBy: req.session.currentuser,
+           createdAt: new Date().toISOString(),
+           updatedAt: new Date().toISOString()
+       };
+       const result = await db.collection('eventBrackets').insertOne(bracket);
+       req.flash('success_msg', 'Bracket created. Add participants to get started.');
+       res.redirect(`/brackets?id=${result.insertedId}`);
+   } catch (error) {
+       console.error('Error creating bracket:', error);
+       req.flash('error_msg', 'Failed to create bracket.');
+       res.redirect('/brackets');
+   }
+});
+
+app.post('/brackets/:bracketId/save', requireDatabase, async (req, res) => {
+   if (!req.session.loggedin || !hasManagementAccess(req)) return res.status(403).json({ error: 'Unauthorized.' });
+   const state = sanitizeBracketState(req.body);
+   try {
+       const result = await db.collection('eventBrackets').updateOne(
+           bracketIdFilter(req.params.bracketId),
+           { $set: { ...state, updatedAt: new Date().toISOString(), updatedBy: req.session.currentuser } }
+       );
+       if (!result.matchedCount) return res.status(404).json({ error: 'Bracket not found.' });
+       res.json({ success: true });
+   } catch (error) {
+       console.error('Error saving bracket:', error);
+       res.status(500).json({ error: 'Failed to save bracket.' });
+   }
+});
+
+app.post('/brackets/:bracketId/delete', requireDatabase, async (req, res) => {
+   if (!req.session.loggedin || !hasManagementAccess(req)) {
+       req.flash('error_msg', 'You are not authorized to delete brackets.');
+       return res.redirect('/brackets');
+   }
+   try {
+       await db.collection('eventBrackets').deleteOne(bracketIdFilter(req.params.bracketId));
+       req.flash('success_msg', 'Bracket deleted.');
+   } catch (error) {
+       console.error('Error deleting bracket:', error);
+       req.flash('error_msg', 'Failed to delete bracket.');
+   }
+   res.redirect('/brackets');
+});
+
 app.get('/events', requireDatabase, async (req, res) => {
     if (!req.session.loggedin) return res.redirect('/');
 
