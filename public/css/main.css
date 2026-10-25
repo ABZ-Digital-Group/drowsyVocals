@@ -17,10 +17,19 @@
 .bracket-empty-large h2, .bracket-empty-large p { margin: 0; }
 .bracket-editor .account-card-header { align-items: flex-start; }
 .bracket-header-actions { display: flex; align-items: center; gap: 8px; }
+.bracket-stream-logo { display: none; width: auto; height: 38px; object-fit: contain; }
 .bracket-editor:fullscreen, .bracket-editor.is-streaming { overflow: auto; width: 100%; min-height: 100vh; margin: 0; padding: clamp(24px, 5vw, 72px); box-sizing: border-box; border: 0; border-radius: 0; background: var(--night-indigo); color: var(--cloud-white); }
 .bracket-editor:fullscreen .account-card-header, .bracket-editor.is-streaming .account-card-header { border-bottom-color: var(--dusty-blue-purple); }
 .bracket-editor:fullscreen .account-card-title, .bracket-editor.is-streaming .account-card-title { color: var(--cloud-white); font-size: clamp(1.5em, 3vw, 2.4em); }
 .bracket-editor:fullscreen .bracket-event-label, .bracket-editor.is-streaming .bracket-event-label { color: var(--misty-blue); font-size: 1.05em; }
+.bracket-editor:fullscreen .bracket-event-label,
+.bracket-editor.is-streaming .bracket-event-label {
+    display: none;
+}
+.bracket-editor:fullscreen .bracket-stream-logo,
+.bracket-editor.is-streaming .bracket-stream-logo {
+    display: block;
+}
 .bracket-editor:fullscreen .bracket-controls, .bracket-editor:fullscreen .bracket-participants, .bracket-editor.is-streaming .bracket-controls, .bracket-editor.is-streaming .bracket-participants { display: none; }
 .bracket-editor:fullscreen .bracket-workspace, .bracket-editor.is-streaming .bracket-workspace { display: block; padding-top: 32px; }
 .bracket-editor:fullscreen .bracket-board-wrap, .bracket-editor.is-streaming .bracket-board-wrap { overflow: visible; }
