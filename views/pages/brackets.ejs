@@ -364,7 +364,7 @@
                     if (availableWidth > 0) board.style.width = `${availableWidth}px`;
                     const rounds = Array.from(board.querySelectorAll('.bracket-round'));
                     const gap = rounds.length > 1 ? Math.max(8, Math.min(28, window.innerWidth * 0.02)) : 0;
-                    const roundWidth = Math.max(1, (availableWidth - (gap * Math.max(0, rounds.length - 1))) / Math.max(1, rounds.length));
+                    const roundWidth = Math.max(1, ((availableWidth - (gap * Math.max(0, rounds.length - 1))) / Math.max(1, rounds.length)) - 2);
                     board.style.gap = `${gap}px`;
                     board.style.justifyContent = 'flex-start';
                     rounds.forEach((round) => {
@@ -373,8 +373,8 @@
                         round.style.minWidth = '0';
                         round.style.maxWidth = `${roundWidth}px`;
                         round.querySelectorAll('.bracket-match').forEach((match) => {
-                            match.style.width = `${roundWidth}px`;
-                            match.style.maxWidth = `${roundWidth}px`;
+                            match.style.width = `${Math.max(1, roundWidth - 2)}px`;
+                            match.style.maxWidth = `${Math.max(1, roundWidth - 2)}px`;
                             match.style.boxSizing = 'border-box';
                         });
                     });

@@ -7043,6 +7043,17 @@ dialog button {
 .bracket-editor.is-streaming .bracket-player input {
     width: clamp(20px, 2.2vw, 34px);
     min-height: 16px;
+    flex: 0 0 auto;
+    box-sizing: border-box;
+}
+.bracket-editor:fullscreen .bracket-player,
+.bracket-editor.is-streaming .bracket-player {
+    min-width: 0;
+    box-sizing: border-box;
+}
+.bracket-editor:fullscreen .bracket-player span,
+.bracket-editor.is-streaming .bracket-player span {
+    min-width: 0;
 }
 
 /* Give the stream workspace explicit viewport boundaries. */
