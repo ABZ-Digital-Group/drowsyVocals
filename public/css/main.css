@@ -6678,6 +6678,23 @@ dialog button {
 .bracket-stream-loading[hidden] {
     display: none;
 }
+.bracket-stream-loading:not([hidden]) {
+    animation: bracket-loading-fade-in 280ms ease-out both;
+}
+.bracket-stream-loading-content {
+    display: grid;
+    place-items: center;
+    gap: 10px;
+    animation: bracket-loading-slide-in 650ms cubic-bezier(.2, .8, .2, 1) both;
+}
+.bracket-stream-loading-content img {
+    display: block;
+    width: min(230px, 35vw);
+    height: auto;
+    margin-bottom: 8px;
+    filter: drop-shadow(0 14px 28px rgba(0, 0, 0, .28));
+    animation: bracket-loading-logo 650ms cubic-bezier(.2, .8, .2, 1) both;
+}
 .bracket-stream-loading .material-symbols-outlined {
     justify-self: center;
     color: var(--moonlight-yellow);
@@ -6692,6 +6709,25 @@ dialog button {
 }
 @keyframes bracket-sync-spin {
     to { transform: rotate(360deg); }
+}
+@keyframes bracket-loading-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+@keyframes bracket-loading-slide-in {
+    from { opacity: 0; transform: translateX(52px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+@keyframes bracket-loading-logo {
+    from { opacity: 0; transform: translateX(-72px) scale(.88); }
+    to { opacity: 1; transform: translateX(0) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .bracket-stream-loading:not([hidden]),
+    .bracket-stream-loading-content,
+    .bracket-stream-loading-content img {
+        animation: none;
+    }
 }
 @media (max-width: 800px) {
     .brackets-page {
