@@ -145,6 +145,11 @@
                         </div>
                         <% } %>
                         <div class="bracket-workspace">
+                            <div class="bracket-stream-loading" id="bracketStreamLoading" hidden role="status" aria-live="polite">
+                                <span class="material-symbols-outlined" aria-hidden="true">sync</span>
+                                <strong>Updating bracket</strong>
+                                <span>Results are being refreshed for the stream...</span>
+                            </div>
                             <div class="bracket-participants">
                                             <div class="bracket-section-heading"><h3>Participants</h3><span id="participantCount"></span></div>
                                 <div id="participantList"></div>
@@ -254,6 +259,27 @@
                 }
                 function render() { renderParticipants(); renderBoard(); }
                 function escapeHtml(value) { return value.replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[character])); }
+                function applyRemoteState(remoteState) {
+                    const loading = document.getElementById('bracketStreamLoading');
+                    if (loading) loading.hidden = false;
+                    state.participants = Array.isArray(remoteState.participants) ? remoteState.participants.map((name) => String(name).slice(0, 80)) : [];
+                    state.rounds = Array.isArray(remoteState.rounds) ? remoteState.rounds : [];
+                    state.notes = String(remoteState.notes || '').slice(0, 1000);
+                    state.maxParticipants = Number(remoteState.maxParticipants) || state.maxParticipants;
+                    state.format = remoteState.format || state.format;
+                    state.bestOf = remoteState.bestOf || state.bestOf;
+                    if (notes) notes.value = state.notes;
+                    const capacity = document.getElementById('bracketCapacityAssignment');
+                    const format = document.getElementById('bracketFormatAssignment');
+                    const bestOf = document.getElementById('bracketBestOfAssignment');
+                    if (capacity) capacity.value = String(state.maxParticipants);
+                    if (format) format.value = state.format;
+                    if (bestOf) bestOf.value = state.bestOf;
+                    render();
+                    window.requestAnimationFrame(() => {
+                        if (loading) loading.hidden = true;
+                    });
+                }
                 document.getElementById('addParticipant')?.addEventListener('click', () => {
                     if (state.participants.length >= state.maxParticipants) return;
                     state.participants.push('');
@@ -318,6 +344,13 @@
                 });
                 if (!state.rounds.length) generateRounds();
                 render();
+                if (window.io) {
+                    const bracketSocket = window.io();
+                    bracketSocket.on('bracket-updated', (payload) => {
+                        if (String(payload?.bracketId) !== bracketId || !payload?.state) return;
+                        applyRemoteState(payload.state);
+                    });
+                }
             })();
         </script>
         <% } %>

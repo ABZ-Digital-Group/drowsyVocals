@@ -6429,6 +6429,39 @@ dialog button {
     font-weight: 800;
     text-align: center;
 }
+.bracket-editor {
+    position: relative;
+}
+.bracket-stream-loading {
+    position: absolute;
+    z-index: 10;
+    inset: 0;
+    display: grid;
+    place-content: center;
+    gap: 8px;
+    padding: 24px;
+    background: rgba(41, 39, 82, .94);
+    color: var(--cloud-white);
+    text-align: center;
+}
+.bracket-stream-loading[hidden] {
+    display: none;
+}
+.bracket-stream-loading .material-symbols-outlined {
+    justify-self: center;
+    color: var(--moonlight-yellow);
+    font-size: 42px;
+    animation: bracket-sync-spin 900ms linear infinite;
+}
+.bracket-stream-loading strong {
+    font-size: 1.35em;
+}
+.bracket-stream-loading span:last-child {
+    color: var(--cloud-lilac);
+}
+@keyframes bracket-sync-spin {
+    to { transform: rotate(360deg); }
+}
 @media (max-width: 800px) {
     .brackets-page {
         margin-top: 12px;

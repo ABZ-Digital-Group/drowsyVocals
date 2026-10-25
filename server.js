@@ -5817,6 +5817,10 @@ app.post('/brackets/:bracketId/save', requireDatabase, async (req, res) => {
            { $set: { ...state, format, bestOf, participants: state.participants.slice(0, maxParticipants), maxParticipants, eventId: eventId || null, eventTitle, updatedAt: new Date().toISOString(), updatedBy: req.session.currentuser } }
        );
        if (!result.matchedCount) return res.status(404).json({ error: 'Bracket not found.' });
+       io?.emit('bracket-updated', {
+           bracketId: req.params.bracketId,
+           state: { ...state, format, bestOf, maxParticipants }
+       });
        res.json({ success: true });
    } catch (error) {
        console.error('Error saving bracket:', error);
