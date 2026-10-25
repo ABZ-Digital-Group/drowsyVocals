@@ -7000,16 +7000,19 @@ dialog button {
     height: auto;
     min-height: 0;
     min-width: 0;
+    grid-template-columns: repeat(var(--round-count, 1), minmax(0, 1fr)) !important;
+    grid-auto-columns: minmax(0, 1fr);
     padding: 4px 0 0;
     gap: clamp(8px, 2vw, 28px);
     overflow: hidden;
 }
 .bracket-editor:fullscreen .bracket-round,
 .bracket-editor.is-streaming .bracket-round {
-    flex: 1 1 0;
+    flex: 1 1 0 !important;
     height: 100%;
     min-height: 0;
-    min-width: 0;
+    min-width: 0 !important;
+    max-width: 100%;
     width: 100%;
     justify-content: space-evenly;
     gap: 4px;
@@ -7023,7 +7026,9 @@ dialog button {
 .bracket-editor.is-streaming .bracket-match {
     flex: 0 0 auto;
     min-width: 0;
+    max-width: 100%;
     width: 100%;
+    box-sizing: border-box;
 }
 .bracket-editor:fullscreen .bracket-player,
 .bracket-editor.is-streaming .bracket-player {
