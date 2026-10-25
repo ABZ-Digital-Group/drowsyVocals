@@ -284,12 +284,27 @@
                         board.appendChild(column);
                     });
                     document.getElementById('roundCount').textContent = state.rounds.length ? `${state.rounds.length} round${state.rounds.length === 1 ? '' : 's'}` : 'Add participants to begin';
+                    window.requestAnimationFrame(fitStreamBoard);
+                }
+                function fitStreamBoard() {
+                    const presentation = document.fullscreenElement === bracketEditor || bracketEditor.classList.contains('is-streaming');
+                    if (!presentation) {
+                        board.style.transform = '';
+                        board.style.transformOrigin = '';
+                        return;
+                    }
+                    const wrapper = board.parentElement;
+                    if (!wrapper || !board.scrollWidth || !board.scrollHeight) return;
+                    const scale = Math.min(1, wrapper.clientWidth / board.scrollWidth, wrapper.clientHeight / board.scrollHeight);
+                    board.style.transform = `scale(${scale})`;
+                    board.style.transformOrigin = 'top left';
                 }
                 function render() { renderParticipants(); renderBoard(); }
                 function escapeHtml(value) { return value.replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[character])); }
                 function applyRemoteState(remoteState) {
                     const loading = document.getElementById('bracketStreamLoading');
                     const isPresentation = document.fullscreenElement === bracketEditor || bracketEditor.classList.contains('is-streaming');
+                    const loadingStartedAt = Date.now();
                     if (loading && isPresentation) loading.hidden = false;
                     state.participants = Array.isArray(remoteState.participants) ? remoteState.participants.map((name) => String(name).slice(0, 80)) : [];
                     state.rounds = Array.isArray(remoteState.rounds) ? remoteState.rounds : [];
@@ -305,9 +320,14 @@
                     if (format) format.value = state.format;
                     if (bestOf) bestOf.value = state.bestOf;
                     render();
-                    window.requestAnimationFrame(() => {
-                        if (loading) loading.hidden = true;
-                    });
+                    if (loading && isPresentation) {
+                        const minimumDisplayTime = 650;
+                        window.setTimeout(() => {
+                            loading.hidden = true;
+                        }, Math.max(0, minimumDisplayTime - (Date.now() - loadingStartedAt)));
+                    } else if (loading) {
+                        loading.hidden = true;
+                    }
                 }
                 async function persistState(statusText = 'Saving...') {
                     const status = document.getElementById('bracketSaveStatus');
@@ -371,6 +391,8 @@
                     updateFullscreenButton();
                 });
                 document.addEventListener('fullscreenchange', updateFullscreenButton);
+                document.addEventListener('fullscreenchange', () => window.requestAnimationFrame(fitStreamBoard));
+                window.addEventListener('resize', fitStreamBoard);
                 document.addEventListener('keydown', (event) => {
                     if (event.key === 'Escape' && bracketEditor.classList.contains('is-streaming')) {
                         bracketEditor.classList.remove('is-streaming');

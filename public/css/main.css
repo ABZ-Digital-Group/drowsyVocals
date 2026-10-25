@@ -156,6 +156,96 @@ main{
     }
 }
 
+/* Fit the complete bracket inside the stream viewport. */
+.bracket-editor:fullscreen,
+.bracket-editor.is-streaming {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    width: 100vw;
+    height: 100vh;
+    min-height: 0;
+    max-height: none;
+    padding: clamp(14px, 2.5vh, 24px) clamp(18px, 3vw, 48px);
+    overflow: hidden;
+}
+.bracket-editor:fullscreen .bracket-editor-header,
+.bracket-editor.is-streaming .bracket-editor-header {
+    flex: 0 0 auto;
+    min-height: 0;
+    padding-bottom: clamp(8px, 1.5vh, 16px);
+}
+.bracket-editor:fullscreen .bracket-workspace,
+.bracket-editor.is-streaming .bracket-workspace {
+    display: flex;
+    flex: 1 1 auto;
+    min-height: 0;
+    width: 100%;
+    padding: clamp(10px, 2vh, 22px) 0 0;
+}
+.bracket-editor:fullscreen .bracket-board-wrap,
+.bracket-editor.is-streaming .bracket-board-wrap {
+    display: flex;
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+}
+.bracket-editor:fullscreen .bracket-board,
+.bracket-editor.is-streaming .bracket-board {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
+    gap: clamp(8px, 1.5vw, 24px);
+    padding: 4px 0;
+}
+.bracket-editor:fullscreen .bracket-round,
+.bracket-editor.is-streaming .bracket-round {
+    flex: 1 1 0;
+    min-width: 0;
+    gap: clamp(5px, 1vh, 12px);
+}
+.bracket-editor:fullscreen .bracket-round h4,
+.bracket-editor.is-streaming .bracket-round h4 {
+    flex: 0 0 auto;
+    font-size: clamp(.58rem, .8vw, .75rem);
+}
+.bracket-editor:fullscreen .bracket-match,
+.bracket-editor.is-streaming .bracket-match {
+    flex: 0 0 auto;
+}
+.bracket-editor:fullscreen .bracket-player,
+.bracket-editor.is-streaming .bracket-player {
+    min-height: clamp(25px, 5vh, 42px);
+    padding: clamp(3px, .7vh, 8px) clamp(5px, .7vw, 11px);
+    font-size: clamp(.62rem, .9vw, .9rem);
+}
+.bracket-editor:fullscreen .bracket-player input,
+.bracket-editor.is-streaming .bracket-player input {
+    width: clamp(24px, 3vw, 42px);
+    min-height: clamp(18px, 3vh, 26px);
+    padding: 2px;
+    font-size: clamp(.62rem, .8vw, .85rem);
+}
+.bracket-editor:fullscreen .bracket-round:not(:last-child)::after,
+.bracket-editor.is-streaming .bracket-round:not(:last-child)::after {
+    right: calc(clamp(8px, 1.5vw, 24px) / -2);
+}
+@media (max-height: 700px) {
+    .bracket-editor:fullscreen .bracket-editor-header,
+    .bracket-editor.is-streaming .bracket-editor-header {
+        padding-bottom: 6px;
+    }
+    .bracket-editor:fullscreen .bracket-event-label,
+    .bracket-editor.is-streaming .bracket-event-label {
+        margin-top: 3px;
+        font-size: .78rem;
+    }
+}
+
 /* Final fullscreen layout: restrained broadcast presentation. */
 .bracket-editor:fullscreen,
 .bracket-editor.is-streaming {
