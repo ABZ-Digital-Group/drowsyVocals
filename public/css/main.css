@@ -6994,14 +6994,16 @@ dialog button {
 .bracket-editor:fullscreen .bracket-board,
 .bracket-editor.is-streaming .bracket-board {
     flex: 1 1 auto;
+    display: flex !important;
+    flex-direction: row;
+    flex-wrap: nowrap;
     align-items: stretch;
     width: 100%;
+    max-width: 100%;
     box-sizing: border-box;
     height: auto;
     min-height: 0;
     min-width: 0;
-    grid-template-columns: repeat(var(--round-count, 1), minmax(0, 1fr)) !important;
-    grid-auto-columns: minmax(0, 1fr);
     padding: 4px 0 0;
     gap: clamp(8px, 2vw, 28px);
     overflow: hidden;
@@ -7013,7 +7015,7 @@ dialog button {
     min-height: 0;
     min-width: 0 !important;
     max-width: 100%;
-    width: 100%;
+    width: auto;
     justify-content: space-evenly;
     gap: 4px;
 }
