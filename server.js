@@ -5823,7 +5823,7 @@ app.post('/brackets/:bracketId/save', requireDatabase, async (req, res) => {
            updatedAt,
            state: { ...state, format, bestOf, maxParticipants }
        });
-       res.json({ success: true });
+       res.json({ success: true, updatedAt, state: { ...state, format, bestOf, maxParticipants } });
    } catch (error) {
        console.error('Error saving bracket:', error);
        res.status(500).json({ error: 'Failed to save bracket.' });

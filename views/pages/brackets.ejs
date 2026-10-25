@@ -186,6 +186,7 @@
                     bestOf: <%- JSON.stringify(selectedBracket.bestOf || 'bo1') %>
                 };
                 let lastUpdateAt = <%- JSON.stringify(selectedBracket.updatedAt || '') %>;
+                let localChangePending = false;
                 function stateFingerprint(value) {
                     return JSON.stringify({
                         participants: value.participants || [],
@@ -232,6 +233,7 @@
                         row.className = 'bracket-participant-row';
                         row.innerHTML = `<span>${index + 1}</span><input class="settings-input" maxlength="80" value="${escapeHtml(name)}" aria-label="Participant ${index + 1}" ${canEdit ? '' : 'disabled'}>${canEdit ? '<button type="button" class="bracket-remove" aria-label="Remove participant">&times;</button>' : ''}`;
                         row.querySelector('input').addEventListener('input', (event) => {
+                            localChangePending = true;
                             state.participants[index] = event.target.value;
                             const openingMatch = state.rounds[0]?.[Math.floor(index / 2)];
                             if (openingMatch) openingMatch.players[index % 2] = event.target.value || 'BYE';
@@ -267,8 +269,15 @@
                                     if (event.target.tagName === 'INPUT') return;
                                     setWinner(roundIndex, matchIndex, slot);
                                     renderBoard();
+                                    persistState('Saving result...');
                                 }));
-                                card.querySelectorAll('input').forEach((input, slot) => input.addEventListener('input', (event) => { match.scores[slot] = event.target.value; }));
+                                card.querySelectorAll('input').forEach((input, slot) => {
+                                    input.addEventListener('input', (event) => {
+                                        localChangePending = true;
+                                        match.scores[slot] = event.target.value;
+                                    });
+                                    input.addEventListener('change', () => persistState('Saving score...'));
+                                });
                             }
                             column.appendChild(card);
                         });
@@ -303,6 +312,7 @@
                 async function persistState(statusText = 'Saving...') {
                     const status = document.getElementById('bracketSaveStatus');
                     if (status) status.textContent = statusText;
+                    localChangePending = true;
                     state.notes = notes.value.slice(0, 1000);
                     state.eventId = document.getElementById('bracketEventAssignment')?.value || '';
                     state.maxParticipants = Number(document.getElementById('bracketCapacityAssignment')?.value || state.maxParticipants);
@@ -311,6 +321,9 @@
                     try {
                         const response = await fetch(`/brackets/${bracketId}/save`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(state) });
                         if (!response.ok) throw new Error('Save failed');
+                        const saved = await response.json();
+                        lastUpdateAt = saved.updatedAt || lastUpdateAt;
+                        localChangePending = false;
                         if (status) status.textContent = 'Saved just now';
                     } catch (error) {
                         if (status) status.textContent = 'Could not save participant changes.';
@@ -373,6 +386,7 @@
                     const bracketSocket = window.io();
                     bracketSocket.on('bracket-updated', (payload) => {
                         if (String(payload?.bracketId) !== bracketId || !payload?.state) return;
+                        if (localChangePending) return;
                         lastUpdateAt = payload.updatedAt || lastUpdateAt;
                         applyRemoteState(payload.state);
                     });
@@ -385,7 +399,7 @@
                             return;
                         }
                         const payload = await response.json();
-                        if (payload.state && (payload.updatedAt !== lastUpdateAt || stateFingerprint(payload.state) !== stateFingerprint(state))) {
+                        if (!localChangePending && payload.state && (payload.updatedAt !== lastUpdateAt || stateFingerprint(payload.state) !== stateFingerprint(state))) {
                             lastUpdateAt = payload.updatedAt || lastUpdateAt;
                             applyRemoteState(payload.state);
                         }
