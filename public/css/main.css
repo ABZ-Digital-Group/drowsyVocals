@@ -7044,3 +7044,49 @@ dialog button {
     width: clamp(20px, 2.2vw, 34px);
     min-height: 16px;
 }
+
+/* Give the stream workspace explicit viewport boundaries. */
+.bracket-editor:fullscreen,
+.bracket-editor.is-streaming {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    max-width: 100vw !important;
+    max-height: 100vh !important;
+}
+.bracket-editor:fullscreen .bracket-workspace,
+.bracket-editor.is-streaming .bracket-workspace {
+    position: absolute;
+    top: 104px;
+    right: 32px;
+    bottom: 24px;
+    left: 32px;
+    display: block;
+    width: auto;
+    height: auto;
+    min-height: 0;
+    padding: 0;
+}
+.bracket-editor:fullscreen .bracket-board-wrap,
+.bracket-editor.is-streaming .bracket-board-wrap {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    width: auto;
+    height: auto;
+    min-height: 0;
+}
+.bracket-editor:fullscreen .bracket-board-wrap > .bracket-section-heading,
+.bracket-editor.is-streaming .bracket-board-wrap > .bracket-section-heading {
+    flex: 0 0 30px;
+    height: 30px;
+    margin: 0;
+}
+.bracket-editor:fullscreen .bracket-board,
+.bracket-editor.is-streaming .bracket-board {
+    flex: 1 1 auto;
+    width: 100% !important;
+    height: auto;
+    min-height: 0;
+}
