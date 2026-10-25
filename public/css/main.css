@@ -6810,3 +6810,47 @@ dialog button {
         display: none;
     }
 }
+
+/* Use an equal-width grid so every round remains visible in fullscreen. */
+.bracket-editor:fullscreen .bracket-board,
+.bracket-editor.is-streaming .bracket-board {
+    display: grid;
+    grid-template-columns: repeat(var(--round-count, 1), minmax(0, 1fr));
+    align-items: stretch;
+    justify-content: normal;
+    width: 100%;
+    height: calc(100% - 34px);
+    min-width: 0;
+    min-height: 0;
+    gap: clamp(8px, 1.4vw, 22px);
+    transform: none !important;
+}
+.bracket-editor:fullscreen .bracket-board-wrap,
+.bracket-editor.is-streaming .bracket-board-wrap {
+    display: block;
+    height: 100%;
+    overflow: hidden;
+}
+.bracket-editor:fullscreen .bracket-round,
+.bracket-editor.is-streaming .bracket-round {
+    display: flex;
+    min-width: 0;
+    height: 100%;
+    justify-content: space-between;
+    gap: clamp(3px, .7vh, 8px);
+}
+.bracket-editor:fullscreen .bracket-match,
+.bracket-editor.is-streaming .bracket-match {
+    min-width: 0;
+}
+.bracket-editor:fullscreen .bracket-player,
+.bracket-editor.is-streaming .bracket-player {
+    min-height: clamp(22px, 4vh, 34px);
+    padding: clamp(2px, .5vh, 5px) clamp(4px, .55vw, 8px);
+    font-size: clamp(.58rem, .78vw, .78rem);
+}
+.bracket-editor:fullscreen .bracket-player input,
+.bracket-editor.is-streaming .bracket-player input {
+    width: clamp(20px, 2.4vw, 34px);
+    min-height: clamp(16px, 2.5vh, 22px);
+}

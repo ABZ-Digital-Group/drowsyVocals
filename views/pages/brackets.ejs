@@ -260,6 +260,7 @@
                 }
                 function renderBoard() {
                     board.innerHTML = '';
+                    board.style.setProperty('--round-count', Math.max(1, state.rounds.length));
                     state.rounds.forEach((round, roundIndex) => {
                         const column = document.createElement('div');
                         column.className = 'bracket-round';
@@ -292,16 +293,7 @@
                 }
                 function fitStreamBoard() {
                     const presentation = document.fullscreenElement === bracketEditor || bracketEditor.classList.contains('is-streaming');
-                    if (!presentation) {
-                        board.style.transform = '';
-                        board.style.transformOrigin = '';
-                        return;
-                    }
-                    const wrapper = board.parentElement;
-                    if (!wrapper || !board.scrollWidth || !board.scrollHeight) return;
-                    const scale = Math.min(1, wrapper.clientWidth / board.scrollWidth, wrapper.clientHeight / board.scrollHeight);
-                    board.style.transform = `scale(${scale})`;
-                    board.style.transformOrigin = 'top left';
+                    board.style.transform = presentation ? '' : '';
                 }
                 function render() { renderParticipants(); renderBoard(); }
                 function escapeHtml(value) { return value.replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[character])); }
