@@ -352,6 +352,15 @@
                             match.style.boxSizing = 'border-box';
                         });
                     });
+                    board.style.transform = 'none';
+                    board.style.transformOrigin = 'top left';
+                    const measuredWidth = Math.max(board.scrollWidth, board.clientWidth);
+                    const measuredHeight = Math.max(board.scrollHeight, board.clientHeight);
+                    const availableHeight = boardWrap ? boardWrap.clientHeight : measuredHeight;
+                    const widthScale = availableWidth > 0 ? availableWidth / measuredWidth : 1;
+                    const heightScale = availableHeight > 0 ? availableHeight / measuredHeight : 1;
+                    const scale = Math.min(1, widthScale, heightScale);
+                    if (scale < 1) board.style.transform = `scale(${scale})`;
                 }
                 function render() { renderParticipants(); renderBoard(); }
                 function escapeHtml(value) { return value.replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[character])); }
