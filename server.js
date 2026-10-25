@@ -5748,7 +5748,9 @@ app.post('/brackets/create', requireDatabase, async (req, res) => {
    }
    const title = String(req.body.title || '').trim().slice(0, 120);
    const eventId = String(req.body.eventId || '').trim();
-   const format = req.body.format === 'double' ? 'double' : 'single';
+   const supportedFormats = ['single', 'double', 'round_robin', 'groups'];
+   const format = supportedFormats.includes(req.body.format) ? req.body.format : 'single';
+   const bestOf = ['bo1', 'bo3', 'bo5', 'custom'].includes(req.body.bestOf) ? req.body.bestOf : 'bo1';
    const maxParticipants = [2, 4, 8, 16, 32, 64].includes(Number(req.body.maxParticipants))
        ? Number(req.body.maxParticipants)
        : 16;
@@ -5773,6 +5775,7 @@ app.post('/brackets/create', requireDatabase, async (req, res) => {
            eventId,
            eventTitle: event ? event.title : 'Unassigned event',
            format,
+           bestOf,
            maxParticipants,
            participants: [],
            rounds: [],
@@ -5796,6 +5799,8 @@ app.post('/brackets/:bracketId/save', requireDatabase, async (req, res) => {
    const state = sanitizeBracketState(req.body);
    try {
        const eventId = String(req.body.eventId || '').trim();
+       const format = ['single', 'double', 'round_robin', 'groups'].includes(req.body.format) ? req.body.format : 'single';
+       const bestOf = ['bo1', 'bo3', 'bo5', 'custom'].includes(req.body.bestOf) ? req.body.bestOf : 'bo1';
        const maxParticipants = [2, 4, 8, 16, 32, 64].includes(Number(req.body.maxParticipants))
            ? Number(req.body.maxParticipants)
            : 16;
@@ -5809,7 +5814,7 @@ app.post('/brackets/:bracketId/save', requireDatabase, async (req, res) => {
        }
        const result = await db.collection('eventBrackets').updateOne(
            bracketIdFilter(req.params.bracketId),
-           { $set: { ...state, participants: state.participants.slice(0, maxParticipants), maxParticipants, eventId: eventId || null, eventTitle, updatedAt: new Date().toISOString(), updatedBy: req.session.currentuser } }
+           { $set: { ...state, format, bestOf, participants: state.participants.slice(0, maxParticipants), maxParticipants, eventId: eventId || null, eventTitle, updatedAt: new Date().toISOString(), updatedBy: req.session.currentuser } }
        );
        if (!result.matchedCount) return res.status(404).json({ error: 'Bracket not found.' });
        res.json({ success: true });

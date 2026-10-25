@@ -60,6 +60,16 @@
                             <label for="bracketFormat">Format</label>
                             <select id="bracketFormat" name="format" class="settings-input">
                                 <option value="single">Single elimination</option>
+                                <option value="double">Double elimination</option>
+                                <option value="round_robin">Round robin</option>
+                                <option value="groups">Groups / pools</option>
+                            </select>
+                            <label for="bracketBestOf">Match format</label>
+                            <select id="bracketBestOf" name="bestOf" class="settings-input">
+                                <option value="bo1">Best of 1</option>
+                                <option value="bo3">Best of 3</option>
+                                <option value="bo5">Best of 5</option>
+                                <option value="custom">Custom</option>
                             </select>
                             <label for="bracketCapacity">Maximum participants</label>
                             <select id="bracketCapacity" name="maxParticipants" class="settings-input">
@@ -112,6 +122,18 @@
                                     <option value="<%= size %>" <%= Number(selectedBracket.maxParticipants || 16) === size ? 'selected' : '' %>><%= size %> participants</option>
                                     <% }); %>
                                 </select>
+                                <label for="bracketFormatAssignment">Bracket format</label>
+                                <select id="bracketFormatAssignment" class="settings-input">
+                                    <% [['single', 'Single elimination'], ['double', 'Double elimination'], ['round_robin', 'Round robin'], ['groups', 'Groups / pools']].forEach(function(option) { %>
+                                    <option value="<%= option[0] %>" <%= (selectedBracket.format || 'single') === option[0] ? 'selected' : '' %>><%= option[1] %></option>
+                                    <% }); %>
+                                </select>
+                                <label for="bracketBestOfAssignment">Match format</label>
+                                <select id="bracketBestOfAssignment" class="settings-input">
+                                    <% [['bo1', 'Best of 1'], ['bo3', 'Best of 3'], ['bo5', 'Best of 5'], ['custom', 'Custom']].forEach(function(option) { %>
+                                    <option value="<%= option[0] %>" <%= (selectedBracket.bestOf || 'bo1') === option[0] ? 'selected' : '' %>><%= option[1] %></option>
+                                    <% }); %>
+                                </select>
                                 <label for="bracketNotes">Event notes</label>
                                 <textarea id="bracketNotes" class="settings-input" rows="2" placeholder="Rules, judging notes, or stream details..."></textarea>
                             </div>
@@ -129,7 +151,7 @@
                                 <% if (isManager) { %><button type="button" class="settings-btn settings-btn-secondary settings-btn-sm" id="addParticipant"><span class="material-symbols-outlined">person_add</span>Add participant</button><% } %>
                             </div>
                             <div class="bracket-board-wrap">
-                                <div class="bracket-section-heading"><h3><%= selectedBracket.format === 'double' ? 'Double elimination' : 'Single elimination' %></h3><span id="roundCount"></span></div>
+                                <div class="bracket-section-heading"><h3><%= ({ single: 'Single elimination', double: 'Double elimination', round_robin: 'Round robin', groups: 'Groups / pools' })[selectedBracket.format || 'single'] %></h3><span id="roundCount"></span></div>
                                 <div class="bracket-board" id="bracketBoard"></div>
                             </div>
                         </div>
@@ -154,7 +176,9 @@
                     participants: Array.isArray(initial.participants) ? initial.participants.map((name) => String(name).slice(0, 80)) : [],
                     rounds: Array.isArray(initial.rounds) ? initial.rounds : [],
                     notes: String(initial.notes || '').slice(0, 1000),
-                    maxParticipants: [2, 4, 8, 16, 32, 64].includes(Number(<%= Number(selectedBracket.maxParticipants || 16) %>)) ? Number(<%= Number(selectedBracket.maxParticipants || 16) %>) : 16
+                    maxParticipants: [2, 4, 8, 16, 32, 64].includes(Number(<%= Number(selectedBracket.maxParticipants || 16) %>)) ? Number(<%= Number(selectedBracket.maxParticipants || 16) %>) : 16,
+                    format: <%- JSON.stringify(selectedBracket.format || 'single') %>,
+                    bestOf: <%- JSON.stringify(selectedBracket.bestOf || 'bo1') %>
                 };
                 const list = document.getElementById('participantList');
                 const board = document.getElementById('bracketBoard');
@@ -243,6 +267,12 @@
                     generateRounds();
                     render();
                 });
+                document.getElementById('bracketFormatAssignment')?.addEventListener('change', (event) => {
+                    state.format = event.target.value;
+                    generateRounds();
+                    render();
+                });
+                document.getElementById('bracketBestOfAssignment')?.addEventListener('change', (event) => { state.bestOf = event.target.value; });
                 document.getElementById('seedBracket')?.addEventListener('click', () => { state.participants.sort(() => Math.random() - 0.5); generateRounds(); render(); });
                 const bracketEditor = document.querySelector('.bracket-editor');
                 const fullscreenButton = document.getElementById('toggleBracketFullscreen');
@@ -279,6 +309,8 @@
                     try {
                         state.eventId = document.getElementById('bracketEventAssignment')?.value || '';
                         state.maxParticipants = Number(document.getElementById('bracketCapacityAssignment')?.value || state.maxParticipants);
+                        state.format = document.getElementById('bracketFormatAssignment')?.value || state.format;
+                        state.bestOf = document.getElementById('bracketBestOfAssignment')?.value || state.bestOf;
                         const response = await fetch(`/brackets/${bracketId}/save`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(state) });
                         if (!response.ok) throw new Error('Save failed');
                         status.textContent = 'Saved just now';
