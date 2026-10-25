@@ -43,6 +43,9 @@ const botService = createBotService({
     baseUrl: process.env.BOT_API_URL,
     secret: process.env.BOT_API_SECRET || process.env.BOT_API_TOKEN,
 });
+const voiceActivityApiSecret = process.env.VOICE_ACTIVITY_API_SECRET
+    || process.env.BOT_API_SECRET
+    || process.env.BOT_API_TOKEN;
 
 if (!mongoUri) {
     console.error('MONGODB_URI is not configured. Add it to the application environment variables.');
@@ -81,7 +84,7 @@ app.use((req, res, next) => {
     res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
 
     // Never cache confidential management and user data in browser / proxy caches
-    if (req.session?.loggedin || req.path.startsWith('/api/') || req.path === '/roster' || req.path === '/settings' || req.path === '/reports') {
+    if (req.session?.loggedin || req.path.startsWith('/api/') || req.path === '/roster' || req.path === '/settings' || req.path === '/reports' || req.path === '/staff-activity') {
         res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
         res.setHeader('Pragma', 'no-cache');
         res.setHeader('Expires', '0');
@@ -271,7 +274,7 @@ app.use(async (req, res, next) => {
 // MAINTENANCE MODE MIDDLEWARE
 app.use(async (req, res, next) => {
     // Always allow static files, health checks, login/auth pages, logout, and external webhook ingestion
-    const bypassedPaths = ['/health', '/logout', '/login', '/index', '/event-feedback', '/staff-application', '/api/applications/webhook', '/developer-preview/stop'];
+    const bypassedPaths = ['/health', '/logout', '/login', '/index', '/event-feedback', '/staff-application', '/api/applications/webhook', '/api/internal/voice-sessions', '/developer-preview/stop'];
     if (bypassedPaths.includes(req.path) || req.path.startsWith('/css') || req.path.startsWith('/scripts') || req.path.startsWith('/assets') || req.path.startsWith('/uploads')) {
         return next();
     }
@@ -1861,6 +1864,11 @@ function connectDB() {
             }
 
             db = nextDb;
+            await Promise.all([
+                nextDb.collection('voiceActivitySessions').createIndex({ sessionId: 1 }, { unique: true }),
+                nextDb.collection('voiceActivitySessions').createIndex({ userId: 1, startedAt: -1 }),
+                nextDb.collection('voiceActivitySessions').createIndex({ channelId: 1, startedAt: -1 })
+            ]);
             isDatabaseReady = true;
             startLiveUpdates();
             console.log('Connected successfully to MongoDB');
@@ -3384,6 +3392,194 @@ app.post('/deleteUser', requireDatabase, async (req, res) => {
 // ==========================================================================
 // DROWSY DISCORD BOT MANAGEMENT PORTAL (GODS & DEVELOPERS ONLY)
 // ==========================================================================
+
+// RECEIVE COMPLETED DISCORD VOICE SESSIONS FROM DROWSYBOT
+app.post('/api/internal/voice-sessions', requireDatabase, async (req, res) => {
+    const authorization = String(req.get('authorization') || '');
+    const bearerToken = authorization.startsWith('Bearer ') ? authorization.slice(7).trim() : '';
+    const presentedSecret = String(req.get('x-bot-api-key') || bearerToken);
+    if (!voiceActivityApiSecret || !safeTimingCompare(presentedSecret, voiceActivityApiSecret)) {
+        return res.status(401).json({ error: 'Unauthorized.' });
+    }
+
+    const incomingSessions = req.body?.sessions;
+    if (!Array.isArray(incomingSessions) || incomingSessions.length > 500) {
+        return res.status(400).json({ error: 'sessions must be an array containing no more than 500 items.' });
+    }
+
+    const discordIdPattern = /^\d{17,20}$/;
+    const safeName = (value, fallback) => {
+        const name = String(value || '').trim();
+        return name && name.length <= 200 ? name : fallback;
+    };
+    const documents = [];
+
+    for (let index = 0; index < incomingSessions.length; index += 1) {
+        const session = incomingSessions[index] || {};
+        const sessionId = String(session.sessionId || '').trim();
+        const guildId = String(session.guildId || '').trim();
+        const userId = String(session.userId || '').trim();
+        const channelId = String(session.channelId || '').trim();
+        const startedMs = Date.parse(session.startedAt);
+        const endedMs = Date.parse(session.endedAt);
+        const durationSeconds = Math.round((endedMs - startedMs) / 1000);
+
+        if (
+            !/^[A-Za-z0-9_-]{1,100}$/.test(sessionId)
+            || !discordIdPattern.test(guildId)
+            || !discordIdPattern.test(userId)
+            || !discordIdPattern.test(channelId)
+            || !Number.isFinite(startedMs)
+            || !Number.isFinite(endedMs)
+            || durationSeconds < 60
+            || durationSeconds > 7 * 24 * 60 * 60
+        ) {
+            return res.status(400).json({ error: `Invalid voice session at index ${index}.` });
+        }
+
+        documents.push({
+            sessionId,
+            guildId,
+            guildName: safeName(session.guildName, guildId),
+            userId,
+            userName: safeName(session.userName, userId),
+            channelId,
+            channelName: safeName(session.channelName, channelId),
+            startedAt: new Date(startedMs).toISOString(),
+            endedAt: new Date(endedMs).toISOString(),
+            durationSeconds,
+            receivedAt: new Date()
+        });
+    }
+
+    const uniqueDocuments = [...new Map(documents.map((document) => [document.sessionId, document])).values()];
+    try {
+        const result = uniqueDocuments.length
+            ? await db.collection('voiceActivitySessions').bulkWrite(
+                uniqueDocuments.map((document) => ({
+                    updateOne: {
+                        filter: { sessionId: document.sessionId },
+                        update: { $setOnInsert: document },
+                        upsert: true
+                    }
+                })),
+                { ordered: false }
+            )
+            : { upsertedCount: 0 };
+        return res.status(202).json({ accepted: uniqueDocuments.length, inserted: result.upsertedCount || 0 });
+    } catch (error) {
+        console.error('Voice activity ingestion failed:', error);
+        return res.status(500).json({ error: 'Unable to record voice activity.' });
+    }
+});
+
+// STAFF VOICE ACTIVITY DASHBOARD
+app.get('/staff-activity', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin) return res.redirect('/');
+    if (!hasManagementAccess(req)) return res.status(403).send('You do not have permission to view staff activity.');
+
+    try {
+        const users = await db.collection('users').find(
+            { 'login.discordId': { $exists: true } },
+            { projection: { displayName: 1, discordUser: 1, avatarUrl: 1, 'login.discordId': 1 } }
+        ).toArray();
+        const userById = new Map(
+            users
+                .filter((user) => user.login?.discordId)
+                .map((user) => [String(user.login.discordId), {
+                    displayName: user.displayName || user.discordUser || user.login.discordId,
+                    avatarUrl: user.avatarUrl || null
+                }])
+        );
+        const staffIds = [...userById.keys()];
+        const match = { userId: { $in: staffIds } };
+        const sessionsCollection = db.collection('voiceActivitySessions');
+        const [staffSummary, channelSummary, dailySummary, recentSessions, botLiveState] = await Promise.all([
+            staffIds.length
+                ? sessionsCollection.aggregate([
+                    { $match: match },
+                    { $group: { _id: '$userId', seconds: { $sum: '$durationSeconds' }, sessions: { $sum: 1 } } },
+                    { $sort: { seconds: -1 } }
+                ]).toArray()
+                : [],
+            staffIds.length
+                ? sessionsCollection.aggregate([
+                    { $match: match },
+                    { $group: { _id: { guildId: '$guildId', guildName: '$guildName', channelId: '$channelId', channelName: '$channelName' }, seconds: { $sum: '$durationSeconds' }, sessions: { $sum: 1 } } },
+                    { $sort: { seconds: -1 } }
+                ]).toArray()
+                : [],
+            staffIds.length
+                ? sessionsCollection.aggregate([
+                    { $match: match },
+                    { $group: { _id: { $substr: ['$startedAt', 0, 10] }, seconds: { $sum: '$durationSeconds' }, sessions: { $sum: 1 } } },
+                    { $sort: { _id: 1 } }
+                ]).toArray()
+                : [],
+            staffIds.length
+                ? sessionsCollection.find(match).sort({ endedAt: -1 }).limit(100).toArray()
+                : [],
+            getBotLiveState()
+        ]);
+
+        const toHours = (seconds) => Number((Number(seconds || 0) / 3600).toFixed(2));
+        const staff = staffSummary.map((item) => ({
+            userId: item._id,
+            displayName: userById.get(item._id)?.displayName || item._id,
+            avatarUrl: userById.get(item._id)?.avatarUrl || null,
+            hours: toHours(item.seconds),
+            sessions: item.sessions
+        }));
+        const channels = channelSummary.map((item) => ({
+            guildName: item._id.guildName || item._id.guildId,
+            channelName: item._id.channelName || item._id.channelId,
+            hours: toHours(item.seconds),
+            sessions: item.sessions
+        }));
+        const daily = dailySummary.map((item) => ({
+            date: item._id,
+            hours: toHours(item.seconds),
+            sessions: item.sessions
+        }));
+        const recent = recentSessions.map((session) => ({
+            ...session,
+            displayName: userById.get(session.userId)?.displayName || session.userName || session.userId,
+            durationMinutes: Math.round(Number(session.durationSeconds || 0) / 60),
+            startedAt: new Date(session.startedAt).toLocaleString(),
+            endedAt: new Date(session.endedAt).toLocaleString()
+        }));
+        const live = (botLiveState.discordMembers || [])
+            .filter((member) => member.voiceChannelId && userById.has(member.userId))
+            .map((member) => ({
+                displayName: userById.get(member.userId).displayName,
+                channelName: member.voiceChannelName || member.voiceChannelId,
+                joinedAt: member.voiceJoinedAt ? new Date(member.voiceJoinedAt).toLocaleString() : null
+            }));
+        const totalSeconds = staffSummary.reduce((sum, item) => sum + Number(item.seconds || 0), 0);
+        const totalSessions = staffSummary.reduce((sum, item) => sum + Number(item.sessions || 0), 0);
+
+        res.render('pages/staff-activity', {
+            page: 'staff-activity',
+            summary: {
+                hours: toHours(totalSeconds),
+                sessions: totalSessions,
+                staffCount: staff.length,
+                channelCount: channels.length
+            },
+            staff,
+            channels,
+            daily,
+            recent,
+            live,
+            botOnline: Boolean(botLiveState.online),
+            trackingConfigured: Boolean(voiceActivityApiSecret),
+            botConnectionError: botLiveState.connectionError || null
+        });
+    } catch (error) {
+        console.error('Error loading staff activity:', error);
+        res.status(500).send('Unable to load staff activity.');
+    }
+});
 
 // BOT MAIN DASHBOARD
 app.get('/bot', requireDatabase, async (req, res) => {
