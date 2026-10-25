@@ -190,6 +190,7 @@
                 };
                 let lastUpdateAt = <%- JSON.stringify(selectedBracket.updatedAt || '') %>;
                 let localChangePending = false;
+                let loadingTransitionId = 0;
                 function stateFingerprint(value) {
                     return JSON.stringify({
                         participants: value.participants || [],
@@ -308,7 +309,14 @@
                     const loading = document.getElementById('bracketStreamLoading');
                     const isPresentation = document.fullscreenElement === bracketEditor || bracketEditor.classList.contains('is-streaming');
                     const loadingStartedAt = Date.now();
-                    if (loading && isPresentation) loading.hidden = false;
+                    const transitionId = ++loadingTransitionId;
+                    if (loading && isPresentation) {
+                        loading.hidden = false;
+                        loading.classList.remove('is-exiting');
+                        loading.classList.remove('is-entering');
+                        void loading.offsetWidth;
+                        loading.classList.add('is-entering');
+                    }
                     state.participants = Array.isArray(remoteState.participants) ? remoteState.participants.map((name) => String(name).slice(0, 80)) : [];
                     state.rounds = Array.isArray(remoteState.rounds) ? remoteState.rounds : [];
                     state.notes = String(remoteState.notes || '').slice(0, 1000);
@@ -326,7 +334,14 @@
                     if (loading && isPresentation) {
                         const minimumDisplayTime = 650;
                         window.setTimeout(() => {
-                            loading.hidden = true;
+                            if (transitionId !== loadingTransitionId) return;
+                            loading.classList.remove('is-entering');
+                            loading.classList.add('is-exiting');
+                            window.setTimeout(() => {
+                                if (transitionId !== loadingTransitionId) return;
+                                loading.hidden = true;
+                                loading.classList.remove('is-exiting');
+                            }, 400);
                         }, Math.max(0, minimumDisplayTime - (Date.now() - loadingStartedAt)));
                     } else if (loading) {
                         loading.hidden = true;

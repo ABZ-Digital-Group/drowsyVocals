@@ -204,6 +204,15 @@ main{
 }
 .bracket-editor:fullscreen .bracket-round,
 .bracket-editor.is-streaming .bracket-round {
+    height: 100%;
+    justify-content: space-around;
+}
+.bracket-editor:fullscreen .bracket-round h4,
+.bracket-editor.is-streaming .bracket-round h4 {
+    flex: 0 0 auto;
+}
+.bracket-editor:fullscreen .bracket-round,
+.bracket-editor.is-streaming .bracket-round {
     flex: 1 1 0;
     min-width: 0;
     gap: clamp(5px, 1vh, 12px);
@@ -6211,6 +6220,19 @@ dialog button {
     font-size: 38px;
 }
 
+.bracket-stream-loading {
+    background: var(--night-indigo);
+}
+.bracket-editor:fullscreen .bracket-board,
+.bracket-editor.is-streaming .bracket-board {
+    height: 100%;
+}
+.bracket-editor:fullscreen .bracket-round,
+.bracket-editor.is-streaming .bracket-round {
+    height: 100%;
+    justify-content: space-around;
+}
+
 /* Keep the stream view quiet and readable. */
 .bracket-editor:fullscreen,
 .bracket-editor.is-streaming {
@@ -6671,21 +6693,27 @@ dialog button {
     place-content: center;
     gap: 8px;
     padding: 24px;
-    background: rgba(41, 39, 82, .94);
+    background: var(--night-indigo);
     color: var(--cloud-white);
     text-align: center;
 }
 .bracket-stream-loading[hidden] {
     display: none;
 }
-.bracket-stream-loading:not([hidden]) {
-    animation: bracket-loading-fade-in 280ms ease-out both;
+.bracket-stream-loading.is-entering {
+    animation: bracket-loading-fade-in 380ms ease-out both;
+}
+.bracket-stream-loading.is-exiting {
+    animation: bracket-loading-fade-out 400ms ease-in both;
 }
 .bracket-stream-loading-content {
     display: grid;
     place-items: center;
     gap: 10px;
     animation: bracket-loading-slide-in 650ms cubic-bezier(.2, .8, .2, 1) both;
+}
+.bracket-stream-loading.is-exiting .bracket-stream-loading-content {
+    animation: bracket-loading-slide-out 400ms ease-in both;
 }
 .bracket-stream-loading-content img {
     display: block;
@@ -6714,6 +6742,10 @@ dialog button {
     from { opacity: 0; }
     to { opacity: 1; }
 }
+@keyframes bracket-loading-fade-out {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
 @keyframes bracket-loading-slide-in {
     from { opacity: 0; transform: translateX(52px); }
     to { opacity: 1; transform: translateX(0); }
@@ -6722,8 +6754,14 @@ dialog button {
     from { opacity: 0; transform: translateX(-72px) scale(.88); }
     to { opacity: 1; transform: translateX(0) scale(1); }
 }
+@keyframes bracket-loading-slide-out {
+    from { opacity: 1; transform: translateX(0); }
+    to { opacity: 0; transform: translateX(-48px); }
+}
 @media (prefers-reduced-motion: reduce) {
     .bracket-stream-loading:not([hidden]),
+    .bracket-stream-loading.is-entering,
+    .bracket-stream-loading.is-exiting,
     .bracket-stream-loading-content,
     .bracket-stream-loading-content img {
         animation: none;
