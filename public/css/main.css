@@ -7006,6 +7006,7 @@ dialog button {
     min-width: 0;
     padding: 4px 0 0;
     gap: clamp(8px, 2vw, 28px);
+    justify-content: flex-start !important;
     overflow: hidden;
 }
 .bracket-editor:fullscreen .bracket-round,
