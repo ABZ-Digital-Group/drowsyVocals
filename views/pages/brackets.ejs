@@ -317,6 +317,7 @@
                         board.style.minWidth = '';
                         board.style.maxWidth = '';
                         board.style.overflow = '';
+                        board.style.gap = '';
                         board.querySelectorAll('.bracket-round').forEach((round) => {
                             round.style.flex = '';
                             round.style.width = '';
@@ -339,16 +340,24 @@
                     board.style.maxWidth = '100%';
                     board.style.overflow = 'hidden';
                     const boardWrap = board.parentElement;
-                    const availableWidth = boardWrap ? boardWrap.clientWidth : 0;
+                    const viewportWidth = Math.max(1, window.innerWidth - 64);
+                    const availableWidth = Math.min(
+                        boardWrap && boardWrap.clientWidth > 0 ? boardWrap.clientWidth : viewportWidth,
+                        viewportWidth
+                    );
                     if (availableWidth > 0) board.style.width = `${availableWidth}px`;
-                    board.querySelectorAll('.bracket-round').forEach((round) => {
-                        round.style.flex = '1 1 0';
-                        round.style.width = '0';
+                    const rounds = Array.from(board.querySelectorAll('.bracket-round'));
+                    const gap = rounds.length > 1 ? Math.max(8, Math.min(28, window.innerWidth * 0.02)) : 0;
+                    const roundWidth = Math.max(1, (availableWidth - (gap * Math.max(0, rounds.length - 1))) / Math.max(1, rounds.length));
+                    board.style.gap = `${gap}px`;
+                    rounds.forEach((round) => {
+                        round.style.flex = `0 0 ${roundWidth}px`;
+                        round.style.width = `${roundWidth}px`;
                         round.style.minWidth = '0';
-                        round.style.maxWidth = '100%';
+                        round.style.maxWidth = `${roundWidth}px`;
                         round.querySelectorAll('.bracket-match').forEach((match) => {
-                            match.style.width = '100%';
-                            match.style.maxWidth = '100%';
+                            match.style.width = `${roundWidth}px`;
+                            match.style.maxWidth = `${roundWidth}px`;
                             match.style.boxSizing = 'border-box';
                         });
                     });
