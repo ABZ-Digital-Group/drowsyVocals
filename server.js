@@ -3523,24 +3523,90 @@ app.get('/staff-activity', requireDatabase, async (req, res) => {
         ]);
 
         const toHours = (seconds) => Number((Number(seconds || 0) / 3600).toFixed(2));
-        const staff = staffSummary.map((item) => ({
+        const afkChannelByGuild = new Map(
+            (botLiveState.guilds || []).map((guild) => [guild.id, guild.afkChannelId])
+        );
+        const liveSessions = (botLiveState.discordMembers || [])
+            .filter((member) => (
+                member.voiceChannelId
+                && userById.has(member.userId)
+                && member.voiceChannelId !== afkChannelByGuild.get(member.guildId)
+            ))
+            .map((member) => {
+                const startedMs = Date.parse(member.voiceJoinedAt || '');
+                return {
+                    guildId: member.guildId,
+                    guildName: (botLiveState.guilds || []).find((guild) => guild.id === member.guildId)?.name || member.guildId,
+                    userId: member.userId,
+                    userName: userById.get(member.userId).displayName,
+                    channelId: member.voiceChannelId,
+                    channelName: member.voiceChannelName || member.voiceChannelId,
+                    startedAt: Number.isFinite(startedMs) ? new Date(startedMs).toISOString() : null,
+                    durationSeconds: Number.isFinite(startedMs) ? Math.max(0, (Date.now() - startedMs) / 1000) : 0
+                };
+            });
+        const staffTotals = new Map(staffSummary.map((item) => [item._id, {
             userId: item._id,
             displayName: userById.get(item._id)?.displayName || item._id,
             avatarUrl: userById.get(item._id)?.avatarUrl || null,
-            hours: toHours(item.seconds),
-            sessions: item.sessions
-        }));
-        const channels = channelSummary.map((item) => ({
+            seconds: Number(item.seconds || 0),
+            sessions: Number(item.sessions || 0)
+        }]));
+        const channelKey = (guildId, channelId) => `${guildId}:${channelId}`;
+        const channelTotals = new Map(channelSummary.map((item) => [channelKey(item._id.guildId, item._id.channelId), {
+            guildId: item._id.guildId,
             guildName: item._id.guildName || item._id.guildId,
+            channelId: item._id.channelId,
             channelName: item._id.channelName || item._id.channelId,
-            hours: toHours(item.seconds),
-            sessions: item.sessions
-        }));
-        const daily = dailySummary.map((item) => ({
+            seconds: Number(item.seconds || 0),
+            sessions: Number(item.sessions || 0)
+        }]));
+        const dailyTotals = new Map(dailySummary.map((item) => [item._id, {
             date: item._id,
-            hours: toHours(item.seconds),
-            sessions: item.sessions
-        }));
+            seconds: Number(item.seconds || 0),
+            sessions: Number(item.sessions || 0)
+        }]));
+        liveSessions.forEach((session) => {
+            if (session.durationSeconds < 60) return;
+            const staffTotal = staffTotals.get(session.userId) || {
+                userId: session.userId,
+                displayName: session.userName,
+                avatarUrl: userById.get(session.userId)?.avatarUrl || null,
+                seconds: 0,
+                sessions: 0
+            };
+            staffTotal.seconds += session.durationSeconds;
+            staffTotal.sessions += 1;
+            staffTotals.set(session.userId, staffTotal);
+
+            const liveChannelKey = channelKey(session.guildId, session.channelId);
+            const channelTotal = channelTotals.get(liveChannelKey) || {
+                guildId: session.guildId,
+                guildName: session.guildName,
+                channelId: session.channelId,
+                channelName: session.channelName,
+                seconds: 0,
+                sessions: 0
+            };
+            channelTotal.seconds += session.durationSeconds;
+            channelTotal.sessions += 1;
+            channelTotals.set(liveChannelKey, channelTotal);
+
+            const day = session.startedAt.slice(0, 10);
+            const dailyTotal = dailyTotals.get(day) || { date: day, seconds: 0, sessions: 0 };
+            dailyTotal.seconds += session.durationSeconds;
+            dailyTotal.sessions += 1;
+            dailyTotals.set(day, dailyTotal);
+        });
+        const staff = [...staffTotals.values()]
+            .sort((a, b) => b.seconds - a.seconds)
+            .map((item) => ({ ...item, hours: toHours(item.seconds) }));
+        const channels = [...channelTotals.values()]
+            .sort((a, b) => b.seconds - a.seconds)
+            .map((item) => ({ ...item, hours: toHours(item.seconds) }));
+        const daily = [...dailyTotals.values()]
+            .sort((a, b) => a.date.localeCompare(b.date))
+            .map((item) => ({ ...item, hours: toHours(item.seconds) }));
         const recent = recentSessions.map((session) => ({
             ...session,
             displayName: userById.get(session.userId)?.displayName || session.userName || session.userId,
@@ -3548,14 +3614,12 @@ app.get('/staff-activity', requireDatabase, async (req, res) => {
             startedAt: new Date(session.startedAt).toLocaleString(),
             endedAt: new Date(session.endedAt).toLocaleString()
         }));
-        const live = (botLiveState.discordMembers || [])
-            .filter((member) => member.voiceChannelId && userById.has(member.userId))
-            .map((member) => ({
-                displayName: userById.get(member.userId).displayName,
-                channelName: member.voiceChannelName || member.voiceChannelId,
-                joinedAt: member.voiceJoinedAt ? new Date(member.voiceJoinedAt).toLocaleString() : null
-            }));
-        const totalSeconds = staffSummary.reduce((sum, item) => sum + Number(item.seconds || 0), 0);
+        const live = liveSessions.map((session) => ({
+            displayName: session.userName,
+            channelName: session.channelName,
+            joinedAt: session.startedAt ? new Date(session.startedAt).toLocaleString() : null
+        }));
+        const totalSeconds = staff.reduce((sum, item) => sum + item.seconds, 0);
         const totalSessions = staffSummary.reduce((sum, item) => sum + Number(item.sessions || 0), 0);
 
         res.render('pages/staff-activity', {

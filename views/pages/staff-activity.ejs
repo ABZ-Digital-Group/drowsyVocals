@@ -61,11 +61,11 @@
                     <h1>Staff Activity</h1>
                     <p>All-time voice activity recorded by DrowsyBot.</p>
                 </div>
-                <p class="staff-activity-note">Voice time excludes AFK channels, splits when someone changes channel, and ignores sessions shorter than one minute. Totals begin when tracking is deployed.</p>
+                <p class="staff-activity-note">Voice time excludes AFK channels, splits when someone changes channel, and ignores sessions shorter than one minute. Totals include live sessions after one minute and refresh automatically.</p>
             </div>
 
             <section class="staff-activity-summary" aria-label="Activity summary">
-                <div class="staff-activity-stat"><span>Total voice hours</span><strong><%= summary.hours.toFixed(2) %></strong></div>
+                <div class="staff-activity-stat"><span>Total voice hours (incl. live)</span><strong><%= summary.hours.toFixed(2) %></strong></div>
                 <div class="staff-activity-stat"><span>Completed sessions</span><strong><%= summary.sessions %></strong></div>
                 <div class="staff-activity-stat"><span>Staff with activity</span><strong><%= summary.staffCount %></strong></div>
                 <div class="staff-activity-stat"><span>Channels used</span><strong><%= summary.channelCount %></strong></div>
@@ -162,5 +162,8 @@
             </div>
         </main>
         <div class="footer"><p>&copy; 2026 Drowsy Vocals | All rights reserved.</p></div>
+        <script>
+            window.setTimeout(() => window.location.reload(), 60 * 1000);
+        </script>
     </body>
 </html>
