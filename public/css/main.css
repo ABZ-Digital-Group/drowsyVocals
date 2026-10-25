@@ -6163,6 +6163,54 @@ dialog button {
 .bracket-player.is-winner {
     border-left-color: #299865;
 }
+.bracket-controls {
+    color: var(--night-indigo);
+}
+.bracket-controls label {
+    color: var(--night-indigo);
+}
+.bracket-controls .settings-input {
+    background: var(--cloud-white);
+    border-color: #a6a3c1;
+    color: var(--night-indigo);
+}
+.bracket-controls .settings-input::placeholder {
+    color: #65617e;
+}
+.bracket-participants {
+    color: var(--night-indigo);
+}
+.bracket-participants .bracket-section-heading h3 {
+    color: var(--night-indigo);
+}
+.bracket-participants .bracket-section-heading span {
+    color: #514e70;
+}
+.bracket-board-wrap {
+    color: var(--night-indigo);
+}
+.bracket-board-wrap .bracket-section-heading h3 {
+    color: var(--night-indigo);
+}
+.bracket-board-wrap .bracket-section-heading span {
+    color: #514e70;
+}
+.bracket-empty-large h2 {
+    color: var(--cloud-white);
+}
+.bracket-empty-large p {
+    max-width: 460px;
+    color: var(--cloud-lilac);
+    line-height: 1.5;
+}
+.bracket-editor:fullscreen .bracket-board-wrap,
+.bracket-editor.is-streaming .bracket-board-wrap {
+    color: var(--cloud-white);
+}
+.bracket-editor:fullscreen .bracket-board-wrap .bracket-section-heading h3,
+.bracket-editor.is-streaming .bracket-board-wrap .bracket-section-heading h3 {
+    color: var(--cloud-white);
+}
 @media (max-width: 800px) {
     .brackets-page {
         margin-top: 12px;
