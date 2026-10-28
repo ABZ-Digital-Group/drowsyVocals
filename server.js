@@ -522,6 +522,11 @@ const CHANGELOG_ENTRIES = [
         changes: ['Halloween bats, ghosts, leaves, and pumpkins now use varied drifting paths, while Christmas snow, gifts, trees, and sparkles use layered speeds, sizes, and fade timing.']
     },
     {
+        date: '2026-10-28',
+        title: 'Deleted account strike history preserved',
+        changes: ['When a staff account is deleted, its strikes are retained securely and restored automatically if the same Discord account is added back to the roster.']
+    },
+    {
         date: '2026-10-25',
         title: 'Event brackets added',
         changes: ['Events can now have editable brackets with multiple formats and match types, participant management, fullscreen viewing, streaming mode, responsive scaling, live state polling, and loading feedback.']
@@ -1984,6 +1989,35 @@ function buildHistoryPagination(totalItems, requestedPage, path, label) {
     };
 }
 
+async function getDeletedUserStrikes(discordId) {
+    const history = await db.collection('deletedUserHistory').findOne(
+        { discordId },
+        { projection: { strikes: 1 } }
+    );
+    return Array.isArray(history?.strikes) ? history.strikes : [];
+}
+
+async function archiveDeletedUserStrikes(user, deletedBy) {
+    const discordId = user.login?.discordId;
+    if (!discordId) {
+        throw new Error('Cannot archive strike history without a Discord ID.');
+    }
+
+    await db.collection('deletedUserHistory').updateOne(
+        { discordId },
+        {
+            $set: {
+                discordId,
+                strikes: Array.isArray(user.strikes) ? user.strikes : [],
+                displayName: user.displayName || user.discordUser || discordId,
+                deletedAt: new Date().toISOString().slice(0, 19),
+                deletedBy
+            }
+        },
+        { upsert: true }
+    );
+}
+
 // HEALTH CHECK
 app.get('/health', (req, res) => {
     res.status(!shuttingDown && isDatabaseReady ? 200 : 503).json({
@@ -2101,6 +2135,7 @@ app.post('/signUp', requireDatabase, async (req, res) => {
         const newUser = {
             login: { discordId: cleanDiscordId, password: hash },
             accountType: (accountType || 'Tired Esquire').toString(),
+            strikes: await getDeletedUserStrikes(cleanDiscordId),
             created: new Date().toISOString().slice(0, 19)
         };
 
@@ -2183,6 +2218,7 @@ app.post('/add-user', requireDatabase, async (req, res) => {
             shift: (shift || '').toString(),
             onboardingComplete: Boolean(onboardingComplete),
             hostTrainingComplete: Boolean(hostTrainingComplete),
+            strikes: await getDeletedUserStrikes(cleanDiscordId),
             created: new Date().toISOString().slice(0, 19)
         };
 
@@ -3649,6 +3685,7 @@ app.post('/deleteUser', requireDatabase, async (req, res) => {
             return res.redirect('/roster');
         }
 
+        await archiveDeletedUserStrikes(targetUser, req.session.currentuser);
         await db.collection('users').deleteOne({ 'login.discordId': cleanDiscordId });
         await writeAudit(req, 'Deleted User', `${targetUser.displayName || targetUser.discordUser || cleanDiscordId} (${cleanDiscordId})`);
         sendPdLogsWebhook('# 👋 Staff Departure 👋', 0xEF4444, [
@@ -8537,7 +8574,7 @@ app.post('/api/v1/roster/add-user', apiRequireAuth, async (req, res) => {
             status: 'Active',
             activity: 'Active',
             housePoints: 0,
-            strikes: [],
+            strikes: await getDeletedUserStrikes(discordId),
             hireDate: new Date().toISOString().split('T')[0],
             timeInService: 0,
             daysInGrade: 0,

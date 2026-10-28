@@ -14,6 +14,8 @@ Gods and Developers can open **Settings > Page Access** to restrict authenticate
 
 The Changelog, Audit Log, and LOA History pages show their complete datasets in navigable pages of 10 records, with page numbers and previous/next controls.
 
+Deleted staff accounts retain their strike history in the deleted-user record. If the same Discord account is added back to the roster, its previous strikes are restored automatically.
+
 ## Seasonal themes
 
 Gods and Developers can enable the manual Halloween or Christmas theme from **Settings > System & Security**. Only one seasonal theme is active at a time; enabling one disables the other. Visitors can disable the animated effects locally with the seasonal-effects control.
