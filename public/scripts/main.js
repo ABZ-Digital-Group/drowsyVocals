@@ -27,13 +27,28 @@ const initializeSeasonalTheme = () => {
   seasonalEffects.className = `seasonal-effects seasonal-effects-${seasonalTheme}`;
   seasonalEffects.setAttribute('aria-hidden', 'true');
   const decorations = seasonalTheme === 'christmas'
-    ? ['❄️', '🎄', '❄️', '🎁', '❄️', '✨']
-    : ['🦇', '👻', '🍂', '🦇', '🎃', '🍂'];
-  decorations.forEach((symbol, index) => {
+    ? [
+      { symbol: '❄️', kind: 'snow' }, { symbol: '❄️', kind: 'snow' },
+      { symbol: '❄️', kind: 'snow' }, { symbol: '❄️', kind: 'snow' },
+      { symbol: '❄️', kind: 'snow' }, { symbol: '❄️', kind: 'snow' },
+      { symbol: '❄️', kind: 'snow' }, { symbol: '❄️', kind: 'snow' },
+      { symbol: '🎄', kind: 'accent' }, { symbol: '🎁', kind: 'accent' },
+      { symbol: '✨', kind: 'accent' }
+    ]
+    : [
+      { symbol: '🦇', kind: 'bat' }, { symbol: '👻', kind: 'ghost' },
+      { symbol: '🍂', kind: 'leaf' }, { symbol: '🦇', kind: 'bat' },
+      { symbol: '🎃', kind: 'pumpkin' }, { symbol: '🍂', kind: 'leaf' }
+    ];
+  decorations.forEach(({ symbol, kind }, index) => {
     const decoration = document.createElement('span');
-    decoration.className = 'seasonal-decoration';
+    decoration.className = `seasonal-decoration seasonal-decoration-${kind}`;
     decoration.textContent = symbol;
     decoration.style.setProperty('--seasonal-index', String(index));
+    decoration.style.setProperty('--seasonal-left', `${(index * 37) % 94 + 3}%`);
+    decoration.style.setProperty('--seasonal-duration', `${10 + (index % 5) * 2.2}s`);
+    decoration.style.setProperty('--seasonal-delay', `${-index * 1.7}s`);
+    decoration.style.setProperty('--seasonal-size', `${1.1 + (index % 4) * 0.3}rem`);
     seasonalEffects.appendChild(decoration);
   });
 

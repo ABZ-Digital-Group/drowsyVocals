@@ -236,12 +236,112 @@ body.seasonal-theme-christmas.christmas-login-page.christmas-seasonal-active .lo
 .seasonal-decoration {
     position: absolute;
     top: -12vh;
-    left: calc(8% + (var(--seasonal-index) * 16%));
-    font-size: clamp(1.3rem, 2.8vw, 2.3rem);
+    left: var(--seasonal-left);
+    font-size: var(--seasonal-size);
     opacity: 0.72;
     filter: drop-shadow(0 3px 4px rgba(26, 13, 35, 0.35));
-    animation: seasonal-drift 14s linear infinite;
-    animation-delay: calc(var(--seasonal-index) * -2.2s);
+    animation-duration: var(--seasonal-duration);
+    animation-delay: var(--seasonal-delay);
+    animation-iteration-count: infinite;
+    animation-timing-function: linear;
+    animation-fill-mode: both;
+}
+
+.seasonal-effects-christmas .seasonal-decoration-snow {
+    opacity: 0.8;
+    animation-name: christmas-snowfall;
+}
+
+.seasonal-effects-christmas .seasonal-decoration-accent {
+    top: -16vh;
+    animation-name: christmas-accent-fall;
+    animation-duration: 17s;
+}
+
+.seasonal-effects-halloween .seasonal-decoration-bat {
+    top: 8vh;
+    animation-name: halloween-bat-drift;
+    animation-duration: 16s;
+}
+
+.seasonal-effects-halloween .seasonal-decoration-ghost {
+    animation-name: halloween-ghost-fall;
+    animation-duration: 18s;
+}
+
+.seasonal-effects-halloween .seasonal-decoration-leaf,
+.seasonal-effects-halloween .seasonal-decoration-pumpkin {
+    animation-name: halloween-leaf-fall;
+    animation-duration: 13s;
+}
+
+@keyframes christmas-snowfall {
+    0% {
+        transform: translate3d(-18px, -10vh, 0) rotate(0deg);
+    }
+    50% {
+        transform: translate3d(24px, 52vh, 0) rotate(180deg);
+    }
+    100% {
+        transform: translate3d(-12px, 116vh, 0) rotate(360deg);
+    }
+}
+
+@keyframes christmas-accent-fall {
+    0% {
+        transform: translate3d(0, -10vh, 0) rotate(-12deg);
+        opacity: 0;
+    }
+    12%,
+    80% {
+        opacity: 0.72;
+    }
+    100% {
+        transform: translate3d(30px, 116vh, 0) rotate(14deg);
+        opacity: 0;
+    }
+}
+
+@keyframes halloween-bat-drift {
+    0% {
+        transform: translate3d(-8vw, 0, 0) scale(0.82) rotate(-8deg);
+        opacity: 0;
+    }
+    12%,
+    78% {
+        opacity: 0.78;
+    }
+    100% {
+        transform: translate3d(22vw, 46vh, 0) scale(1.05) rotate(8deg);
+        opacity: 0;
+    }
+}
+
+@keyframes halloween-ghost-fall {
+    0% {
+        transform: translate3d(0, -10vh, 0) rotate(-5deg);
+        opacity: 0;
+    }
+    15%,
+    78% {
+        opacity: 0.68;
+    }
+    100% {
+        transform: translate3d(-28px, 116vh, 0) rotate(8deg);
+        opacity: 0;
+    }
+}
+
+@keyframes halloween-leaf-fall {
+    0% {
+        transform: translate3d(-12px, -10vh, 0) rotate(-20deg);
+    }
+    50% {
+        transform: translate3d(42px, 52vh, 0) rotate(170deg);
+    }
+    100% {
+        transform: translate3d(-24px, 116vh, 0) rotate(350deg);
+    }
 }
 
 .seasonal-effects-toggle {
@@ -264,18 +364,6 @@ body.seasonal-theme-christmas.christmas-login-page.christmas-seasonal-active .lo
 .seasonal-effects-toggle:hover,
 .seasonal-effects-toggle:focus-visible {
     background: #55233d;
-}
-
-@keyframes seasonal-drift {
-    0% {
-        transform: translate3d(0, -8vh, 0) rotate(-8deg);
-    }
-    50% {
-        transform: translate3d(28px, 52vh, 0) rotate(12deg);
-    }
-    100% {
-        transform: translate3d(-18px, 116vh, 0) rotate(-10deg);
-    }
 }
 
 .halloween-settings-card,
