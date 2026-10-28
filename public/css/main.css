@@ -6396,9 +6396,11 @@ dialog button {
 .changelog-entry h2 { margin: 0 0 8px; font-size: 1.1em; }
 .changelog-entry ul { margin: 0; padding-left: 20px; }
 .history-pagination { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin: 20px 0; }
-.history-pagination nav { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
+.history-pagination nav { display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; padding: 0; background: transparent; color: var(--night-indigo); }
 .history-pagination-summary, .history-pagination-status { color: var(--dusty-blue-purple); font-size: .9em; }
 .history-pagination-pages { display: flex; align-items: center; gap: 4px; }
+.history-pagination-control { display: inline-flex; min-height: 34px; box-sizing: border-box; align-items: center; justify-content: center; padding: 5px 11px; border: 1px solid var(--night-indigo); border-radius: 4px; background: var(--cloud-white); box-shadow: 2px 2px 0 var(--dusty-blue-purple); color: var(--night-indigo); font-size: .9em; font-weight: bold; text-decoration: none; }
+.history-pagination-control:hover, .history-pagination-control:focus-visible { background: var(--night-indigo); color: var(--cloud-white); outline: none; }
 .history-pagination-page { display: inline-flex; min-width: 34px; min-height: 34px; box-sizing: border-box; align-items: center; justify-content: center; padding: 5px 8px; border: 1px solid var(--night-indigo-27); border-radius: 4px; color: var(--night-indigo); text-decoration: none; }
 .history-pagination-page:hover, .history-pagination-page.is-current { border-color: var(--night-indigo); background: var(--night-indigo); color: var(--cloud-white); }
 .history-pagination-ellipsis { padding: 0 2px; color: var(--dusty-blue-purple); }

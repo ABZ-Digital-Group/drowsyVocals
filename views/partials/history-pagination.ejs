@@ -3,7 +3,7 @@
     <% if (pagination.totalPages > 1) { %>
     <nav aria-label="<%= pagination.label %>">
         <% if (pagination.hasPrevious) { %>
-        <a class="action-button action-button-secondary" href="<%= pagination.path %>?page=<%= pagination.currentPage - 1 %>">Previous</a>
+        <a class="history-pagination-control" href="<%= pagination.path %>?page=<%= pagination.currentPage - 1 %>">Previous</a>
         <% } %>
         <span class="history-pagination-pages">
             <% let previousPage = 0; %>
@@ -20,7 +20,7 @@
             <% }); %>
         </span>
         <% if (pagination.hasNext) { %>
-        <a class="action-button action-button-secondary" href="<%= pagination.path %>?page=<%= pagination.currentPage + 1 %>">Next</a>
+        <a class="history-pagination-control" href="<%= pagination.path %>?page=<%= pagination.currentPage + 1 %>">Next</a>
         <% } %>
         <span class="history-pagination-status">Page <%= pagination.currentPage %> of <%= pagination.totalPages %></span>
     </nav>
