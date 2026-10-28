@@ -508,6 +508,11 @@ app.use(async (req, res, next) => {
 const CHANGELOG_ENTRIES = [
     {
         date: '2026-10-28',
+        title: 'Forced password reset flow fixed',
+        changes: ['Staff members required to reset their password can now set and confirm a new password without re-entering the old password, while standard password changes continue to verify the current password.']
+    },
+    {
+        date: '2026-10-28',
         title: 'Role-based page access controls added',
         changes: ['Gods and Developers can now restrict individual pages to selected staff ranks. Navigation links, direct page requests, and supported API endpoints enforce the same access rules while privileged users retain an override.']
     },
