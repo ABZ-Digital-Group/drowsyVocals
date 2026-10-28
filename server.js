@@ -230,6 +230,9 @@ app.use(async (req, res, next) => {
     res.locals.notifications = [];
     res.locals.checkInAccess = false;
     res.locals.checkInReadAccess = Boolean(req.session.loggedin);
+    res.locals.pagePermissions = {};
+    res.locals.canViewPage = (pageKey) => canViewPage(req, pageKey, res.locals.pagePermissions);
+    res.locals.halloweenEnabled = false;
     if (isDatabaseReady && db && req.session.loggedin && req.session.currentuser) {
         try {
             const user = await db.collection('users').findOne(
@@ -262,6 +265,8 @@ app.use(async (req, res, next) => {
     if (isDatabaseReady && db) {
         try {
             const currentSettings = await getSettings();
+            res.locals.pagePermissions = currentSettings.pageAccess || {};
+            res.locals.halloweenEnabled = Boolean(currentSettings.halloween?.enabled);
             res.locals.maintenanceActive = Boolean(currentSettings?.maintenance?.enabled);
             res.locals.maintenanceMessage = currentSettings?.maintenance?.message || 'The website is currently undergoing scheduled maintenance. Please check back soon.';
         } catch {
@@ -422,10 +427,49 @@ app.post('/developer-preview/stop', (req, res) => {
 const MANAGEMENT_ROLES = ['Mr. Sandman', 'Realm God', 'Drowsy Defender', 'Dreamy Defender'];
 const GOD_ROLES = ['Mr. Sandman', 'Realm God'];
 const DISCORD_CHANNEL_VIEWER_ID = '404371787606917140';
+const PAGE_PERMISSION_OPTIONS = [
+    { key: 'dashboard', path: '/dashboard', apiPath: '/api/v1/dashboard', label: 'Dashboard' },
+    { key: 'roster', path: '/roster', apiPath: '/api/v1/roster', label: 'Roster' },
+    { key: 'events', path: '/events', apiPath: '/api/v1/events', label: 'Events' },
+    { key: 'brackets', path: '/brackets', label: 'Brackets' },
+    { key: 'house-points', path: '/house-points', label: 'House Points' },
+    { key: 'bingo', path: '/bingo', apiPath: '/api/v1/bingo', label: 'Bingo' },
+    { key: 'loa', path: '/loa', apiPath: '/api/v1/loa', label: 'LOA' },
+    { key: 'feedback', path: '/feedback', apiPath: '/api/v1/feedback', label: 'Feedback' },
+    { key: 'staff-guidelines', path: '/staff-guidelines', apiPath: '/api/v1/guidelines', label: 'Staff Guidelines' },
+    { key: 'community-host-guidelines', path: '/community-host-guidelines', label: 'Community Host Guidelines' },
+    { key: 'higher-guidelines', path: '/higher-guidelines', label: 'Higher Guidelines' },
+    { key: 'applications', path: '/applications', label: 'Applications' },
+    { key: 'appeals', path: '/appeals', apiPath: '/api/v1/appeals', label: 'Strike Appeals' },
+    { key: 'check-ins', path: '/check-ins', label: 'Check-ins' },
+    { key: 'loa-history', path: '/loa/history', label: 'LOA History' },
+    { key: 'roster-planner', path: '/roster-planner', label: 'Roster Planner' },
+    { key: 'reports', path: '/reports', apiPath: '/api/v1/reports', label: 'Reports' },
+    { key: 'staff-activity', path: '/staff-activity', label: 'Staff Activity' },
+    { key: 'audit-log', path: '/audit-log', apiPath: '/api/v1/audit-log', label: 'Audit Log' },
+    { key: 'changelog', path: '/changelog', apiPath: '/api/v1/changelog', label: 'Changelog' },
+    { key: 'footprint', path: '/footprint', label: 'Digital Footprint' },
+    { key: 'discord-channels', path: '/discord-channels', label: 'Discord Channels' },
+    { key: 'bot', path: '/bot', apiPath: '/api/v1/bot', label: 'Discord Bot' },
+    { key: 'notifications', path: '/notifications', label: 'Notifications' },
+    { key: 'account', path: '/account', apiPath: '/api/v1/account', label: 'Account' },
+    { key: 'settings', path: '/settings', apiPath: '/api/v1/settings', label: 'Settings' }
+];
 const hasManagementAccess = (req) => MANAGEMENT_ROLES.includes(req.session.accountType) || Boolean(req.session.isDeveloper);
 const hasGodAccess = (req) => GOD_ROLES.includes(req.session.accountType) || Boolean(req.session.isDeveloper);
 const hasDiscordChannelViewerAccess = (req) => !req.session.previewAsNonAdmin && req.session.currentuser === DISCORD_CHANNEL_VIEWER_ID;
 const hasCheckInAccess = (req, settings) => hasGodAccess(req) || (settings.checkInAccessUserIds || []).includes(req.session.currentuser);
+const canViewPage = (req, pageKey, pagePermissions = {}) => {
+    if (hasGodAccess(req)) return true;
+    const allowedRoles = pagePermissions?.[pageKey];
+    return !Array.isArray(allowedRoles) || allowedRoles.includes(req.session.accountType);
+};
+const getPagePermissionKey = (requestPath) => PAGE_PERMISSION_OPTIONS
+    .slice()
+    .sort((a, b) => Math.max(b.path.length, b.apiPath?.length || 0) - Math.max(a.path.length, a.apiPath?.length || 0))
+    .find((page) => [page.path, page.apiPath].filter(Boolean).some((basePath) => (
+        requestPath === basePath || requestPath.startsWith(`${basePath}/`)
+    )))?.key;
 const canViewCheckIn = (req, checkIn) => {
     if (checkIn.visibility === 'gods') return hasGodAccess(req);
     if (checkIn.visibility === 'staff') return (checkIn.visibleUserIds || []).includes(req.session.currentuser) || hasGodAccess(req);
@@ -434,6 +478,27 @@ const canViewCheckIn = (req, checkIn) => {
 const hasFeedbackManagementAccess = (req) => hasGodAccess(req);
 const rankOrder = ['Mr. Sandman', 'Realm God', 'Drowsy Defender', 'Dreamy Defender', 'Dreamland Guard', 'Nighty Knights', 'Tired Esquire'];
 const getRankChangeType = (oldRank, newRank) => rankOrder.indexOf(newRank) < rankOrder.indexOf(oldRank) ? 'promotion' : 'demotion';
+
+// APPLY OPTIONAL PAGE ALLOWLISTS TO BOTH NAVIGATION TARGETS AND DIRECT REQUESTS.
+app.use(async (req, res, next) => {
+    if (!req.session.loggedin || !isDatabaseReady || !db) return next();
+
+    const pageKey = getPagePermissionKey(req.path);
+    if (!pageKey || hasGodAccess(req)) return next();
+
+    try {
+        const settings = await getSettings();
+        if (canViewPage(req, pageKey, settings.pageAccess || {})) return next();
+
+        if (req.path.startsWith('/api/')) {
+            return res.status(403).json({ success: false, error: 'You do not have permission to view this page.' });
+        }
+        return res.status(403).send('You do not have permission to view this page.');
+    } catch (error) {
+        console.error('Page permission check failed:', error.message);
+        return next(error);
+    }
+});
 const CHANGELOG_ENTRIES = [
     {
         date: '2026-09-13',
@@ -1474,6 +1539,10 @@ const DEFAULT_SETTINGS = {
         { name: 'Inactive', color: '#F9C0BC' },
         { name: 'LOA', color: '#A9CAFF' }
     ],
+    pageAccess: {},
+    halloween: {
+        enabled: false
+    },
     maintenance: {
         enabled: false,
         message: 'The website is currently undergoing scheduled maintenance. Please check back soon.'
@@ -2894,12 +2963,53 @@ app.get('/settings', requireDatabase, async (req, res) => {
             resetRequests,
             bingoTemplates,
             activeBingoTemplateId,
-            activeBingoTemplate
+            activeBingoTemplate,
+            pagePermissionOptions: PAGE_PERMISSION_OPTIONS
         });
     } catch (error) {
         console.error('Error loading settings:', error);
         res.status(500).send('Error loading settings.');
     }
+});
+
+// UPDATE ROLE-BASED PAGE VISIBILITY. AN EMPTY LIST EXPLICITLY DENIES NON-PRIVILEGED ROLES.
+app.post('/settings/page-access', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !hasGodAccess(req)) {
+        req.flash('error_msg', 'You are not authorized to manage page access.');
+        return res.redirect('/settings');
+    }
+
+    try {
+        const settings = await getSettings();
+        const validRoles = new Set((settings.ranks || []).map((rank) => rank.name).filter(Boolean));
+        const pageAccess = PAGE_PERMISSION_OPTIONS.reduce((permissions, page) => {
+            const isConfigured = req.body[`pageAccessConfigured_${page.key}`] === 'true';
+            if (!isConfigured) return permissions;
+
+            const submittedRoles = req.body[`pageAccess_${page.key}`];
+            const selectedRoles = Array.isArray(submittedRoles)
+                ? submittedRoles
+                : (submittedRoles ? [submittedRoles] : []);
+            permissions[page.key] = [...new Set(
+                selectedRoles
+                    .map((role) => String(role).trim())
+                    .filter((role) => validRoles.has(role))
+            )];
+            return permissions;
+        }, {});
+
+        await db.collection('settings').updateOne(
+            { _id: 'appSettings' },
+            { $set: { pageAccess, pageAccessUpdatedAt: new Date().toISOString(), pageAccessUpdatedBy: req.session.currentuser } },
+            { upsert: true }
+        );
+        await writeAudit(req, 'Updated role-based page access', `${PAGE_PERMISSION_OPTIONS.length} page rules saved`);
+        req.flash('success_msg', 'Role-based page access updated.');
+    } catch (error) {
+        console.error('Error updating page access:', error);
+        req.flash('error_msg', 'Unable to update page access.');
+    }
+    res.redirect('/settings#page-access');
 });
 
 app.post('/settings/reset-requests/:requestId/:decision', requireDatabase, async (req, res) => {
@@ -3042,6 +3152,30 @@ app.post('/settings/maintenance', requireDatabase, async (req, res) => {
         req.flash('error_msg', 'Unable to update maintenance mode.');
         res.redirect('/settings');
     }
+});
+
+// TOGGLE THE MANUAL HALLOWEEN SEASONAL THEME.
+app.post('/settings/halloween', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !hasGodAccess(req)) {
+        req.flash('error_msg', 'You are not authorized to manage Halloween settings.');
+        return res.redirect('/settings');
+    }
+
+    const enabled = req.body.enabled === 'true' || req.body.enabled === 'on';
+
+    try {
+        await db.collection('settings').updateOne(
+            { _id: 'appSettings' },
+            { $set: { 'halloween.enabled': enabled, 'halloween.updatedAt': new Date().toISOString(), 'halloween.updatedBy': req.session.currentuser } },
+            { upsert: true }
+        );
+        await writeAudit(req, `${enabled ? 'Enabled' : 'Disabled'} Halloween theme`, 'Manual seasonal theme setting');
+        req.flash('success_msg', `Halloween theme ${enabled ? 'enabled' : 'disabled'}.`);
+    } catch (error) {
+        console.error('Error updating Halloween settings:', error);
+        req.flash('error_msg', 'Unable to update Halloween settings.');
+    }
+    res.redirect('/settings#system');
 });
 
 // UPDATE DISCORD WEBHOOK CONFIGURATION

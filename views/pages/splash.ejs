@@ -4,7 +4,7 @@
         <%- include('../partials/head') %>
         <title>Drowsy Vocals</title>
     </head>
-    <body class="splash-page">
+    <body class="splash-page<%= halloweenEnabled ? ' halloween-login-page' : '' %>">
         <main class="splash" aria-labelledby="splashTitle">
             <img class="splash-logo" src="/assets/drowsyNew.png" alt="Drowsy Vocals">
             <p id="splashTitle">Welcome to Drowsy Vocals</p>

@@ -20,68 +20,74 @@
     <img src="/assets/drowsyNew.png" alt="Drowsy Vocals Logo">
     <button class="nav-menu-toggle" type="button" aria-expanded="false" aria-controls="primaryNavigation"><span class="material-symbols-outlined" aria-hidden="true">menu</span> Menu</button>
     <ul id="primaryNavigation">
-        <li><a href="/dashboard">Dashboard</a></li>
-        <li><a href="/roster">Roster</a></li>
+        <% if (canViewPage('dashboard')) { %><li><a href="/dashboard">Dashboard</a></li><% } %>
+        <% if (canViewPage('roster')) { %><li><a href="/roster">Roster</a></li><% } %>
+        <% if (canViewPage('events') || canViewPage('brackets')) { %>
         <li class="nav-events-menu">
-            <a href="/events">Events <span class="material-symbols-outlined nav-guidelines-arrow" aria-hidden="true">expand_more</span></a>
+            <% if (canViewPage('events')) { %><a href="/events">Events <span class="material-symbols-outlined nav-guidelines-arrow" aria-hidden="true">expand_more</span></a><% } %>
             <div class="nav-guidelines-dropdown nav-events-dropdown">
-                <a href="/brackets">Brackets</a>
+                <% if (canViewPage('brackets')) { %><a href="/brackets">Brackets</a><% } %>
             </div>
         </li>
-        <li><a href="/house-points">House Points</a></li>
-        <li><a href="/bingo">Bingo</a></li>
+        <% } %>
+        <% if (canViewPage('house-points')) { %><li><a href="/house-points">House Points</a></li><% } %>
+        <% if (canViewPage('bingo')) { %><li><a href="/bingo">Bingo</a></li><% } %>
+        <% if (canViewPage('loa') || canViewPage('feedback')) { %>
         <li class="nav-guidelines-menu">
             <button class="nav-guidelines-trigger" type="button" aria-expanded="false" aria-controls="guidelinesMenu">
                 Forms
                 <span class="material-symbols-outlined nav-guidelines-arrow" aria-hidden="true">expand_more</span>
             </button>
             <div class="nav-guidelines-dropdown" id="guidelinesMenu">
-                <a href="/loa">LOA</a>
-                <a href="/feedback">Feedback</a>
+                <% if (canViewPage('loa')) { %><a href="/loa">LOA</a><% } %>
+                <% if (canViewPage('feedback')) { %><a href="/feedback">Feedback</a><% } %>
                 <a href="https://drowsyvocals.com/feedback.html">Event Feedback</a>
             </div>
         </li>
+        <% } %>
+        <% if (canViewPage('staff-guidelines') || canViewPage('community-host-guidelines') || canViewPage('higher-guidelines')) { %>
         <li class="nav-guidelines-menu">
             <button class="nav-guidelines-trigger" type="button" aria-expanded="false" aria-controls="guidelinesMenu">
                 Guidelines
                 <span class="material-symbols-outlined nav-guidelines-arrow" aria-hidden="true">expand_more</span>
             </button>
             <div class="nav-guidelines-dropdown" id="guidelinesMenu">
-                <a href="/staff-guidelines">Staff Guidelines</a>
-                <a href="/community-host-guidelines">Community Host Guidelines</a>
-                <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender' || userIsDeveloper) { %>
-                <a href="/higher-guidelines">Higher Guidelines</a>
-                <% } %>
+                <% if (canViewPage('staff-guidelines')) { %><a href="/staff-guidelines">Staff Guidelines</a><% } %>
+                <% if (canViewPage('community-host-guidelines')) { %><a href="/community-host-guidelines">Community Host Guidelines</a><% } %>
+                <% if (canViewPage('higher-guidelines') && (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender' || userIsDeveloper)) { %><a href="/higher-guidelines">Higher Guidelines</a><% } %>
             </div>
         </li>
-        <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender' || userIsDeveloper || (currentuser === '404371787606917140' && !developerPreviewMode)) { %>
+        <% } %>
+        <% if (
+            ((userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender' || userIsDeveloper)
+                && (canViewPage('applications') || canViewPage('appeals') || canViewPage('check-ins')
+                    || canViewPage('loa-history') || canViewPage('roster-planner') || canViewPage('reports')
+                    || canViewPage('staff-activity') || canViewPage('audit-log') || canViewPage('changelog')
+                    || canViewPage('footprint') || canViewPage('bot')))
+            || (canViewPage('discord-channels') && currentuser === '404371787606917140' && !developerPreviewMode)
+        ) { %>
         <li class="nav-guidelines-menu">
             <button class="nav-guidelines-trigger" type="button" aria-expanded="false" aria-controls="managementMenu">
                 Management
                 <span class="material-symbols-outlined nav-guidelines-arrow" aria-hidden="true">expand_more</span>
             </button>
             <div class="nav-guidelines-dropdown" id="managementMenu">
-                <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender' || userIsDeveloper) { %>
-                <a href="/applications">Applications</a>
-                <a href="/appeals">Strike Appeals</a>
-                <a href="/check-ins">Check-ins</a>
-                <a href="/loa/history">LOA History</a>
-                <a href="/roster-planner">Roster Planner</a>
-                <a href="/reports">Reports</a>
-                <a href="/staff-activity">Staff Activity</a>
-                <a href="/audit-log">Audit Log</a>
-                <a href="/changelog">Changelog</a>
-                <a href="/footprint">Digital Footprint</a>
-                <% } %>
-                <% if (currentuser === '404371787606917140' && !developerPreviewMode) { %>
-                <a href="/discord-channels">Discord Channels</a>
-                <% } %>
-                <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userIsDeveloper) { %>
-                <a href="/bot">Discord Bot</a>
-                <% } %>
+                <% if (canViewPage('applications') && (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender' || userIsDeveloper)) { %><a href="/applications">Applications</a><% } %>
+                <% if (canViewPage('appeals') && (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender' || userIsDeveloper)) { %><a href="/appeals">Strike Appeals</a><% } %>
+                <% if (canViewPage('check-ins') && (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender' || userIsDeveloper)) { %><a href="/check-ins">Check-ins</a><% } %>
+                <% if (canViewPage('loa-history') && (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender' || userIsDeveloper)) { %><a href="/loa/history">LOA History</a><% } %>
+                <% if (canViewPage('roster-planner') && (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender' || userIsDeveloper)) { %><a href="/roster-planner">Roster Planner</a><% } %>
+                <% if (canViewPage('reports') && (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender' || userIsDeveloper)) { %><a href="/reports">Reports</a><% } %>
+                <% if (canViewPage('staff-activity') && (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender' || userIsDeveloper)) { %><a href="/staff-activity">Staff Activity</a><% } %>
+                <% if (canViewPage('audit-log') && (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender' || userIsDeveloper)) { %><a href="/audit-log">Audit Log</a><% } %>
+                <% if (canViewPage('changelog') && (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender' || userIsDeveloper)) { %><a href="/changelog">Changelog</a><% } %>
+                <% if (canViewPage('footprint') && (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender' || userIsDeveloper)) { %><a href="/footprint">Digital Footprint</a><% } %>
+                <% if (canViewPage('discord-channels') && currentuser === '404371787606917140' && !developerPreviewMode) { %><a href="/discord-channels">Discord Channels</a><% } %>
+                <% if (canViewPage('bot') && (userType === 'Mr. Sandman' || userType === 'Realm God' || userIsDeveloper)) { %><a href="/bot">Discord Bot</a><% } %>
             </div>
         </li>
         <% } %>
+        <% if (canViewPage('notifications')) { %>
         <li class="nav-notifications-menu">
             <button class="nav-notifications-trigger" type="button" aria-expanded="false" aria-controls="notificationsMenu" aria-label="Notifications">
                 <span class="material-symbols-outlined" aria-hidden="true">notifications</span>
@@ -92,6 +98,8 @@
                 <a href="/notifications">View notification history</a>
             </div>
         </li>
+        <% } %>
+        <% if (canViewPage('account')) { %>
         <li class="nav-account-menu">
             <button class="nav-account-trigger" type="button" aria-expanded="false" aria-controls="accountMenu">
                 <% if (navUser && navUser.avatarUrl) { %>
@@ -110,12 +118,13 @@
                     <button type="submit" class="nav-account-action">User view</button>
                 </form>
                 <% } %>
-                <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userIsDeveloper) { %>
+                <% if (canViewPage('settings') && (userType === 'Mr. Sandman' || userType === 'Realm God' || userIsDeveloper)) { %>
                 <a href="/settings">Settings</a>
-                <a href="/bot">Discord Bot</a>
+                <% if (canViewPage('bot')) { %><a href="/bot">Discord Bot</a><% } %>
                 <% } %>
                 <a href="/logout">Logout</a>
             </div>
         </li>
+        <% } %>
     </ul>
 </nav>

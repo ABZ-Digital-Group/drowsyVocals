@@ -1,3 +1,62 @@
+const HALLOWEEN_OPT_OUT_KEY = 'drowsyVocalsHalloweenOptOut';
+
+const readHalloweenOptOut = () => {
+  try {
+    return window.localStorage.getItem(HALLOWEEN_OPT_OUT_KEY) === 'true';
+  } catch (error) {
+    console.warn('Halloween preference could not be read:', error);
+    return false;
+  }
+};
+
+const saveHalloweenOptOut = (disabled) => {
+  try {
+    window.localStorage.setItem(HALLOWEEN_OPT_OUT_KEY, String(disabled));
+  } catch (error) {
+    console.warn('Halloween preference could not be saved:', error);
+  }
+};
+
+const initializeHalloween = () => {
+  if (window.drowsyHalloweenEnabled !== true || !document.body) return;
+
+  const halloweenEffects = document.createElement('div');
+  halloweenEffects.className = 'halloween-effects';
+  halloweenEffects.setAttribute('aria-hidden', 'true');
+  ['🦇', '👻', '🍂', '🦇', '🎃', '🍂'].forEach((symbol, index) => {
+    const decoration = document.createElement('span');
+    decoration.className = 'halloween-decoration';
+    decoration.textContent = symbol;
+    decoration.style.setProperty('--halloween-index', String(index));
+    halloweenEffects.appendChild(decoration);
+  });
+
+  const toggle = document.createElement('button');
+  toggle.type = 'button';
+  toggle.className = 'halloween-effects-toggle';
+  toggle.setAttribute('aria-pressed', 'false');
+  toggle.addEventListener('click', () => {
+    const disabled = !document.body.classList.contains('halloween-effects-disabled');
+    saveHalloweenOptOut(disabled);
+    renderHalloween();
+  });
+
+  const renderHalloween = () => {
+    const disabled = readHalloweenOptOut();
+    document.body.classList.toggle('halloween-effects-disabled', disabled);
+    document.body.classList.toggle('halloween-seasonal-active', !disabled);
+    toggle.textContent = disabled ? 'Enable Halloween effects' : 'Disable Halloween effects';
+    toggle.setAttribute('aria-pressed', String(!disabled));
+    if (!disabled && !halloweenEffects.isConnected) document.body.appendChild(halloweenEffects);
+    if (disabled && halloweenEffects.isConnected) halloweenEffects.remove();
+  };
+
+  document.body.appendChild(toggle);
+  renderHalloween();
+};
+
+initializeHalloween();
+
 var data = [
     [22, 'Working late'],
     [18, 'Good evening'],

@@ -171,6 +171,11 @@
                         <span>System & Security</span>
                         <span class="settings-tab-badge">God Only</span>
                     </button>
+                    <button type="button" class="settings-tab-btn" data-tab="page-access">
+                        <span class="material-symbols-outlined">admin_panel_settings</span>
+                        <span>Page Access</span>
+                        <span class="settings-tab-badge">God Only</span>
+                    </button>
                     <% } %>
                     <button type="button" class="settings-tab-btn" data-tab="ranks">
                         <span class="material-symbols-outlined">military_tech</span>
@@ -188,6 +193,62 @@
                 </nav>
 
                 <div class="settings-section-container">
+                    <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userIsDeveloper) { %>
+                    <div class="settings-group" data-section="page-access">
+                        <div class="settings-group-header">
+                            <span class="material-symbols-outlined" style="background: var(--night-indigo); color: var(--cloud-white); padding: 4px; border-radius: 4px;">admin_panel_settings</span>
+                            <h2>Role-Based Page Access</h2>
+                        </div>
+
+                        <div class="settings-card">
+                            <div class="settings-card-header">
+                                <div class="settings-card-title-wrap">
+                                    <h3 class="settings-card-title">
+                                        <span class="material-symbols-outlined">visibility</span>
+                                        <span>Choose Which Roles Can View Each Page</span>
+                                    </h3>
+                                    <p class="settings-card-desc">Pages without a restriction keep their existing access rules. Developers, Mr. Sandman, and Realm God always retain access. Check “Restrict” for a page, then select the ranks that should be able to open it.</p>
+                                </div>
+                            </div>
+
+                            <form action="/settings/page-access" method="POST" style="display: flex; flex-direction: column; gap: 16px;">
+                                <div class="settings-page-access-list">
+                                    <% (pagePermissionOptions || []).forEach(function(pagePermission) {
+                                        const pageAccess = settings.pageAccess || {};
+                                        const configuredRoles = Array.isArray(pageAccess[pagePermission.key]) ? pageAccess[pagePermission.key] : [];
+                                        const isConfigured = Object.prototype.hasOwnProperty.call(pageAccess, pagePermission.key);
+                                    %>
+                                    <div class="settings-page-access-row">
+                                        <div class="settings-page-access-page">
+                                            <strong><%= pagePermission.label %></strong>
+                                            <code><%= pagePermission.path %></code>
+                                        </div>
+                                        <label class="settings-page-access-restrict">
+                                            <input type="checkbox" name="pageAccessConfigured_<%= pagePermission.key %>" value="true" <%= isConfigured ? 'checked' : '' %>>
+                                            Restrict
+                                        </label>
+                                        <div class="settings-page-access-roles">
+                                            <% (settings.ranks || []).slice().sort(function(a, b) { return (a.order || 0) - (b.order || 0); }).forEach(function(rank) { %>
+                                            <label class="settings-page-access-role">
+                                                <input type="checkbox" name="pageAccess_<%= pagePermission.key %>" value="<%= rank.name %>" <%= configuredRoles.includes(rank.name) ? 'checked' : '' %>>
+                                                <span><%= rank.name %></span>
+                                            </label>
+                                            <% }); %>
+                                        </div>
+                                    </div>
+                                    <% }); %>
+                                </div>
+                                <div style="display: flex; justify-content: flex-start;">
+                                    <button type="submit" class="settings-btn settings-btn-primary">
+                                        <span class="material-symbols-outlined">save</span>
+                                        Save Page Access
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                    <% } %>
+
                     <!-- SECTION: BINGO TEMPLATE MANAGEMENT -->
                     <div class="settings-group" data-section="bingo-templates">
                         <div class="settings-group-header">
@@ -402,6 +463,39 @@
                                     <button type="submit" class="settings-btn settings-btn-primary">
                                         <span class="material-symbols-outlined">save</span>
                                         Save Maintenance Settings
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <div class="settings-card halloween-settings-card">
+                            <div class="settings-card-header">
+                                <div class="settings-card-title-wrap">
+                                    <h3 class="settings-card-title">
+                                        <span class="material-symbols-outlined">auto_awesome</span>
+                                        Halloween Theme
+                                    </h3>
+                                    <p class="settings-card-desc">Enable the seasonal login treatment and subtle floating Halloween effects. Visitors can disable the effects on their own device.</p>
+                                </div>
+                                <% if (settings.halloween?.enabled) { %>
+                                <span class="settings-badge badge-warning">🎃 ACTIVE</span>
+                                <% } else { %>
+                                <span class="settings-badge badge-neutral">INACTIVE</span>
+                                <% } %>
+                            </div>
+
+                            <form action="/settings/halloween" method="POST" style="display: flex; flex-direction: column; gap: 16px;">
+                                <div class="settings-switch-row">
+                                    <input type="checkbox" id="halloweenEnabled" name="enabled" value="true" class="settings-switch-checkbox" <%= settings.halloween?.enabled ? 'checked' : '' %>>
+                                    <label for="halloweenEnabled" class="settings-switch-label">
+                                        <span class="settings-switch-title">Enable Halloween Features</span>
+                                        <span class="settings-switch-desc">Applies immediately to the splash screen, login page, and shared navigation layout.</span>
+                                    </label>
+                                </div>
+                                <div style="display: flex; justify-content: flex-start;">
+                                    <button type="submit" class="settings-btn settings-btn-primary">
+                                        <span class="material-symbols-outlined">save</span>
+                                        Save Halloween Settings
                                     </button>
                                 </div>
                             </form>
