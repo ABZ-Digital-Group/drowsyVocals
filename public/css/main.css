@@ -165,37 +165,67 @@ main{
     }
 }
 
-body.halloween-seasonal-active:not(.halloween-login-page) nav {
+body.seasonal-theme-halloween.halloween-seasonal-active:not(.halloween-login-page) nav {
     background: linear-gradient(105deg, #21183f, #3b1d49 58%, #55233d);
     border-bottom: 2px solid #f47b20;
 }
 
-body.halloween-seasonal-active:not(.halloween-login-page) nav img {
+body.seasonal-theme-halloween.halloween-seasonal-active:not(.halloween-login-page) nav img {
     filter: drop-shadow(0 0 8px rgba(244, 123, 32, 0.55));
 }
 
-body.halloween-login-page.halloween-seasonal-active {
+body.seasonal-theme-halloween.halloween-login-page.halloween-seasonal-active {
     background:
         radial-gradient(circle at 82% 18%, rgba(244, 123, 32, 0.2), transparent 25%),
         linear-gradient(135deg, #17132d, #34203f 58%, #54233d);
 }
 
-body.halloween-login-page.halloween-seasonal-active .Logo {
+body.seasonal-theme-halloween.halloween-login-page.halloween-seasonal-active .Logo {
     background:
         radial-gradient(circle at 50% 34%, rgba(244, 123, 32, 0.26), transparent 26%),
         linear-gradient(145deg, #1d1636, #452047);
 }
 
-body.halloween-login-page.halloween-seasonal-active .Logo img {
+body.seasonal-theme-halloween.halloween-login-page.halloween-seasonal-active .Logo img {
     filter: drop-shadow(0 0 18px rgba(255, 143, 45, 0.72));
 }
 
-body.halloween-login-page.halloween-seasonal-active .login-form {
+body.seasonal-theme-halloween.halloween-login-page.halloween-seasonal-active .login-form {
     background: rgba(246, 244, 255, 0.94);
     box-shadow: inset 0 0 80px rgba(244, 123, 32, 0.12);
 }
 
-.halloween-effects {
+body.seasonal-theme-christmas.christmas-seasonal-active:not(.christmas-login-page) nav {
+    background: linear-gradient(105deg, #123b3a, #174f55 58%, #7f2436);
+    border-bottom: 2px solid #e8c66d;
+}
+
+body.seasonal-theme-christmas.christmas-seasonal-active:not(.christmas-login-page) nav img {
+    filter: drop-shadow(0 0 8px rgba(232, 198, 109, 0.6));
+}
+
+body.seasonal-theme-christmas.christmas-login-page.christmas-seasonal-active {
+    background:
+        radial-gradient(circle at 82% 18%, rgba(232, 198, 109, 0.2), transparent 25%),
+        linear-gradient(135deg, #102d35, #174f55 58%, #7f2436);
+}
+
+body.seasonal-theme-christmas.christmas-login-page.christmas-seasonal-active .Logo {
+    background:
+        radial-gradient(circle at 50% 34%, rgba(232, 198, 109, 0.26), transparent 26%),
+        linear-gradient(145deg, #123b3a, #174f55);
+}
+
+body.seasonal-theme-christmas.christmas-login-page.christmas-seasonal-active .Logo img {
+    filter: drop-shadow(0 0 18px rgba(232, 198, 109, 0.72));
+}
+
+body.seasonal-theme-christmas.christmas-login-page.christmas-seasonal-active .login-form {
+    background: rgba(246, 244, 255, 0.94);
+    box-shadow: inset 0 0 80px rgba(23, 79, 85, 0.16);
+}
+
+.seasonal-effects {
     position: fixed;
     inset: 0;
     z-index: 9997;
@@ -203,18 +233,18 @@ body.halloween-login-page.halloween-seasonal-active .login-form {
     pointer-events: none;
 }
 
-.halloween-decoration {
+.seasonal-decoration {
     position: absolute;
     top: -12vh;
-    left: calc(8% + (var(--halloween-index) * 16%));
+    left: calc(8% + (var(--seasonal-index) * 16%));
     font-size: clamp(1.3rem, 2.8vw, 2.3rem);
     opacity: 0.72;
     filter: drop-shadow(0 3px 4px rgba(26, 13, 35, 0.35));
-    animation: halloween-drift 14s linear infinite;
-    animation-delay: calc(var(--halloween-index) * -2.2s);
+    animation: seasonal-drift 14s linear infinite;
+    animation-delay: calc(var(--seasonal-index) * -2.2s);
 }
 
-.halloween-effects-toggle {
+.seasonal-effects-toggle {
     position: fixed;
     right: 16px;
     bottom: 16px;
@@ -231,12 +261,12 @@ body.halloween-login-page.halloween-seasonal-active .login-form {
     font-weight: bold;
 }
 
-.halloween-effects-toggle:hover,
-.halloween-effects-toggle:focus-visible {
+.seasonal-effects-toggle:hover,
+.seasonal-effects-toggle:focus-visible {
     background: #55233d;
 }
 
-@keyframes halloween-drift {
+@keyframes seasonal-drift {
     0% {
         transform: translate3d(0, -8vh, 0) rotate(-8deg);
     }
@@ -248,9 +278,15 @@ body.halloween-login-page.halloween-seasonal-active .login-form {
     }
 }
 
-.halloween-settings-card {
+.halloween-settings-card,
+.christmas-settings-card {
     border-color: #f47b20;
     background: linear-gradient(135deg, #292752, #392044);
+}
+
+.christmas-settings-card {
+    border-color: #e8c66d;
+    background: linear-gradient(135deg, #174f55, #7f2436);
 }
 
 /* Fit the complete bracket inside the stream viewport. */
@@ -498,7 +534,7 @@ body.halloween-login-page.halloween-seasonal-active .login-form {
         animation: none;
         transition: none;
     }
-    .halloween-decoration {
+    .seasonal-decoration {
         animation: none;
     }
 }

@@ -501,6 +501,39 @@
                             </form>
                         </div>
 
+                        <div class="settings-card christmas-settings-card">
+                            <div class="settings-card-header">
+                                <div class="settings-card-title-wrap">
+                                    <h3 class="settings-card-title">
+                                        <span class="material-symbols-outlined">ac_unit</span>
+                                        Christmas Theme
+                                    </h3>
+                                    <p class="settings-card-desc">Enable a festive login treatment with falling snow, winter colors, and seasonal navigation accents. Visitors can disable the effects on their own device.</p>
+                                </div>
+                                <% if (settings.christmas?.enabled) { %>
+                                <span class="settings-badge badge-success">🎄 ACTIVE</span>
+                                <% } else { %>
+                                <span class="settings-badge badge-neutral">INACTIVE</span>
+                                <% } %>
+                            </div>
+
+                            <form action="/settings/christmas" method="POST" style="display: flex; flex-direction: column; gap: 16px;">
+                                <div class="settings-switch-row">
+                                    <input type="checkbox" id="christmasEnabled" name="enabled" value="true" class="settings-switch-checkbox" <%= settings.christmas?.enabled ? 'checked' : '' %>>
+                                    <label for="christmasEnabled" class="settings-switch-label">
+                                        <span class="settings-switch-title">Enable Christmas Features</span>
+                                        <span class="settings-switch-desc">Enabling Christmas automatically turns off the Halloween theme so seasonal styles never conflict.</span>
+                                    </label>
+                                </div>
+                                <div style="display: flex; justify-content: flex-start;">
+                                    <button type="submit" class="settings-btn settings-btn-primary">
+                                        <span class="material-symbols-outlined">save</span>
+                                        Save Christmas Settings
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+
                         <!-- Discord Webhook & Google Forms Integration Card -->
                         <div class="settings-card">
                             <div class="settings-card-header">

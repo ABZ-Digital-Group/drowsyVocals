@@ -4,7 +4,7 @@
         <%- include('../partials/head') %>
         <title>Drowsy Vocals</title>
     </head>
-    <body class="<%= halloweenEnabled ? 'halloween-login-page' : '' %>">
+    <body class="<%= seasonalTheme === 'halloween' ? 'halloween-login-page' : (seasonalTheme === 'christmas' ? 'christmas-login-page' : '') %>">
         <main class="login-page">
             <section class="login-container">
                 <div class="Logo">

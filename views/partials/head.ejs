@@ -9,7 +9,7 @@
 
         <meta name="theme-color" content="#292752" />
         <script src="/socket.io/socket.io.js"></script>
-        <script>window.drowsyHalloweenEnabled = <%= typeof halloweenEnabled !== 'undefined' && halloweenEnabled ? 'true' : 'false' %>;</script>
+        <script>window.drowsySeasonalTheme = <%- JSON.stringify(typeof seasonalTheme !== 'undefined' ? seasonalTheme : 'none') %>;</script>
         <script src="/scripts/main.js?Version=1.42" defer></script>
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

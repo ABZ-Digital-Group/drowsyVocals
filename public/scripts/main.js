@@ -1,61 +1,69 @@
-const HALLOWEEN_OPT_OUT_KEY = 'drowsyVocalsHalloweenOptOut';
+const SEASONAL_OPT_OUT_KEY = 'drowsyVocalsSeasonalEffectsOptOut';
+const LEGACY_HALLOWEEN_OPT_OUT_KEY = 'drowsyVocalsHalloweenOptOut';
 
-const readHalloweenOptOut = () => {
+const readSeasonalOptOut = () => {
   try {
-    return window.localStorage.getItem(HALLOWEEN_OPT_OUT_KEY) === 'true';
+    return window.localStorage.getItem(SEASONAL_OPT_OUT_KEY) === 'true'
+      || window.localStorage.getItem(LEGACY_HALLOWEEN_OPT_OUT_KEY) === 'true';
   } catch (error) {
-    console.warn('Halloween preference could not be read:', error);
+    console.warn('Seasonal theme preference could not be read:', error);
     return false;
   }
 };
 
-const saveHalloweenOptOut = (disabled) => {
+const saveSeasonalOptOut = (disabled) => {
   try {
-    window.localStorage.setItem(HALLOWEEN_OPT_OUT_KEY, String(disabled));
+    window.localStorage.setItem(SEASONAL_OPT_OUT_KEY, String(disabled));
   } catch (error) {
-    console.warn('Halloween preference could not be saved:', error);
+    console.warn('Seasonal theme preference could not be saved:', error);
   }
 };
 
-const initializeHalloween = () => {
-  if (window.drowsyHalloweenEnabled !== true || !document.body) return;
+const initializeSeasonalTheme = () => {
+  const seasonalTheme = window.drowsySeasonalTheme;
+  if (!['halloween', 'christmas'].includes(seasonalTheme) || !document.body) return;
 
-  const halloweenEffects = document.createElement('div');
-  halloweenEffects.className = 'halloween-effects';
-  halloweenEffects.setAttribute('aria-hidden', 'true');
-  ['🦇', '👻', '🍂', '🦇', '🎃', '🍂'].forEach((symbol, index) => {
+  const seasonalEffects = document.createElement('div');
+  seasonalEffects.className = `seasonal-effects seasonal-effects-${seasonalTheme}`;
+  seasonalEffects.setAttribute('aria-hidden', 'true');
+  const decorations = seasonalTheme === 'christmas'
+    ? ['❄️', '🎄', '❄️', '🎁', '❄️', '✨']
+    : ['🦇', '👻', '🍂', '🦇', '🎃', '🍂'];
+  decorations.forEach((symbol, index) => {
     const decoration = document.createElement('span');
-    decoration.className = 'halloween-decoration';
+    decoration.className = 'seasonal-decoration';
     decoration.textContent = symbol;
-    decoration.style.setProperty('--halloween-index', String(index));
-    halloweenEffects.appendChild(decoration);
+    decoration.style.setProperty('--seasonal-index', String(index));
+    seasonalEffects.appendChild(decoration);
   });
 
   const toggle = document.createElement('button');
   toggle.type = 'button';
-  toggle.className = 'halloween-effects-toggle';
+  toggle.className = 'seasonal-effects-toggle';
   toggle.setAttribute('aria-pressed', 'false');
   toggle.addEventListener('click', () => {
     const disabled = !document.body.classList.contains('halloween-effects-disabled');
-    saveHalloweenOptOut(disabled);
-    renderHalloween();
+    saveSeasonalOptOut(disabled);
+    renderSeasonalTheme();
   });
 
-  const renderHalloween = () => {
-    const disabled = readHalloweenOptOut();
+  const renderSeasonalTheme = () => {
+    const disabled = readSeasonalOptOut();
     document.body.classList.toggle('halloween-effects-disabled', disabled);
     document.body.classList.toggle('halloween-seasonal-active', !disabled);
-    toggle.textContent = disabled ? 'Enable Halloween effects' : 'Disable Halloween effects';
+    document.body.classList.toggle('christmas-seasonal-active', !disabled);
+    document.body.classList.add(`seasonal-theme-${seasonalTheme}`);
+    toggle.textContent = disabled ? 'Enable seasonal effects' : 'Disable seasonal effects';
     toggle.setAttribute('aria-pressed', String(!disabled));
-    if (!disabled && !halloweenEffects.isConnected) document.body.appendChild(halloweenEffects);
-    if (disabled && halloweenEffects.isConnected) halloweenEffects.remove();
+    if (!disabled && !seasonalEffects.isConnected) document.body.appendChild(seasonalEffects);
+    if (disabled && seasonalEffects.isConnected) seasonalEffects.remove();
   };
 
   document.body.appendChild(toggle);
-  renderHalloween();
+  renderSeasonalTheme();
 };
 
-initializeHalloween();
+initializeSeasonalTheme();
 
 var data = [
     [22, 'Working late'],

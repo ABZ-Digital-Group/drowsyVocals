@@ -233,6 +233,8 @@ app.use(async (req, res, next) => {
     res.locals.pagePermissions = {};
     res.locals.canViewPage = (pageKey) => canViewPage(req, pageKey, res.locals.pagePermissions);
     res.locals.halloweenEnabled = false;
+    res.locals.christmasEnabled = false;
+    res.locals.seasonalTheme = 'none';
     if (isDatabaseReady && db && req.session.loggedin && req.session.currentuser) {
         try {
             const user = await db.collection('users').findOne(
@@ -267,6 +269,10 @@ app.use(async (req, res, next) => {
             const currentSettings = await getSettings();
             res.locals.pagePermissions = currentSettings.pageAccess || {};
             res.locals.halloweenEnabled = Boolean(currentSettings.halloween?.enabled);
+            res.locals.christmasEnabled = Boolean(currentSettings.christmas?.enabled);
+            res.locals.seasonalTheme = res.locals.christmasEnabled
+                ? 'christmas'
+                : (res.locals.halloweenEnabled ? 'halloween' : 'none');
             res.locals.maintenanceActive = Boolean(currentSettings?.maintenance?.enabled);
             res.locals.maintenanceMessage = currentSettings?.maintenance?.message || 'The website is currently undergoing scheduled maintenance. Please check back soon.';
         } catch {
@@ -1541,6 +1547,9 @@ const DEFAULT_SETTINGS = {
     ],
     pageAccess: {},
     halloween: {
+        enabled: false
+    },
+    christmas: {
         enabled: false
     },
     maintenance: {
@@ -3164,9 +3173,16 @@ app.post('/settings/halloween', requireDatabase, async (req, res) => {
     const enabled = req.body.enabled === 'true' || req.body.enabled === 'on';
 
     try {
+        const halloweenSettings = {
+            'halloween.enabled': enabled,
+            'halloween.updatedAt': new Date().toISOString(),
+            'halloween.updatedBy': req.session.currentuser
+        };
+        if (enabled) halloweenSettings['christmas.enabled'] = false;
+
         await db.collection('settings').updateOne(
             { _id: 'appSettings' },
-            { $set: { 'halloween.enabled': enabled, 'halloween.updatedAt': new Date().toISOString(), 'halloween.updatedBy': req.session.currentuser } },
+            { $set: halloweenSettings },
             { upsert: true }
         );
         await writeAudit(req, `${enabled ? 'Enabled' : 'Disabled'} Halloween theme`, 'Manual seasonal theme setting');
@@ -3174,6 +3190,37 @@ app.post('/settings/halloween', requireDatabase, async (req, res) => {
     } catch (error) {
         console.error('Error updating Halloween settings:', error);
         req.flash('error_msg', 'Unable to update Halloween settings.');
+    }
+    res.redirect('/settings#system');
+});
+
+// TOGGLE THE MANUAL CHRISTMAS SEASONAL THEME. ENABLING IT DISABLES HALLOWEEN.
+app.post('/settings/christmas', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !hasGodAccess(req)) {
+        req.flash('error_msg', 'You are not authorized to manage Christmas settings.');
+        return res.redirect('/settings');
+    }
+
+    const enabled = req.body.enabled === 'true' || req.body.enabled === 'on';
+
+    try {
+        const christmasSettings = {
+            'christmas.enabled': enabled,
+            'christmas.updatedAt': new Date().toISOString(),
+            'christmas.updatedBy': req.session.currentuser
+        };
+        if (enabled) christmasSettings['halloween.enabled'] = false;
+
+        await db.collection('settings').updateOne(
+            { _id: 'appSettings' },
+            { $set: christmasSettings },
+            { upsert: true }
+        );
+        await writeAudit(req, `${enabled ? 'Enabled' : 'Disabled'} Christmas theme`, 'Manual seasonal theme setting');
+        req.flash('success_msg', `Christmas theme ${enabled ? 'enabled' : 'disabled'}.`);
+    } catch (error) {
+        console.error('Error updating Christmas settings:', error);
+        req.flash('error_msg', 'Unable to update Christmas settings.');
     }
     res.redirect('/settings#system');
 });
