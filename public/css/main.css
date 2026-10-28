@@ -1168,7 +1168,7 @@ tbody tr:not(.rank-group-header):not(.bingo-rank-header):hover {
     overflow-x: auto;
 }
     
-.roster-content button:not(.action-button) {
+.roster-content button:not(.action-button):not(.roster-profile-button) {
     padding: 2px;
     font-size: 1.2em;
     border: none;
