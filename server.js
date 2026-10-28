@@ -5297,9 +5297,11 @@ app.post('/account/upload-background', requireDatabase, (req, res) => {
 app.post('/change-password', requireDatabase, async (req, res) => {
     if (!req.session.loggedin) return res.redirect('/');
 
-    const { currentPassword, newPassword, confirmPassword } = req.body;
+    const currentPassword = typeof req.body.currentPassword === 'string' ? req.body.currentPassword : '';
+    const newPassword = typeof req.body.newPassword === 'string' ? req.body.newPassword : '';
+    const confirmPassword = typeof req.body.confirmPassword === 'string' ? req.body.confirmPassword : '';
 
-    if (!currentPassword || !newPassword || !confirmPassword) {
+    if (!newPassword || !confirmPassword) {
         req.flash('error_msg', 'All password fields are required.');
         return res.redirect('/account');
     }
@@ -5318,12 +5320,16 @@ app.post('/change-password', requireDatabase, async (req, res) => {
         const currentDiscordId = req.session.currentuser;
         const user = await db.collection('users').findOne({ 'login.discordId': currentDiscordId });
 
-        if (!user) return res.redirect('/logout');
+        if (!user?.login?.password) return res.redirect('/logout');
 
-        const isMatch = await bcrypt.compare(currentPassword, user.login.password);
-        if (!isMatch) {
-            req.flash('error_msg', 'Current password is incorrect.');
-            return res.redirect('/account');
+        // A management-forced reset is already authorized by the authenticated
+        // session, so users can recover even when they no longer know the old password.
+        if (!user.mustResetPassword || currentPassword) {
+            const isMatch = await bcrypt.compare(currentPassword, user.login.password);
+            if (!isMatch) {
+                req.flash('error_msg', 'Current password is incorrect.');
+                return res.redirect('/account');
+            }
         }
 
         const hash = await bcrypt.hash(newPassword, saltRounds);

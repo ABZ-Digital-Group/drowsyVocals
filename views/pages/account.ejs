@@ -17,8 +17,8 @@
                 <p class="password-reset-modal-note">This message will remain until your password has been changed.</p>
                 <form class="account-form" action="/change-password" method="POST">
                     <div class="settings-form-group">
-                        <label for="requiredCurrentPassword">Current Password</label>
-                        <input type="password" id="requiredCurrentPassword" name="currentPassword" class="settings-input" required autocomplete="current-password">
+                        <label for="requiredCurrentPassword">Current Password (optional for this reset)</label>
+                        <input type="password" id="requiredCurrentPassword" name="currentPassword" class="settings-input" autocomplete="current-password">
                     </div>
                     <div class="settings-form-group">
                         <label for="requiredNewPassword">New Password</label>
@@ -507,7 +507,7 @@
                             <form class="account-form" action="/change-password" method="POST">
                                 <div class="settings-form-group" style="margin-bottom: 0;">
                                     <label for="currentPassword">Current Password</label>
-                                    <input type="password" id="currentPassword" name="currentPassword" class="settings-input" placeholder="••••••••" required autocomplete="current-password">
+                                    <input type="password" id="currentPassword" name="currentPassword" class="settings-input" placeholder="••••••••" <%= user.mustResetPassword ? '' : 'required' %> autocomplete="current-password">
                                 </div>
 
                                 <div class="settings-form-group" style="margin-bottom: 0;">
