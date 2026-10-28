@@ -507,6 +507,71 @@ app.use(async (req, res, next) => {
 });
 const CHANGELOG_ENTRIES = [
     {
+        date: '2026-10-28',
+        title: 'Role-based page access controls added',
+        changes: ['Gods and Developers can now restrict individual pages to selected staff ranks. Navigation links, direct page requests, and supported API endpoints enforce the same access rules while privileged users retain an override.']
+    },
+    {
+        date: '2026-10-28',
+        title: 'Halloween and Christmas themes added',
+        changes: ['Gods and Developers can enable a manual Halloween or Christmas theme from Settings. The themes are mutually exclusive, include seasonal login styling, and let visitors disable animated effects on their own device.']
+    },
+    {
+        date: '2026-10-28',
+        title: 'Seasonal falling effects refined',
+        changes: ['Halloween bats, ghosts, leaves, and pumpkins now use varied drifting paths, while Christmas snow, gifts, trees, and sparkles use layered speeds, sizes, and fade timing.']
+    },
+    {
+        date: '2026-10-25',
+        title: 'Event brackets added',
+        changes: ['Events can now have editable brackets with multiple formats and match types, participant management, fullscreen viewing, streaming mode, responsive scaling, live state polling, and loading feedback.']
+    },
+    {
+        date: '2026-10-25',
+        title: 'Staff activity tracking added',
+        changes: ['Management can now review completed voice activity sessions, live session totals, participant details, and automatically refreshed activity data.']
+    },
+    {
+        date: '2026-10-24',
+        title: 'Bulk password reset management added',
+        changes: ['Authorized management users can select staff accounts from Settings and require password changes at their next sign-in without exposing or generating passwords in the portal.']
+    },
+    {
+        date: '2026-10-24',
+        title: 'Host management added',
+        changes: ['Authorized staff can add and remove event hosts, with host assignments now visible from roster and event views.']
+    },
+    {
+        date: '2026-10-24',
+        title: 'MongoDB session security options added',
+        changes: ['MongoDB session storage now supports explicit TLS configuration and a clearly opt-in insecure connection override for environments that require it.']
+    },
+    {
+        date: '2026-10-23',
+        title: 'Discord presence indicators added',
+        changes: ['Roster profiles now show Discord presence details and channel links when available, with clearer avatar and status presentation.']
+    },
+    {
+        date: '2026-10-23',
+        title: 'Event history and timezone display improved',
+        changes: ['Event history details can now be opened in a dedicated view, and event times are consistently handled and displayed in Eastern Time.']
+    },
+    {
+        date: '2026-10-23',
+        title: 'House points can be awarded to multiple staff',
+        changes: ['The house points award form now supports selecting multiple staff members in one action.']
+    },
+    {
+        date: '2026-10-23',
+        title: 'Mobile REST API foundation added',
+        changes: ['Added authenticated API endpoints for login, account data, roster management, and core management portal data.']
+    },
+    {
+        date: '2026-10-16',
+        title: 'Bingo administration improved',
+        changes: ['The Bingo board now includes an improved management tracker and calculates total rewards for configured goals.']
+    },
+    {
         date: '2026-09-13',
         title: 'Dashboard refresh loop fixed',
         changes: ['Presence heartbeats no longer trigger shared live-update refresh events, preventing repeated dashboard refreshes.']
