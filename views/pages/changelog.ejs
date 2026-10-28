@@ -10,6 +10,7 @@
                     <h1>Changelog</h1>
                     <p class="profile-subtitle">Recent website updates and feature changes.</p>
                 </div>
+                <%- include('../partials/history-pagination', { pagination: pagination }) %>
                 <ul class="changelog-list">
                     <% if (!entries.length) { %>
                     <li>No updates have been recorded yet.</li>
@@ -28,6 +29,7 @@
                     </li>
                     <% }); %>
                 </ul>
+                <%- include('../partials/history-pagination', { pagination: pagination }) %>
             </section>
         </main>
         <div class="footer"><p>&copy; 2026 Drowsy Vocals | All rights reserved.</p></div>

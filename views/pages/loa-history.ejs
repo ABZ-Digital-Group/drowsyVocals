@@ -14,6 +14,7 @@
                     <p class="profile-subtitle">A complete record of leave of absence requests across the staff team.</p>
                     <p><a class="action-button action-button-primary" href="/loa"><span class="material-symbols-outlined" aria-hidden="true">arrow_back</span>Back to LOA</a></p>
                 </div>
+                <%- include('../partials/history-pagination', { pagination: pagination }) %>
                 <div class="profile-details">
                     <div class="profile-detail-full">
                         <span>All requests</span>
@@ -54,6 +55,7 @@
                         <% } %>
                     </div>
                 </div>
+                <%- include('../partials/history-pagination', { pagination: pagination }) %>
             </section>
         </main>
         <div class="footer"><p>&copy; 2026 Drowsy Vocals | All rights reserved.</p></div>

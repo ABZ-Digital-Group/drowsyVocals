@@ -1953,6 +1953,37 @@ function parsePositiveInt(value) {
     return Number.isFinite(parsed) && parsed >= 0 ? Math.floor(parsed) : null;
 }
 
+const HISTORY_PAGE_SIZE = 10;
+
+function parseHistoryPage(value) {
+    const parsed = Number.parseInt(value, 10);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
+}
+
+function buildHistoryPagination(totalItems, requestedPage, path, label) {
+    const totalPages = Math.max(1, Math.ceil(totalItems / HISTORY_PAGE_SIZE));
+    const currentPage = requestedPage > totalPages ? 1 : Math.max(requestedPage, 1);
+    const pageNumbers = [...new Set([1, totalPages, currentPage - 1, currentPage, currentPage + 1])]
+        .filter((pageNumber) => pageNumber >= 1 && pageNumber <= totalPages)
+        .sort((a, b) => a - b);
+    const startItem = totalItems ? ((currentPage - 1) * HISTORY_PAGE_SIZE) + 1 : 0;
+    const endItem = totalItems ? Math.min(currentPage * HISTORY_PAGE_SIZE, totalItems) : 0;
+
+    return {
+        currentPage,
+        totalPages,
+        totalItems,
+        pageSize: HISTORY_PAGE_SIZE,
+        pageNumbers,
+        startItem,
+        endItem,
+        hasPrevious: currentPage > 1,
+        hasNext: currentPage < totalPages,
+        path,
+        label
+    };
+}
+
 // HEALTH CHECK
 app.get('/health', (req, res) => {
     res.status(!shuttingDown && isDatabaseReady ? 200 : 503).json({
@@ -5572,13 +5603,25 @@ app.get('/audit-log', requireDatabase, async (req, res) => {
     if (!req.session.loggedin) return res.redirect('/');
     if (!hasManagementAccess(req)) return res.status(403).send('You do not have permission to view the audit log.');
     try {
-        const [entries, users] = await Promise.all([
-            db.collection('auditLog').find().sort({ createdAt: -1 }).limit(100).toArray(),
+        const requestedPage = parseHistoryPage(req.query.page);
+        const [totalEntries, users] = await Promise.all([
+            db.collection('auditLog').countDocuments(),
             db.collection('users').find({}, { projection: { displayName: 1, discordUser: 1, 'login.discordId': 1 } }).toArray()
         ]);
+        const pagination = buildHistoryPagination(totalEntries, requestedPage, '/audit-log', 'Audit log pages');
+        const entries = await db.collection('auditLog')
+            .find()
+            .sort({ createdAt: -1 })
+            .skip((pagination.currentPage - 1) * HISTORY_PAGE_SIZE)
+            .limit(HISTORY_PAGE_SIZE)
+            .toArray();
 
         const nameByDiscordId = new Map(users.map((user) => [user.login.discordId, user.displayName || user.discordUser || user.login.discordId]));
-        res.render('pages/audit-log', { page: 'audit-log', entries: entries.map((entry) => ({ ...entry, actorDisplayName: entry.actorDisplayName || nameByDiscordId.get(entry.actor) || entry.actor })) });
+        res.render('pages/audit-log', {
+            page: 'audit-log',
+            entries: entries.map((entry) => ({ ...entry, actorDisplayName: entry.actorDisplayName || nameByDiscordId.get(entry.actor) || entry.actor })),
+            pagination
+        });
     } catch (error) {
         console.error('Error loading audit log:', error);
         res.status(500).send('Error loading audit log.');
@@ -5590,7 +5633,18 @@ app.get('/audit-log', requireDatabase, async (req, res) => {
 app.get('/changelog', async (req, res) => {
     if (!req.session.loggedin) return res.redirect('/');
     if (!hasManagementAccess(req)) return res.status(403).send('You do not have permission to view the changelog.');
-    res.render('pages/changelog', { page: 'changelog', entries: CHANGELOG_ENTRIES });
+    const pagination = buildHistoryPagination(
+        CHANGELOG_ENTRIES.length,
+        parseHistoryPage(req.query.page),
+        '/changelog',
+        'Changelog pages'
+    );
+    const startIndex = (pagination.currentPage - 1) * HISTORY_PAGE_SIZE;
+    res.render('pages/changelog', {
+        page: 'changelog',
+        entries: CHANGELOG_ENTRIES.slice(startIndex, startIndex + HISTORY_PAGE_SIZE),
+        pagination
+    });
 });
 
 app.get('/notifications', requireDatabase, async (req, res) => {
@@ -6759,6 +6813,7 @@ app.get('/loa/history', requireDatabase, async (req, res) => {
     if (!hasManagementAccess(req)) return res.status(403).send('You do not have permission to view LOA history.');
 
     try {
+        const requestedPage = parseHistoryPage(req.query.page);
         const users = await db.collection('users').find(
             { 'loaRequests.0': { $exists: true } },
             { projection: { displayName: 1, discordUser: 1, accountType: 1, 'login.discordId': 1, loaRequests: 1 } }
@@ -6770,10 +6825,13 @@ app.get('/loa/history', requireDatabase, async (req, res) => {
             discordId: user.login?.discordId,
             accountType: user.accountType || 'Unknown'
         }))).sort((a, b) => new Date(b.requestedAt || 0) - new Date(a.requestedAt || 0));
+        const pagination = buildHistoryPagination(loaHistory.length, requestedPage, '/loa/history', 'LOA history pages');
+        const startIndex = (pagination.currentPage - 1) * HISTORY_PAGE_SIZE;
 
         res.render('pages/loa-history', {
             page: 'loa-history',
-            loaHistory
+            loaHistory: loaHistory.slice(startIndex, startIndex + HISTORY_PAGE_SIZE),
+            pagination
         });
     } catch (error) {
         console.error('Error loading LOA history:', error);

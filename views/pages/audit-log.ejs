@@ -4,7 +4,9 @@
     <body>
         <header><%- include('../partials/nav') %></header>
         <main><section class="profile-page"><div class="profile-heading"><p class="profile-eyebrow">Management</p><h1>Audit Log</h1><p class="profile-subtitle">Recent management activity across the site.</p></div>
+            <%- include('../partials/history-pagination', { pagination: pagination }) %>
             <ul class="audit-log"><% if (!entries.length) { %><li>No management activity has been recorded yet.</li><% } %><% entries.forEach(function(entry) { %><li><strong><%= entry.action %></strong><span><%= entry.detail %></span><small><%= entry.actorDisplayName %> · <%= (entry.createdAt || '').replace('T', ' ') %></small></li><% }); %></ul>
+            <%- include('../partials/history-pagination', { pagination: pagination }) %>
         </section></main>
         <div class="footer"><p>&copy; 2026 Drowsy Vocals | All rights reserved.</p></div>
     </body>

@@ -10,6 +10,10 @@ The Management > Staff Activity page receives completed voice sessions at `/api/
 
 Gods and Developers can open **Settings > Page Access** to restrict authenticated pages to selected configured ranks. Pages remain unchanged until **Restrict** is enabled for them; an enabled rule with no selected ranks denies the page to every non-privileged role. Gods and Developers always retain access, including while using the developer preview mode.
 
+## Management history pagination
+
+The Changelog, Audit Log, and LOA History pages show their complete datasets in navigable pages of 10 records, with page numbers and previous/next controls.
+
 ## Seasonal themes
 
 Gods and Developers can enable the manual Halloween or Christmas theme from **Settings > System & Security**. Only one seasonal theme is active at a time; enabling one disables the other. Visitors can disable the animated effects locally with the seasonal-effects control.

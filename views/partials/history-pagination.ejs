@@ -1,0 +1,28 @@
+<div class="history-pagination">
+    <span class="history-pagination-summary">Showing <%= pagination.startItem %>-<%= pagination.endItem %> of <%= pagination.totalItems %></span>
+    <% if (pagination.totalPages > 1) { %>
+    <nav aria-label="<%= pagination.label %>">
+        <% if (pagination.hasPrevious) { %>
+        <a class="action-button action-button-secondary" href="<%= pagination.path %>?page=<%= pagination.currentPage - 1 %>">Previous</a>
+        <% } %>
+        <span class="history-pagination-pages">
+            <% let previousPage = 0; %>
+            <% pagination.pageNumbers.forEach(function(pageNumber) { %>
+                <% if (previousPage && pageNumber > previousPage + 1) { %>
+                <span class="history-pagination-ellipsis" aria-hidden="true">...</span>
+                <% } %>
+                <% if (pageNumber === pagination.currentPage) { %>
+                <span class="history-pagination-page is-current" aria-current="page"><%= pageNumber %></span>
+                <% } else { %>
+                <a class="history-pagination-page" href="<%= pagination.path %>?page=<%= pageNumber %>"><%= pageNumber %></a>
+                <% } %>
+                <% previousPage = pageNumber; %>
+            <% }); %>
+        </span>
+        <% if (pagination.hasNext) { %>
+        <a class="action-button action-button-secondary" href="<%= pagination.path %>?page=<%= pagination.currentPage + 1 %>">Next</a>
+        <% } %>
+        <span class="history-pagination-status">Page <%= pagination.currentPage %> of <%= pagination.totalPages %></span>
+    </nav>
+    <% } %>
+</div>
