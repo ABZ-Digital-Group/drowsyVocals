@@ -463,6 +463,7 @@ const PAGE_PERMISSION_OPTIONS = [
 ];
 const hasManagementAccess = (req) => MANAGEMENT_ROLES.includes(req.session.accountType) || Boolean(req.session.isDeveloper);
 const hasGodAccess = (req) => GOD_ROLES.includes(req.session.accountType) || Boolean(req.session.isDeveloper);
+const hasBracketAccess = (req) => Boolean(req.session.loggedin && req.session.currentuser);
 const hasDiscordChannelViewerAccess = (req) => !req.session.previewAsNonAdmin && req.session.currentuser === DISCORD_CHANNEL_VIEWER_ID;
 const hasCheckInAccess = (req, settings) => hasGodAccess(req) || (settings.checkInAccessUserIds || []).includes(req.session.currentuser);
 const canViewPage = (req, pageKey, pagePermissions = {}) => {
@@ -6342,7 +6343,7 @@ app.get('/brackets', requireDatabase, async (req, res) => {
            brackets,
            events,
            selectedBracket,
-           isManager: hasManagementAccess(req)
+           canManageBrackets: hasBracketAccess(req)
        });
    } catch (error) {
        console.error('Error loading brackets:', error);
@@ -6351,7 +6352,7 @@ app.get('/brackets', requireDatabase, async (req, res) => {
 });
 
 app.post('/brackets/create', requireDatabase, async (req, res) => {
-   if (!req.session.loggedin || !hasManagementAccess(req)) {
+   if (!hasBracketAccess(req)) {
        req.flash('error_msg', 'You are not authorized to create brackets.');
        return res.redirect('/brackets');
    }
@@ -6404,7 +6405,7 @@ app.post('/brackets/create', requireDatabase, async (req, res) => {
 });
 
 app.post('/brackets/:bracketId/save', requireDatabase, async (req, res) => {
-   if (!req.session.loggedin || !hasManagementAccess(req)) return res.status(403).json({ error: 'Unauthorized.' });
+   if (!hasBracketAccess(req)) return res.status(403).json({ error: 'Unauthorized.' });
    const state = sanitizeBracketState(req.body);
    try {
        const eventId = String(req.body.eventId || '').trim();
@@ -6462,7 +6463,7 @@ app.get('/brackets/:bracketId/state', requireDatabase, async (req, res) => {
 });
 
 app.post('/brackets/:bracketId/delete', requireDatabase, async (req, res) => {
-   if (!req.session.loggedin || !hasManagementAccess(req)) {
+   if (!hasBracketAccess(req)) {
        req.flash('error_msg', 'You are not authorized to delete brackets.');
        return res.redirect('/brackets');
    }
