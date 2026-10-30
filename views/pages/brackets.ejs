@@ -45,7 +45,7 @@
                             <% }); %>
                         </div>
                         <% } %>
-                        <% if (isManager) { %>
+                        <% if (canManageBrackets) { %>
                         <form class="bracket-create-form" action="/brackets/create" method="POST">
                             <h3>Create a bracket</h3>
                             <label for="bracketTitle">Bracket name</label>
@@ -100,14 +100,14 @@
                                 <button type="button" class="settings-btn settings-btn-secondary settings-btn-sm" id="toggleBracketFullscreen">
                                     <span class="material-symbols-outlined">fullscreen</span><span class="fullscreen-button-label">Stream fullscreen</span>
                                 </button>
-                                <% if (isManager) { %>
+                                <% if (canManageBrackets) { %>
                                 <form action="/brackets/<%= selectedBracket._id %>/delete" method="POST" onsubmit="return confirm('Delete this bracket?')">
                                     <button class="settings-btn settings-btn-danger settings-btn-sm" type="submit">Delete</button>
                                 </form>
                                 <% } %>
                             </div>
                         </div>
-                        <% if (isManager) { %>
+                        <% if (canManageBrackets) { %>
                         <div class="bracket-controls">
                             <div>
                                 <label for="bracketEventAssignment">Assigned event</label>
@@ -157,7 +157,7 @@
                             <div class="bracket-participants">
                                             <div class="bracket-section-heading"><h3>Participants</h3><span id="participantCount"></span></div>
                                 <div id="participantList"></div>
-                                <% if (isManager) { %><button type="button" class="settings-btn settings-btn-secondary settings-btn-sm" id="addParticipant"><span class="material-symbols-outlined">person_add</span>Add participant</button><% } %>
+                                <% if (canManageBrackets) { %><button type="button" class="settings-btn settings-btn-secondary settings-btn-sm" id="addParticipant"><span class="material-symbols-outlined">person_add</span>Add participant</button><% } %>
                             </div>
                             <div class="bracket-board-wrap">
                                 <div class="bracket-section-heading"><h3><%= ({ single: 'Single elimination', double: 'Double elimination', round_robin: 'Round robin', groups: 'Groups / pools' })[selectedBracket.format || 'single'] %></h3><span id="roundCount"></span></div>
@@ -178,7 +178,7 @@
         <% if (selectedBracket) { %>
         <script>
             (() => {
-                const canEdit = <%= isManager ? 'true' : 'false' %>;
+                const canEdit = <%= canManageBrackets ? 'true' : 'false' %>;
                 const bracketId = <%- JSON.stringify(String(selectedBracket._id)) %>;
                 const initial = <%- JSON.stringify({
                     participants: selectedBracket.participants || [],
