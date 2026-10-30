@@ -9,6 +9,9 @@
             .staff-activity-header h1 { margin: 0 0 8px; color: var(--night-indigo); }
             .staff-activity-header p { margin: 0; color: var(--dusty-blue-purple); }
             .staff-activity-note { max-width: 380px; margin: 0; padding: 12px 14px; border-left: 4px solid var(--moonlight-yellow); background: var(--cloud-lilac); color: var(--night-indigo); font-size: .9em; }
+            .staff-activity-range { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+            .staff-activity-range a { padding: 8px 14px; border: 1px solid var(--night-indigo); color: var(--night-indigo); background: var(--cloud-white); font-weight: bold; text-decoration: none; }
+            .staff-activity-range a[aria-current="page"] { color: var(--cloud-white); background: var(--night-indigo); }
             .staff-activity-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 24px; }
             .staff-activity-stat, .staff-activity-panel { border: 1px solid var(--night-indigo); background: var(--cloud-white); }
             .staff-activity-stat { padding: 16px; }
@@ -59,13 +62,17 @@
                 <div>
                     <p class="profile-eyebrow">Management</p>
                     <h1>Staff Activity</h1>
-                    <p>All-time voice activity recorded by DrowsyBot.</p>
+                    <p>Voice activity recorded by DrowsyBot.</p>
+                    <nav class="staff-activity-range" aria-label="Activity history range">
+                        <a href="/staff-activity?range=7"<%= rangeDays === 7 ? ' aria-current="page"' : '' %>>Last 7 days</a>
+                        <a href="/staff-activity?range=14"<%= rangeDays === 14 ? ' aria-current="page"' : '' %>>Last 14 days</a>
+                    </nav>
                 </div>
                 <p class="staff-activity-note">Voice time excludes AFK channels, splits when someone changes channel, and ignores sessions shorter than one minute. Totals include live sessions after one minute and refresh automatically.</p>
             </div>
 
             <section class="staff-activity-summary" aria-label="Activity summary">
-                <div class="staff-activity-stat"><span>Total voice hours (incl. live)</span><strong><%= summary.hours.toFixed(2) %></strong></div>
+                <div class="staff-activity-stat"><span>Voice hours (last <%= rangeDays %> days, incl. live)</span><strong><%= summary.hours.toFixed(2) %></strong></div>
                 <div class="staff-activity-stat"><span>Completed sessions</span><strong><%= summary.sessions %></strong></div>
                 <div class="staff-activity-stat"><span>Staff with activity</span><strong><%= summary.staffCount %></strong></div>
                 <div class="staff-activity-stat"><span>Channels used</span><strong><%= summary.channelCount %></strong></div>
@@ -121,12 +128,12 @@
                 </section>
 
                 <section class="staff-activity-panel">
-                    <h2>Daily trend</h2>
+                    <h2>Daily trend (last <%= rangeDays %> days)</h2>
                     <% if (!daily.length) { %>
                     <p class="staff-activity-empty">No daily activity has been recorded yet.</p>
                     <% } else { const maxDailyHours = Math.max(...daily.map(function(item) { return item.hours; }), 1); %>
                     <ul class="staff-activity-list">
-                        <% daily.slice(-14).forEach(function(item) { %>
+                        <% daily.forEach(function(item) { %>
                         <li>
                             <div class="staff-activity-label"><strong><%= item.date %></strong><small><%= item.sessions %> session<%= item.sessions === 1 ? '' : 's' %></small><div class="staff-activity-bar"><span style="width: <%= Math.max(2, item.hours / maxDailyHours * 100) %>%"></span></div></div>
                             <span class="staff-activity-hours"><%= item.hours.toFixed(2) %>h</span>
@@ -137,7 +144,7 @@
                 </section>
 
                 <section class="staff-activity-panel staff-activity-panel-wide">
-                    <h2>Recent completed activity</h2>
+                    <h2>Recent completed activity (last <%= rangeDays %> days)</h2>
                     <% if (!recent.length) { %>
                     <p class="staff-activity-empty">No completed voice sessions have been recorded yet.</p>
                     <% } else { %>

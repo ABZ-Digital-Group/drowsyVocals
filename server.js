@@ -507,6 +507,11 @@ app.use(async (req, res, next) => {
 });
 const CHANGELOG_ENTRIES = [
     {
+        date: '2026-10-30',
+        title: 'Staff activity history windows added',
+        changes: ['Staff Activity now supports 7-day and 14-day history windows, including daily totals for days with no recorded activity.']
+    },
+    {
         date: '2026-10-28',
         title: 'Forced password reset flow fixed',
         changes: ['Staff members required to reset their password can now set and confirm a new password without re-entering the old password, while standard password changes continue to verify the current password.']
@@ -3798,6 +3803,17 @@ app.get('/staff-activity', requireDatabase, async (req, res) => {
     if (!hasManagementAccess(req)) return res.status(403).send('You do not have permission to view staff activity.');
 
     try {
+        const requestedRange = Number.parseInt(req.query.range, 10);
+        const rangeDays = [7, 14].includes(requestedRange) ? requestedRange : 14;
+        const now = new Date();
+        const rangeEndMs = Date.UTC(
+            now.getUTCFullYear(),
+            now.getUTCMonth(),
+            now.getUTCDate() + 1
+        );
+        const rangeStartMs = rangeEndMs - (rangeDays * 24 * 60 * 60 * 1000);
+        const rangeStartIso = new Date(rangeStartMs).toISOString();
+        const rangeEndIso = new Date(rangeEndMs).toISOString();
         const users = await db.collection('users').find(
             { 'login.discordId': { $exists: true } },
             { projection: { displayName: 1, discordUser: 1, avatarUrl: 1, 'login.discordId': 1 } }
@@ -3811,37 +3827,82 @@ app.get('/staff-activity', requireDatabase, async (req, res) => {
                 }])
         );
         const staffIds = [...userById.keys()];
-        const match = { userId: { $in: staffIds } };
+        const match = {
+            userId: { $in: staffIds },
+            startedAt: { $lt: rangeEndIso },
+            endedAt: { $gte: rangeStartIso }
+        };
         const sessionsCollection = db.collection('voiceActivitySessions');
-        const [staffSummary, channelSummary, dailySummary, recentSessions, botLiveState] = await Promise.all([
+        const [activitySessions, botLiveState] = await Promise.all([
             staffIds.length
-                ? sessionsCollection.aggregate([
-                    { $match: match },
-                    { $group: { _id: '$userId', seconds: { $sum: '$durationSeconds' }, sessions: { $sum: 1 } } },
-                    { $sort: { seconds: -1 } }
-                ]).toArray()
-                : [],
-            staffIds.length
-                ? sessionsCollection.aggregate([
-                    { $match: match },
-                    { $group: { _id: { guildId: '$guildId', guildName: '$guildName', channelId: '$channelId', channelName: '$channelName' }, seconds: { $sum: '$durationSeconds' }, sessions: { $sum: 1 } } },
-                    { $sort: { seconds: -1 } }
-                ]).toArray()
-                : [],
-            staffIds.length
-                ? sessionsCollection.aggregate([
-                    { $match: match },
-                    { $group: { _id: { $substr: ['$startedAt', 0, 10] }, seconds: { $sum: '$durationSeconds' }, sessions: { $sum: 1 } } },
-                    { $sort: { _id: 1 } }
-                ]).toArray()
-                : [],
-            staffIds.length
-                ? sessionsCollection.find(match).sort({ endedAt: -1 }).limit(100).toArray()
+                ? sessionsCollection.find(match).sort({ endedAt: -1 }).toArray()
                 : [],
             getBotLiveState()
         ]);
 
         const toHours = (seconds) => Number((Number(seconds || 0) / 3600).toFixed(2));
+        const dailyTotals = new Map();
+        for (let dayOffset = 0; dayOffset < rangeDays; dayOffset += 1) {
+            const date = new Date(rangeStartMs + (dayOffset * 24 * 60 * 60 * 1000)).toISOString().slice(0, 10);
+            dailyTotals.set(date, { date, seconds: 0, sessions: 0 });
+        }
+        const staffTotals = new Map();
+        const channelTotals = new Map();
+        const getClippedRange = (startedAt, endedAt) => {
+            const startedMs = Date.parse(startedAt);
+            const endedMs = Date.parse(endedAt);
+            if (!Number.isFinite(startedMs) || !Number.isFinite(endedMs)) return null;
+            const clippedStartMs = Math.max(startedMs, rangeStartMs);
+            const clippedEndMs = Math.min(endedMs, rangeEndMs);
+            return clippedEndMs > clippedStartMs
+                ? { startMs: clippedStartMs, endMs: clippedEndMs, seconds: (clippedEndMs - clippedStartMs) / 1000 }
+                : null;
+        };
+        const addActivity = (session, activityRange) => {
+            const staffTotal = staffTotals.get(session.userId) || {
+                userId: session.userId,
+                displayName: userById.get(session.userId)?.displayName || session.userName || session.userId,
+                avatarUrl: userById.get(session.userId)?.avatarUrl || null,
+                seconds: 0,
+                sessions: 0
+            };
+            staffTotal.seconds += activityRange.seconds;
+            staffTotal.sessions += 1;
+            staffTotals.set(session.userId, staffTotal);
+
+            const liveChannelKey = `${session.guildId}:${session.channelId}`;
+            const channelTotal = channelTotals.get(liveChannelKey) || {
+                guildId: session.guildId,
+                guildName: session.guildName || session.guildId,
+                channelId: session.channelId,
+                channelName: session.channelName || session.channelId,
+                seconds: 0,
+                sessions: 0
+            };
+            channelTotal.seconds += activityRange.seconds;
+            channelTotal.sessions += 1;
+            channelTotals.set(liveChannelKey, channelTotal);
+
+            let dayCursorMs = activityRange.startMs;
+            while (dayCursorMs < activityRange.endMs) {
+                const dayStartMs = Date.UTC(
+                    new Date(dayCursorMs).getUTCFullYear(),
+                    new Date(dayCursorMs).getUTCMonth(),
+                    new Date(dayCursorMs).getUTCDate()
+                );
+                const dayEndMs = Math.min(dayStartMs + (24 * 60 * 60 * 1000), activityRange.endMs);
+                const dailyTotal = dailyTotals.get(new Date(dayStartMs).toISOString().slice(0, 10));
+                if (dailyTotal) {
+                    dailyTotal.seconds += (dayEndMs - dayCursorMs) / 1000;
+                    dailyTotal.sessions += 1;
+                }
+                dayCursorMs = dayEndMs;
+            }
+        };
+        activitySessions.forEach((session) => {
+            const activityRange = getClippedRange(session.startedAt, session.endedAt);
+            if (activityRange) addActivity(session, activityRange);
+        });
         const afkChannelByGuild = new Map(
             (botLiveState.guilds || []).map((guild) => [guild.id, guild.afkChannelId])
         );
@@ -3864,58 +3925,11 @@ app.get('/staff-activity', requireDatabase, async (req, res) => {
                     durationSeconds: Number.isFinite(startedMs) ? Math.max(0, (Date.now() - startedMs) / 1000) : 0
                 };
             });
-        const staffTotals = new Map(staffSummary.map((item) => [item._id, {
-            userId: item._id,
-            displayName: userById.get(item._id)?.displayName || item._id,
-            avatarUrl: userById.get(item._id)?.avatarUrl || null,
-            seconds: Number(item.seconds || 0),
-            sessions: Number(item.sessions || 0)
-        }]));
-        const channelKey = (guildId, channelId) => `${guildId}:${channelId}`;
-        const channelTotals = new Map(channelSummary.map((item) => [channelKey(item._id.guildId, item._id.channelId), {
-            guildId: item._id.guildId,
-            guildName: item._id.guildName || item._id.guildId,
-            channelId: item._id.channelId,
-            channelName: item._id.channelName || item._id.channelId,
-            seconds: Number(item.seconds || 0),
-            sessions: Number(item.sessions || 0)
-        }]));
-        const dailyTotals = new Map(dailySummary.map((item) => [item._id, {
-            date: item._id,
-            seconds: Number(item.seconds || 0),
-            sessions: Number(item.sessions || 0)
-        }]));
         liveSessions.forEach((session) => {
-            if (session.durationSeconds < 60) return;
-            const staffTotal = staffTotals.get(session.userId) || {
-                userId: session.userId,
-                displayName: session.userName,
-                avatarUrl: userById.get(session.userId)?.avatarUrl || null,
-                seconds: 0,
-                sessions: 0
-            };
-            staffTotal.seconds += session.durationSeconds;
-            staffTotal.sessions += 1;
-            staffTotals.set(session.userId, staffTotal);
-
-            const liveChannelKey = channelKey(session.guildId, session.channelId);
-            const channelTotal = channelTotals.get(liveChannelKey) || {
-                guildId: session.guildId,
-                guildName: session.guildName,
-                channelId: session.channelId,
-                channelName: session.channelName,
-                seconds: 0,
-                sessions: 0
-            };
-            channelTotal.seconds += session.durationSeconds;
-            channelTotal.sessions += 1;
-            channelTotals.set(liveChannelKey, channelTotal);
-
-            const day = session.startedAt.slice(0, 10);
-            const dailyTotal = dailyTotals.get(day) || { date: day, seconds: 0, sessions: 0 };
-            dailyTotal.seconds += session.durationSeconds;
-            dailyTotal.sessions += 1;
-            dailyTotals.set(day, dailyTotal);
+            const activityRange = session.startedAt
+                ? getClippedRange(session.startedAt, new Date().toISOString())
+                : null;
+            if (activityRange && activityRange.seconds >= 60) addActivity(session, activityRange);
         });
         const staff = [...staffTotals.values()]
             .sort((a, b) => b.seconds - a.seconds)
@@ -3926,7 +3940,7 @@ app.get('/staff-activity', requireDatabase, async (req, res) => {
         const daily = [...dailyTotals.values()]
             .sort((a, b) => a.date.localeCompare(b.date))
             .map((item) => ({ ...item, hours: toHours(item.seconds) }));
-        const recent = recentSessions.map((session) => ({
+        const recent = activitySessions.slice(0, 100).map((session) => ({
             ...session,
             displayName: userById.get(session.userId)?.displayName || session.userName || session.userId,
             durationMinutes: Math.round(Number(session.durationSeconds || 0) / 60),
@@ -3939,10 +3953,11 @@ app.get('/staff-activity', requireDatabase, async (req, res) => {
             joinedAt: session.startedAt ? new Date(session.startedAt).toLocaleString() : null
         }));
         const totalSeconds = staff.reduce((sum, item) => sum + item.seconds, 0);
-        const totalSessions = staffSummary.reduce((sum, item) => sum + Number(item.sessions || 0), 0);
+        const totalSessions = activitySessions.length;
 
         res.render('pages/staff-activity', {
             page: 'staff-activity',
+            rangeDays,
             summary: {
                 hours: toHours(totalSeconds),
                 sessions: totalSessions,
