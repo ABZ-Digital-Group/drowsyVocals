@@ -19,8 +19,44 @@ const saveDarkMode = (enabled) => {
   }
 };
 
+const THEME_CELL_SELECTOR = [
+  '.roster-modern-table tbody td.shift-cell',
+  '.roster-modern-table tbody td.house-cell',
+  '.roster-modern-table tbody td.activity-cell',
+  '.roster-modern-table tbody td.status-cell'
+].join(', ');
+
+const darkenThemeCellColor = (color) => {
+  const match = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
+  if (!match || match[4] === '0') return null;
+
+  const channels = [Number(match[1]), Number(match[2]), Number(match[3])];
+  const luminanceWeights = [0.2126, 0.7152, 0.0722];
+  const luminance = channels.reduce((total, channel, index) => {
+    const normalized = channel / 255;
+    const linearChannel = normalized <= 0.03928
+      ? normalized / 12.92
+      : ((normalized + 0.055) / 1.055) ** 2.4;
+    return total + luminanceWeights[index] * linearChannel;
+  }, 0);
+  const factor = Math.min(1, 0.22 / Math.max(luminance, 0.01));
+
+  return `rgb(${channels.map((channel) => Math.round(channel * factor)).join(', ')})`;
+};
+
+const updateThemeCellColors = (enabled) => {
+  document.querySelectorAll(THEME_CELL_SELECTOR).forEach((cell) => {
+    cell.style.removeProperty('--dark-mode-cell-bg');
+    if (!enabled) return;
+
+    const darkColor = darkenThemeCellColor(window.getComputedStyle(cell).backgroundColor);
+    if (darkColor) cell.style.setProperty('--dark-mode-cell-bg', darkColor);
+  });
+};
+
 const renderThemeToggle = (enabled) => {
   document.documentElement.dataset.theme = enabled ? 'dark' : 'light';
+  updateThemeCellColors(enabled);
   document.querySelectorAll('[data-theme-toggle]').forEach((toggle) => {
     toggle.setAttribute('aria-pressed', String(enabled));
     const icon = toggle.querySelector('.material-symbols-outlined');
