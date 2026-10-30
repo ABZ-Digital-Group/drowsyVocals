@@ -84,7 +84,7 @@ app.use((req, res, next) => {
     res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
 
     // Never cache confidential management and user data in browser / proxy caches
-    if (req.session?.loggedin || req.path.startsWith('/api/') || req.path === '/roster' || req.path === '/settings' || req.path === '/reports' || req.path === '/staff-activity') {
+    if (req.session?.loggedin || req.path.startsWith('/api/') || req.path === '/roster' || req.path === '/settings' || req.path === '/reports' || req.path === '/staff-activity' || req.path === '/analytics') {
         res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
         res.setHeader('Pragma', 'no-cache');
         res.setHeader('Expires', '0');
@@ -452,6 +452,7 @@ const PAGE_PERMISSION_OPTIONS = [
     { key: 'roster-planner', path: '/roster-planner', label: 'Roster Planner' },
     { key: 'reports', path: '/reports', apiPath: '/api/v1/reports', label: 'Reports' },
     { key: 'staff-activity', path: '/staff-activity', label: 'Staff Activity' },
+    { key: 'analytics', path: '/analytics', label: 'Server Analytics' },
     { key: 'audit-log', path: '/audit-log', apiPath: '/api/v1/audit-log', label: 'Audit Log' },
     { key: 'changelog', path: '/changelog', apiPath: '/api/v1/changelog', label: 'Changelog' },
     { key: 'footprint', path: '/footprint', label: 'Digital Footprint' },
@@ -507,6 +508,11 @@ app.use(async (req, res, next) => {
     }
 });
 const CHANGELOG_ENTRIES = [
+    {
+        date: '2026-10-30',
+        title: 'Server analytics dashboard added',
+        changes: ['Added a privacy-preserving Server Analytics dashboard with selectable history ranges, daily charts, community activity metrics, game activity, member movement, and queue insights powered by DrowsyBot.']
+    },
     {
         date: '2026-10-30',
         title: 'Staff activity history windows added',
@@ -3988,6 +3994,103 @@ app.get('/staff-activity', requireDatabase, async (req, res) => {
         console.error('Error loading staff activity:', error);
         res.status(500).send('Unable to load staff activity.');
     }
+});
+
+// SERVER-WIDE ACTIVITY ANALYTICS
+app.get('/analytics', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin) return res.redirect('/');
+    if (!hasManagementAccess(req)) return res.status(403).send('You do not have permission to view server analytics.');
+
+    const requestedRange = Number.parseInt(req.query.range, 10);
+    const rangeDays = [7, 14, 30, 90].includes(requestedRange) ? requestedRange : 14;
+    const emptyTotals = {
+        messages: 0,
+        reactions: 0,
+        voiceMinutes: 0,
+        joins: 0,
+        leaves: 0,
+        requests: 0,
+        participations: 0,
+        presenceUpdates: 0,
+        activeMembers: 0,
+        voiceVisitors: 0
+    };
+    let analytics = {
+        guildCount: 0,
+        memberCount: 0,
+        daily: [],
+        totals: { ...emptyTotals },
+        topGames: [],
+        peakActiveMembers: 0
+    };
+    let analyticsError = null;
+    let botLiveState = { online: false, connectionError: null };
+
+    try {
+        const [result, liveState] = await Promise.all([
+            botService.getAnalytics({ days: rangeDays }),
+            getBotLiveState()
+        ]);
+        botLiveState = liveState;
+        const dailyByDate = new Map();
+        const games = new Map();
+
+        (result.guilds || []).forEach((guild) => {
+            analytics.guildCount += 1;
+            analytics.memberCount += Number(guild.memberCount || 0);
+            (guild.daily || []).forEach((item) => {
+                const daily = dailyByDate.get(item.date) || {
+                    date: item.date,
+                    messages: 0,
+                    reactions: 0,
+                    voiceMinutes: 0,
+                    joins: 0,
+                    leaves: 0,
+                    requests: 0,
+                    participations: 0,
+                    presenceUpdates: 0,
+                    activeMembers: 0,
+                    voiceVisitors: 0
+                };
+                Object.keys(daily).forEach((key) => {
+                    if (key !== 'date') daily[key] += Number(item[key] || 0);
+                });
+                dailyByDate.set(item.date, daily);
+                Object.entries(item.games || {}).forEach(([name, count]) => {
+                    games.set(name, (games.get(name) || 0) + Number(count || 0));
+                });
+            });
+        });
+
+        analytics.daily = [...dailyByDate.values()].sort((a, b) => a.date.localeCompare(b.date));
+        analytics.daily.forEach((item) => {
+            Object.keys(emptyTotals).forEach((key) => {
+                analytics.totals[key] += Number(item[key] || 0);
+            });
+            analytics.peakActiveMembers = Math.max(analytics.peakActiveMembers, item.activeMembers);
+        });
+        analytics.topGames = [...games.entries()]
+            .map(([name, count]) => ({ name, count }))
+            .sort((a, b) => b.count - a.count)
+            .slice(0, 10);
+    } catch (error) {
+        analyticsError = error.message || 'Analytics data is unavailable.';
+        console.error('Error loading server analytics:', error);
+        try {
+            botLiveState = await getBotLiveState();
+        } catch (liveStateError) {
+            console.error('Error loading bot status for server analytics:', liveStateError);
+        }
+    }
+
+    res.render('pages/analytics', {
+        page: 'analytics',
+        rangeDays,
+        analytics,
+        analyticsError,
+        botOnline: Boolean(botLiveState.online),
+        botConnectionError: botLiveState.connectionError || null
+    });
 });
 
 // BOT MAIN DASHBOARD

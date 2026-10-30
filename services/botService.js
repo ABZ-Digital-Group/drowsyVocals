@@ -58,6 +58,11 @@ function createBotService({ baseUrl = process.env.BOT_API_URL, secret = process.
             const params = new URLSearchParams({ guildId, channelId, limit: String(limit) });
             return request(`/admin/api/channel-messages?${params.toString()}`);
         },
+        getAnalytics({ guildId, days = 14 } = {}) {
+            const params = new URLSearchParams({ days: String(days) });
+            if (guildId) params.set('guildId', guildId);
+            return request(`/admin/api/analytics?${params.toString()}`);
+        },
         syncBot(payload) {
             return request('/actions/sync', {
                 method: 'POST',

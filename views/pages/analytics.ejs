@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <%- include('../partials/head') %>
+        <title>Server Analytics - Drowsy Vocals</title>
+        <style>
+            .analytics-page { max-width: 1320px; margin: 0 auto; padding: 38px 24px 64px; }
+            .analytics-header { display: flex; align-items: end; justify-content: space-between; gap: 28px; margin-bottom: 24px; }
+            .analytics-heading { min-width: 0; }
+            .analytics-heading h1 { margin: 0 0 8px; color: var(--night-indigo); font-size: clamp(2em, 4vw, 3em); letter-spacing: -.03em; }
+            .analytics-heading p { margin: 0; color: var(--dusty-blue-purple); }
+            .analytics-heading .profile-eyebrow { margin-bottom: 8px; color: var(--dreamy-periwinkle); }
+            .analytics-range { display: flex; flex-direction: row; flex-wrap: wrap; gap: 8px; margin-top: 18px; padding: 0; }
+            .analytics-range a { padding: 9px 15px; border: 1px solid var(--cloud-lilac); border-radius: 999px; color: var(--night-indigo); background: var(--cloud-white); font-size: .9em; font-weight: bold; text-decoration: none; }
+            .analytics-range a:hover { background: var(--cloud-lilac); }
+            .analytics-range a[aria-current="page"] { border-color: var(--night-indigo); color: var(--cloud-white); background: var(--night-indigo); }
+            .analytics-note { max-width: 420px; margin: 0; padding: 15px 17px; border: 1px solid var(--cloud-lilac); border-left: 4px solid var(--moonlight-yellow); border-radius: 12px; background: var(--cloud-white); box-shadow: 0 8px 22px rgba(41, 39, 82, .08); color: var(--night-indigo); font-size: .9em; line-height: 1.55; }
+            .analytics-status { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 18px; color: var(--dusty-blue-purple); font-size: .85em; }
+            .analytics-status-badge { display: inline-flex; align-items: center; gap: 7px; padding: 6px 10px; border-radius: 999px; color: #1d6b46; background: #e1f4e9; font-weight: bold; }
+            .analytics-status-badge.is-offline { color: #8b3d51; background: #f9e5eb; }
+            .analytics-status-dot { width: 8px; height: 8px; border-radius: 50%; background: #34a873; box-shadow: 0 0 0 4px rgba(52, 168, 115, .15); }
+            .analytics-status-badge.is-offline .analytics-status-dot { background: #b94b68; box-shadow: 0 0 0 4px rgba(185, 75, 104, .12); }
+            .analytics-error { margin: 0 0 18px; padding: 14px 16px; border: 1px solid #e8b3c2; border-left: 4px solid #b94b68; border-radius: 10px; color: #6f2e40; background: #fdf0f3; }
+            .analytics-summary, .analytics-insights { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+            .analytics-summary { margin-bottom: 14px; }
+            .analytics-insights { margin-bottom: 26px; }
+            .analytics-card, .analytics-insight, .analytics-panel { border: 1px solid var(--cloud-lilac); border-radius: 14px; background: var(--cloud-white); box-shadow: 0 8px 24px rgba(41, 39, 82, .07); }
+            .analytics-card { position: relative; min-height: 106px; padding: 18px; overflow: hidden; }
+            .analytics-card::after { position: absolute; right: -24px; bottom: -34px; width: 110px; height: 110px; border-radius: 50%; background: rgba(146, 150, 232, .13); content: ''; }
+            .analytics-card span, .analytics-insight span { display: block; color: var(--dusty-blue-purple); font-size: .76em; font-weight: bold; letter-spacing: .06em; text-transform: uppercase; }
+            .analytics-card strong { position: relative; z-index: 1; display: block; margin-top: 8px; color: var(--night-indigo); font-size: 2em; letter-spacing: -.03em; }
+            .analytics-insight { padding: 14px 16px; box-shadow: none; }
+            .analytics-insight strong { display: block; margin-top: 5px; color: var(--night-indigo); font-size: 1.2em; }
+            .analytics-insight small { display: block; margin-top: 3px; color: var(--dusty-blue-purple); }
+            .analytics-layout { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(280px, 1fr); gap: 20px; }
+            .analytics-panel { min-width: 0; padding: 20px; }
+            .analytics-panel-wide { grid-column: 1 / -1; }
+            .analytics-panel-heading { display: flex; align-items: start; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+            .analytics-panel h2 { margin: 0; color: var(--night-indigo); font-size: 1.15em; }
+            .analytics-panel-heading p { margin: 4px 0 0; color: var(--dusty-blue-purple); font-size: .86em; }
+            .analytics-panel-badge { flex: 0 0 auto; padding: 5px 9px; border-radius: 999px; color: var(--night-indigo); background: var(--cloud-lilac); font-size: .75em; font-weight: bold; }
+            .analytics-chart { display: grid; grid-template-columns: repeat(14, minmax(18px, 1fr)); align-items: end; gap: clamp(4px, 1vw, 12px); min-height: 250px; padding: 18px 8px 0; border-top: 1px solid var(--cloud-lilac); background: repeating-linear-gradient(to bottom, transparent 0, transparent 47px, rgba(229, 225, 247, .7) 48px); }
+            .analytics-chart-column { display: grid; grid-template-rows: 24px 170px 28px; align-items: end; min-width: 0; height: 222px; }
+            .analytics-chart-values { display: flex; justify-content: center; gap: 2px; overflow: hidden; color: var(--night-indigo); font-size: .65em; font-weight: bold; white-space: nowrap; }
+            .analytics-chart-track { display: flex; align-items: end; justify-content: center; gap: 2px; height: 170px; overflow: hidden; border-radius: 7px 7px 3px 3px; background: rgba(229, 225, 247, .5); }
+            .analytics-chart-bar { width: 42%; min-height: 2px; border-radius: 6px 6px 2px 2px; }
+            .analytics-chart-bar.messages { background: linear-gradient(180deg, var(--dreamy-periwinkle), var(--deep-lilac)); }
+            .analytics-chart-bar.voice { background: linear-gradient(180deg, var(--moonlight-yellow), #d7ad3a); }
+            .analytics-chart-column small { overflow: hidden; color: var(--dusty-blue-purple); font-size: .7em; text-align: center; text-overflow: ellipsis; white-space: nowrap; }
+            .analytics-chart-caption { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; margin-top: 10px; color: var(--dusty-blue-purple); font-size: .8em; }
+            .analytics-legend { display: flex; gap: 14px; }
+            .analytics-legend span { display: inline-flex; align-items: center; gap: 5px; }
+            .analytics-legend i { width: 9px; height: 9px; border-radius: 2px; }
+            .analytics-legend .messages { background: var(--dreamy-periwinkle); }
+            .analytics-legend .voice { background: var(--moonlight-yellow); }
+            .analytics-list { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
+            .analytics-list li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center; }
+            .analytics-list strong, .analytics-list small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+            .analytics-list small { margin-top: 3px; color: var(--dusty-blue-purple); }
+            .analytics-list-value { color: var(--night-indigo); font-weight: bold; white-space: nowrap; }
+            .analytics-progress { height: 8px; margin-top: 7px; overflow: hidden; border-radius: 99px; background: var(--cloud-lilac); }
+            .analytics-progress span { display: block; height: 100%; min-width: 3px; border-radius: inherit; background: linear-gradient(90deg, var(--dreamy-periwinkle), var(--deep-lilac)); }
+            .analytics-table-wrap { overflow-x: auto; }
+            .analytics-table { width: 100%; border-collapse: collapse; }
+            .analytics-table th, .analytics-table td { padding: 11px 8px; border-bottom: 1px solid var(--cloud-lilac); text-align: left; }
+            .analytics-table th { color: var(--dusty-blue-purple); font-size: .75em; letter-spacing: .05em; text-transform: uppercase; }
+            .analytics-table td { color: var(--night-indigo); }
+            .analytics-empty { margin: 0; color: var(--dusty-blue-purple); }
+            @media (max-width: 900px) {
+                .analytics-header { align-items: stretch; flex-direction: column; }
+                .analytics-note { max-width: none; }
+                .analytics-layout { grid-template-columns: 1fr; }
+            }
+            @media (max-width: 720px) {
+                .analytics-summary, .analytics-insights { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            }
+            @media (max-width: 480px) {
+                .analytics-page { padding-right: 14px; padding-left: 14px; }
+                .analytics-summary, .analytics-insights { grid-template-columns: 1fr; }
+                .analytics-chart { gap: 3px; padding-right: 2px; padding-left: 2px; }
+                .analytics-chart-column small { font-size: .62em; }
+            }
+        </style>
+    </head>
+    <body>
+        <header><%- include('../partials/nav') %></header>
+        <main class="analytics-page">
+            <div class="analytics-header">
+                <div class="analytics-heading">
+                    <p class="profile-eyebrow">Management</p>
+                    <h1>Server Analytics</h1>
+                    <p>Privacy-preserving activity trends from DrowsyBot.</p>
+                    <nav class="analytics-range" aria-label="Analytics history range">
+                        <% [7, 14, 30, 90].forEach(function(days) { %>
+                        <a href="/analytics?range=<%= days %>"<%= rangeDays === days ? ' aria-current="page"' : '' %>>Last <%= days %> days</a>
+                        <% }); %>
+                    </nav>
+                </div>
+                <p class="analytics-note">Counts are stored as daily aggregates. Message content is never sent to or stored by the management website. Voice time excludes AFK channels and sessions shorter than one minute.</p>
+            </div>
+
+            <div class="analytics-status" aria-label="Analytics status">
+                <span class="analytics-status-badge<%= botOnline ? '' : ' is-offline' %>"><span class="analytics-status-dot" aria-hidden="true"></span><%= botOnline ? 'DrowsyBot online' : 'DrowsyBot offline' %></span>
+                <span><%= analytics.guildCount %> server<%= analytics.guildCount === 1 ? '' : 's' %> · <%= analytics.memberCount %> members</span>
+                <% if (botConnectionError) { %><span><%= botConnectionError %></span><% } %>
+            </div>
+
+            <% if (analyticsError) { %>
+            <p class="analytics-error"><strong>Analytics data is unavailable.</strong> <%= analyticsError %> The page will continue to show the last available structure until the bot reconnects.</p>
+            <% } %>
+
+            <section class="analytics-summary" aria-label="Analytics summary">
+                <div class="analytics-card"><span>Messages</span><strong><%= analytics.totals.messages.toLocaleString() %></strong></div>
+                <div class="analytics-card"><span>Voice hours</span><strong><%= (analytics.totals.voiceMinutes / 60).toFixed(1) %></strong></div>
+                <div class="analytics-card"><span>Peak active members</span><strong><%= analytics.peakActiveMembers.toLocaleString() %></strong></div>
+                <div class="analytics-card"><span>Voice visitors</span><strong><%= analytics.totals.voiceVisitors.toLocaleString() %></strong></div>
+            </section>
+
+            <section class="analytics-insights" aria-label="Analytics insights">
+                <div class="analytics-insight"><span>Reactions</span><strong><%= analytics.totals.reactions.toLocaleString() %></strong><small>Added during the window</small></div>
+                <div class="analytics-insight"><span>Member joins</span><strong><%= analytics.totals.joins.toLocaleString() %></strong><small>New members recorded</small></div>
+                <div class="analytics-insight"><span>Queue requests</span><strong><%= analytics.totals.requests.toLocaleString() %></strong><small>Requests to sing</small></div>
+                <div class="analytics-insight"><span>Participations</span><strong><%= analytics.totals.participations.toLocaleString() %></strong><small>Completed queue turns</small></div>
+            </section>
+
+            <div class="analytics-layout">
+                <section class="analytics-panel analytics-panel-wide">
+                    <div class="analytics-panel-heading">
+                        <div><h2>Community activity trend</h2><p>Messages and voice hours by day</p></div>
+                        <span class="analytics-panel-badge"><%= rangeDays %> days</span>
+                    </div>
+                    <% if (!analytics.daily.length) { %>
+                    <p class="analytics-empty">No analytics history is available yet. Keep DrowsyBot online to begin collecting daily data.</p>
+                    <% } else { const maxMessages = Math.max(...analytics.daily.map(function(item) { return item.messages; }), 1); const maxVoiceHours = Math.max(...analytics.daily.map(function(item) { return item.voiceMinutes / 60; }), 1); %>
+                    <div class="analytics-chart" style="grid-template-columns: repeat(<%= analytics.daily.length %>, minmax(18px, 1fr));" role="img" aria-label="Daily messages and voice hours chart">
+                        <% analytics.daily.forEach(function(item) { const voiceHours = item.voiceMinutes / 60; %>
+                        <div class="analytics-chart-column" title="<%= item.date %>: <%= item.messages %> messages, <%= voiceHours.toFixed(2) %> voice hours">
+                            <span class="analytics-chart-values"><%= item.messages ? item.messages.toLocaleString() : '—' %></span>
+                            <div class="analytics-chart-track">
+                                <span class="analytics-chart-bar messages" style="height: <%= item.messages ? Math.max(4, item.messages / maxMessages * 100) : 0 %>%"></span>
+                                <span class="analytics-chart-bar voice" style="height: <%= voiceHours ? Math.max(4, voiceHours / maxVoiceHours * 100) : 0 %>%"></span>
+                            </div>
+                            <small><%= item.date.slice(5) %></small>
+                        </div>
+                        <% }); %>
+                    </div>
+                    <div class="analytics-chart-caption"><span class="analytics-legend"><span><i class="messages"></i>Messages</span><span><i class="voice"></i>Voice hours</span></span><span>Hover a bar for daily detail</span></div>
+                    <% } %>
+                </section>
+
+                <section class="analytics-panel">
+                    <div class="analytics-panel-heading">
+                        <div><h2>Popular games</h2><p>Presence activity names</p></div>
+                        <span class="analytics-panel-badge">Top 10</span>
+                    </div>
+                    <% if (!analytics.topGames.length) { %>
+                    <p class="analytics-empty">No game activity has been recorded yet.</p>
+                    <% } else { const maxGameCount = Math.max(...analytics.topGames.map(function(item) { return item.count; }), 1); %>
+                    <ul class="analytics-list">
+                        <% analytics.topGames.forEach(function(item) { %>
+                        <li><div><strong><%= item.name %></strong><div class="analytics-progress"><span style="width: <%= Math.max(3, item.count / maxGameCount * 100) %>%"></span></div></div><span class="analytics-list-value"><%= item.count.toLocaleString() %></span></li>
+                        <% }); %>
+                    </ul>
+                    <% } %>
+                </section>
+
+                <section class="analytics-panel">
+                    <div class="analytics-panel-heading">
+                        <div><h2>Member movement</h2><p>Joins and leaves over the window</p></div>
+                    </div>
+                    <ul class="analytics-list">
+                        <% analytics.daily.slice().reverse().slice(0, 10).forEach(function(item) { %>
+                        <li><div><strong><%= item.date %></strong><small><%= item.joins %> joined · <%= item.leaves %> left</small></div><span class="analytics-list-value"><%= item.activeMembers %> active</span></li>
+                        <% }); %>
+                    </ul>
+                </section>
+
+                <section class="analytics-panel analytics-panel-wide">
+                    <div class="analytics-panel-heading">
+                        <div><h2>Daily breakdown</h2><p>Aggregate activity without message content or raw event storage</p></div>
+                    </div>
+                    <% if (!analytics.daily.length) { %>
+                    <p class="analytics-empty">No daily breakdown is available.</p>
+                    <% } else { %>
+                    <div class="analytics-table-wrap">
+                        <table class="analytics-table">
+                            <thead><tr><th>Date</th><th>Messages</th><th>Voice hours</th><th>Active members</th><th>Reactions</th><th>Queue turns</th></tr></thead>
+                            <tbody>
+                                <% analytics.daily.slice().reverse().forEach(function(item) { %>
+                                <tr><td><%= item.date %></td><td><%= item.messages.toLocaleString() %></td><td><%= (item.voiceMinutes / 60).toFixed(2) %></td><td><%= item.activeMembers.toLocaleString() %></td><td><%= item.reactions.toLocaleString() %></td><td><%= item.participations.toLocaleString() %></td></tr>
+                                <% }); %>
+                            </tbody>
+                        </table>
+                    </div>
+                    <% } %>
+                </section>
+            </div>
+        </main>
+        <div class="footer"><p>&copy; 2026 Drowsy Vocals | All rights reserved.</p></div>
+        <script>
+            window.setTimeout(() => window.location.reload(), 5 * 60 * 1000);
+        </script>
+    </body>
+</html>

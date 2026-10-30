@@ -62,7 +62,7 @@
             ((userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender' || userIsDeveloper)
                 && (canViewPage('applications') || canViewPage('appeals') || canViewPage('check-ins')
                     || canViewPage('loa-history') || canViewPage('roster-planner') || canViewPage('reports')
-                    || canViewPage('staff-activity') || canViewPage('audit-log') || canViewPage('changelog')
+                    || canViewPage('staff-activity') || canViewPage('analytics') || canViewPage('audit-log') || canViewPage('changelog')
                     || canViewPage('footprint') || canViewPage('bot')))
             || (canViewPage('discord-channels') && currentuser === '404371787606917140' && !developerPreviewMode)
         ) { %>
@@ -79,6 +79,7 @@
                 <% if (canViewPage('roster-planner') && (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender' || userIsDeveloper)) { %><a href="/roster-planner">Roster Planner</a><% } %>
                 <% if (canViewPage('reports') && (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender' || userIsDeveloper)) { %><a href="/reports">Reports</a><% } %>
                 <% if (canViewPage('staff-activity') && (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender' || userIsDeveloper)) { %><a href="/staff-activity">Staff Activity</a><% } %>
+                <% if (canViewPage('analytics') && (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender' || userIsDeveloper)) { %><a href="/analytics">Server Analytics</a><% } %>
                 <% if (canViewPage('audit-log') && (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender' || userIsDeveloper)) { %><a href="/audit-log">Audit Log</a><% } %>
                 <% if (canViewPage('changelog') && (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender' || userIsDeveloper)) { %><a href="/changelog">Changelog</a><% } %>
                 <% if (canViewPage('footprint') && (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender' || userIsDeveloper)) { %><a href="/footprint">Digital Footprint</a><% } %>
