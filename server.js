@@ -510,6 +510,11 @@ app.use(async (req, res, next) => {
 const CHANGELOG_ENTRIES = [
     {
         date: '2026-10-30',
+        title: 'Dark mode coverage and contrast improved',
+        changes: ['Dark mode now applies consistent surfaces, controls, dialogs, tables, editors, cards, and feedback states across the website, with improved contrast for configurable roster colors.']
+    },
+    {
+        date: '2026-10-30',
         title: 'Dark mode added',
         changes: ['Staff can now switch the website between light and dark mode from the account menu. The preference is saved on their device and applies across the site.']
     },

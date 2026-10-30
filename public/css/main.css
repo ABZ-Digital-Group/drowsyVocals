@@ -7549,3 +7549,389 @@ html[data-theme="dark"] .footer {
     height: auto;
     min-height: 0;
 }
+
+/* Final dark-mode pass: keep page-specific light-surface rules readable. */
+html[data-theme="dark"] [style*="color: var(--night-indigo)"],
+html[data-theme="dark"] [style*="color:var(--night-indigo)"] {
+    color: var(--theme-text) !important;
+}
+
+html[data-theme="dark"] [style*="color: var(--dusty-blue-purple)"],
+html[data-theme="dark"] [style*="color:var(--dusty-blue-purple)"] {
+    color: var(--theme-muted) !important;
+}
+
+html[data-theme="dark"] .application-card,
+html[data-theme="dark"] .application-card .application-answers > div,
+html[data-theme="dark"] .application-notes,
+html[data-theme="dark"] .bingo-challenge-guide,
+html[data-theme="dark"] .bingo-player-card-wrap,
+html[data-theme="dark"] .bingo-admin-card,
+html[data-theme="dark"] .bingo-admin-section,
+html[data-theme="dark"] .bingo-admin-empty,
+html[data-theme="dark"] .bingo-admin-group,
+html[data-theme="dark"] .bingo-board-container,
+html[data-theme="dark"] .dashboard-announcements,
+html[data-theme="dark"] .dashboard-announcements-card,
+html[data-theme="dark"] .settings-group[data-section="stage-queue"] .settings-card,
+html[data-theme="dark"] .settings-group[data-section="obs"] .settings-card,
+html[data-theme="dark"] .feedback-workflow,
+html[data-theme="dark"] .check-in-record-header,
+html[data-theme="dark"] .check-in-filters,
+html[data-theme="dark"] .check-in-note,
+html[data-theme="dark"] .guidelines-toolbar,
+html[data-theme="dark"] .guidelines-rich-editor,
+html[data-theme="dark"] .bracket-controls,
+html[data-theme="dark"] .bracket-participants {
+    background: var(--theme-surface) !important;
+    border-color: var(--theme-border) !important;
+    color: var(--theme-text) !important;
+}
+
+html[data-theme="dark"] .application-card h2,
+html[data-theme="dark"] .application-card strong,
+html[data-theme="dark"] .application-card label,
+html[data-theme="dark"] .application-card > div:first-child > div > span,
+html[data-theme="dark"] .application-card .application-answers span,
+html[data-theme="dark"] .application-notes strong,
+html[data-theme="dark"] .application-notes p,
+html[data-theme="dark"] .bingo-challenge-guide-header,
+html[data-theme="dark"] .bingo-player-card-header h2,
+html[data-theme="dark"] .bingo-admin-card h2,
+html[data-theme="dark"] .bingo-admin-section h2,
+html[data-theme="dark"] .bingo-member-display,
+html[data-theme="dark"] .bingo-player-cell-title,
+html[data-theme="dark"] .dashboard-announcements-card .account-card-title,
+html[data-theme="dark"] .dashboard-announcement-author,
+html[data-theme="dark"] .dashboard-announcement-body,
+html[data-theme="dark"] .settings-group[data-section="stage-queue"] .settings-card-title,
+html[data-theme="dark"] .settings-group[data-section="obs"] .settings-card-title,
+html[data-theme="dark"] .guidelines-rich-editor,
+html[data-theme="dark"] .feedback-workflow select,
+html[data-theme="dark"] .feedback-workflow textarea,
+html[data-theme="dark"] .check-in-selector select,
+html[data-theme="dark"] .check-in-form input,
+html[data-theme="dark"] .check-in-form select,
+html[data-theme="dark"] .check-in-form textarea,
+html[data-theme="dark"] .check-in-filters input,
+html[data-theme="dark"] .check-in-filters select,
+html[data-theme="dark"] .check-in-edit textarea,
+html[data-theme="dark"] .bracket-controls,
+html[data-theme="dark"] .bracket-controls label,
+html[data-theme="dark"] .bracket-controls .settings-input,
+html[data-theme="dark"] .bracket-participants,
+html[data-theme="dark"] .bracket-participants .bracket-section-heading h3,
+html[data-theme="dark"] .bracket-board-wrap,
+html[data-theme="dark"] .bracket-board-wrap .bracket-section-heading h3 {
+    color: var(--theme-text) !important;
+}
+
+html[data-theme="dark"] .application-card .application-answers > div,
+html[data-theme="dark"] .application-notes,
+html[data-theme="dark"] .bingo-challenge-item,
+html[data-theme="dark"] .bingo-player-card-progress,
+html[data-theme="dark"] .bingo-player-cell,
+html[data-theme="dark"] .dashboard-announcement-item,
+html[data-theme="dark"] .dashboard-announcement-item.is-pinned,
+html[data-theme="dark"] .stage-now-playing,
+html[data-theme="dark"] .stage-empty-queue,
+html[data-theme="dark"] .obs-preview,
+html[data-theme="dark"] .bracket-controls .settings-input,
+html[data-theme="dark"] .bracket-player:not(.is-winner):hover {
+    background: var(--theme-surface-raised) !important;
+    border-color: var(--theme-border) !important;
+}
+
+html[data-theme="dark"] .application-card select,
+html[data-theme="dark"] .application-card input,
+html[data-theme="dark"] .guidelines-toolbar button,
+html[data-theme="dark"] .guidelines-toolbar select,
+html[data-theme="dark"] .guidelines-toolbar input[type="color"] {
+    background: var(--theme-surface-raised) !important;
+    border-color: var(--theme-border) !important;
+    color: var(--theme-text) !important;
+}
+
+html[data-theme="dark"] .bingo-table tbody td,
+html[data-theme="dark"] .bingo-player-cell,
+html[data-theme="dark"] .bingo-player-cell.is-pending .bingo-goal-btn,
+html[data-theme="dark"] .bingo-player-cell.is-pending .bingo-goal-static {
+    background: var(--theme-surface-raised) !important;
+    border-color: var(--theme-border) !important;
+    color: var(--theme-text) !important;
+}
+
+html[data-theme="dark"] .bingo-player-cell.is-free {
+    background: linear-gradient(150deg, #55599d, var(--theme-surface-raised)) !important;
+}
+
+html[data-theme="dark"] .bingo-player-cell.is-complete,
+html[data-theme="dark"] .bingo-cell.is-complete .bingo-goal-btn,
+html[data-theme="dark"] .bingo-cell.is-complete .bingo-goal-static {
+    background: #245c3b !important;
+    border-color: #51c98a !important;
+    color: #e8fff2 !important;
+}
+
+html[data-theme="dark"] .bingo-player-grid-head,
+html[data-theme="dark"] .bingo-admin-rank-header,
+html[data-theme="dark"] .bingo-rank-header th,
+html[data-theme="dark"] .bingo-super-header th,
+html[data-theme="dark"] .bingo-table thead th {
+    background: var(--theme-surface-raised) !important;
+    border-color: var(--theme-border) !important;
+    color: var(--theme-text) !important;
+}
+
+html[data-theme="dark"] .dashboard-announcement-author .material-symbols-outlined,
+html[data-theme="dark"] .dashboard-announcement-date,
+html[data-theme="dark"] .dashboard-announcement-footer,
+html[data-theme="dark"] .bingo-challenge-text,
+html[data-theme="dark"] .bingo-player-cell-sub,
+html[data-theme="dark"] .bingo-member-sub,
+html[data-theme="dark"] .settings-group[data-section="stage-queue"] .settings-card-desc,
+html[data-theme="dark"] .settings-group[data-section="obs"] .settings-card-desc,
+html[data-theme="dark"] .bracket-participants .bracket-section-heading span,
+html[data-theme="dark"] .bracket-board-wrap .bracket-section-heading span,
+html[data-theme="dark"] .bracket-controls .settings-input::placeholder {
+    color: var(--theme-muted) !important;
+}
+
+html[data-theme="dark"] .feedback-workflow select,
+html[data-theme="dark"] .feedback-workflow textarea,
+html[data-theme="dark"] .check-in-selector select,
+html[data-theme="dark"] .check-in-form input,
+html[data-theme="dark"] .check-in-form select,
+html[data-theme="dark"] .check-in-form textarea,
+html[data-theme="dark"] .check-in-filters input,
+html[data-theme="dark"] .check-in-filters select,
+html[data-theme="dark"] .check-in-edit textarea {
+    background: var(--theme-surface-raised) !important;
+    border-color: var(--theme-border) !important;
+    color: var(--theme-text) !important;
+}
+
+html[data-theme="dark"] .feedback-workflow button,
+html[data-theme="dark"] .feedback-delete-button,
+html[data-theme="dark"] .history-pagination-control,
+html[data-theme="dark"] .history-pagination-page,
+html[data-theme="dark"] .check-in-note-details a,
+html[data-theme="dark"] .check-in-history p,
+html[data-theme="dark"] .check-in-note-meta strong {
+    color: var(--theme-text) !important;
+}
+
+html[data-theme="dark"] .audit-log,
+html[data-theme="dark"] .notifications-list,
+html[data-theme="dark"] .changelog-list,
+html[data-theme="dark"] .feedback-list,
+html[data-theme="dark"] .history-pagination,
+html[data-theme="dark"] .check-in-history,
+html[data-theme="dark"] .check-in-edit {
+    border-color: var(--theme-border) !important;
+}
+
+html[data-theme="dark"] .audit-log small,
+html[data-theme="dark"] .notification-item time,
+html[data-theme="dark"] .notification-empty,
+html[data-theme="dark"] .changelog-entry time,
+html[data-theme="dark"] .feedback-entry-meta small,
+html[data-theme="dark"] .check-in-history li,
+html[data-theme="dark"] .check-in-empty,
+html[data-theme="dark"] .check-in-note-meta,
+html[data-theme="dark"] .check-in-note-details,
+html[data-theme="dark"] .history-pagination-summary,
+html[data-theme="dark"] .history-pagination-status {
+    color: var(--theme-muted) !important;
+}
+
+html[data-theme="dark"] .history-pagination-control,
+html[data-theme="dark"] .history-pagination-page {
+    border-color: var(--theme-border);
+    background: transparent;
+}
+
+html[data-theme="dark"] .history-pagination-control:hover,
+html[data-theme="dark"] .history-pagination-control:focus-visible,
+html[data-theme="dark"] .history-pagination-page:hover,
+html[data-theme="dark"] .history-pagination-page.is-current {
+    background: var(--theme-surface-raised) !important;
+    color: var(--theme-text) !important;
+}
+
+html[data-theme="dark"] .event-feedback-question,
+html[data-theme="dark"] .event-feedback-review .feedback-list li,
+html[data-theme="dark"] .event-feedback-answers div,
+html[data-theme="dark"] .event-feedback-comments {
+    background: var(--theme-surface) !important;
+    border-color: var(--theme-border) !important;
+    color: var(--theme-text) !important;
+}
+
+html[data-theme="dark"] .event-feedback-question textarea,
+html[data-theme="dark"] .event-feedback-options label {
+    background: var(--theme-surface-raised) !important;
+    border-color: var(--theme-border) !important;
+    color: var(--theme-text) !important;
+}
+
+html[data-theme="dark"] .event-feedback-options label:has(input:checked) {
+    background: #454276 !important;
+    color: var(--theme-text) !important;
+}
+
+html[data-theme="dark"] .guidelines-toolbar button,
+html[data-theme="dark"] .guidelines-toolbar select,
+html[data-theme="dark"] .guidelines-toolbar input[type="color"] {
+    color: var(--theme-text) !important;
+}
+
+html[data-theme="dark"] .bracket-controls {
+    background: var(--theme-surface) !important;
+}
+
+html[data-theme="dark"] .bracket-participants {
+    background: var(--theme-surface-raised) !important;
+}
+
+html[data-theme="dark"] .bracket-player {
+    background: var(--theme-surface-raised) !important;
+    color: var(--theme-text) !important;
+}
+
+html[data-theme="dark"] .bracket-player.is-winner {
+    background: #245c3b !important;
+    color: #e8fff2 !important;
+}
+
+html[data-theme="dark"] .bracket-player input {
+    background: var(--theme-page-bg) !important;
+    border-color: var(--theme-border) !important;
+    color: var(--theme-text) !important;
+}
+
+html[data-theme="dark"] .password-reset-modal-card {
+    background: var(--theme-surface) !important;
+    border-color: var(--theme-border) !important;
+}
+
+html[data-theme="dark"] .password-reset-modal-card h2,
+html[data-theme="dark"] .password-reset-modal-card p {
+    color: var(--theme-text) !important;
+}
+
+html[data-theme="dark"] .settings-tabs-nav {
+    background: var(--theme-surface) !important;
+}
+
+html[data-theme="dark"] .settings-tab-btn.is-active {
+    background: var(--theme-surface-raised) !important;
+    color: var(--theme-text) !important;
+}
+
+html[data-theme="dark"] .settings-tab-btn.is-active .material-symbols-outlined,
+html[data-theme="dark"] .settings-tab-badge {
+    color: var(--theme-text) !important;
+}
+
+html[data-theme="dark"] .settings-btn-primary,
+html[data-theme="dark"] .account-btn-primary {
+    background: var(--theme-surface-raised) !important;
+    border: 1px solid var(--theme-border);
+    color: var(--theme-text) !important;
+}
+
+html[data-theme="dark"] .settings-btn-primary:hover,
+html[data-theme="dark"] .account-btn-primary:hover {
+    background: #454276 !important;
+    color: var(--theme-text) !important;
+}
+
+html[data-theme="dark"] .login-form {
+    background: var(--theme-page-bg) !important;
+    color: var(--theme-text) !important;
+}
+
+html[data-theme="dark"] .login-form-actions label {
+    color: var(--theme-text) !important;
+}
+
+html[data-theme="dark"] dialog {
+    border: 1px solid var(--theme-border);
+    background: var(--theme-surface) !important;
+    color: var(--theme-text) !important;
+}
+
+html[data-theme="dark"] dialog::backdrop {
+    background-color: rgba(5, 4, 15, 0.82);
+}
+
+html[data-theme="dark"] dialog label,
+html[data-theme="dark"] dialog p,
+html[data-theme="dark"] dialog li {
+    color: var(--theme-text) !important;
+}
+
+html[data-theme="dark"] dialog input,
+html[data-theme="dark"] dialog select,
+html[data-theme="dark"] dialog textarea {
+    border: 1px solid var(--theme-border);
+    background-color: var(--theme-surface-raised) !important;
+    color: var(--theme-text) !important;
+}
+
+html[data-theme="dark"] dialog hr {
+    border-top-color: var(--theme-border);
+}
+
+html[data-theme="dark"] .dialog-buttons button[type="button"] {
+    border-color: var(--theme-border);
+    color: var(--theme-text) !important;
+}
+
+html[data-theme="dark"] .planner-week-form input,
+html[data-theme="dark"] .planner-lane,
+html[data-theme="dark"] .planner-user,
+html[data-theme="dark"] .roster-action-menu-items {
+    background: var(--theme-surface-raised) !important;
+    border-color: var(--theme-border) !important;
+    color: var(--theme-text) !important;
+}
+
+html[data-theme="dark"] .planner-user span:not(.material-symbols-outlined),
+html[data-theme="dark"] .event-feedback-summary > span {
+    color: var(--theme-muted) !important;
+}
+
+html[data-theme="dark"] .planner-dropzone.is-drag-over {
+    background: #35523b !important;
+}
+
+html[data-theme="dark"] .check-in-follow-up {
+    background: #5a4525 !important;
+    border-left-color: #e0a84d !important;
+    color: #fff1cf !important;
+}
+
+html[data-theme="dark"] .check-in-follow-up.is-complete {
+    background: #245c3b !important;
+    border-left-color: #51c98a !important;
+    color: #e8fff2 !important;
+}
+
+html[data-theme="dark"] .event-feedback-notice-success {
+    background: #245c3b !important;
+    border-color: #51c98a !important;
+    color: #e8fff2 !important;
+}
+
+html[data-theme="dark"] .event-feedback-notice-error {
+    background: #6b3030 !important;
+    border-color: #f08a8a !important;
+    color: #fff0f0 !important;
+}
+
+html[data-theme="dark"] .event-feedback-summary > strong {
+    background: var(--theme-surface-raised) !important;
+    color: var(--theme-text) !important;
+}
