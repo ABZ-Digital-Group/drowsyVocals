@@ -265,10 +265,10 @@
                                     <span><%= user.timeInGrade %></span>
                                 </td>
                                 
-                                <td class="shift-cell" style="background-color: <%= shiftColorMap[user.shift] || '' %>"><%= user.shift %></td>
-                                <td class="house-cell" style="background-color: <%= houseColorMap[user.house] || '' %>"><%= user.house %></td>
+                                <td class="shift-cell shift-<%= (user.shift || '').toLowerCase().replace(/[^a-z0-9]+/g, '-') %>" style="background-color: <%= shiftColorMap[user.shift] || '' %>"><%= user.shift %></td>
+                                <td class="house-cell house-<%= (user.house || '').toLowerCase().replace(/[^a-z0-9]+/g, '-') %>" style="background-color: <%= houseColorMap[user.house] || '' %>"><%= user.house %></td>
                                 <td><%= user.housePoints %></td>
-                                <td class="activity-cell" style="background-color: <%= activityColorMap[user.activity] || '' %>"><%= user.activity %></td>
+                                <td class="activity-cell activity-<%= (user.activity || '').toLowerCase().replace(/[^a-z0-9]+/g, '-') %>" style="background-color: <%= activityColorMap[user.activity] || '' %>"><%= user.activity %></td>
                                 <td><%= user.weeksActivity %></td>
                                 <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender' || userType === 'Dreamy Defender' || userIsDeveloper) { %>
                                 <td><%= (user.strikes || []).reduce((sum, strike) => sum + (Number(strike.count) || 0), 0) %></td>
