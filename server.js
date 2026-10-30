@@ -3951,10 +3951,16 @@ app.get('/staff-activity', requireDatabase, async (req, res) => {
         const live = liveSessions.map((session) => ({
             displayName: session.userName,
             channelName: session.channelName,
-            joinedAt: session.startedAt ? new Date(session.startedAt).toLocaleString() : null
+            joinedAt: session.startedAt ? new Date(session.startedAt).toLocaleString() : null,
+            durationMinutes: Math.floor(Number(session.durationSeconds || 0) / 60)
         }));
         const totalSeconds = staff.reduce((sum, item) => sum + item.seconds, 0);
         const totalSessions = activitySessions.length;
+        const activeDays = daily.filter((item) => item.seconds > 0).length;
+        const peakDay = daily.reduce(
+            (peak, item) => item.seconds > peak.seconds ? item : peak,
+            { date: null, seconds: 0, hours: 0 }
+        );
 
         res.render('pages/staff-activity', {
             page: 'staff-activity',
@@ -3963,7 +3969,11 @@ app.get('/staff-activity', requireDatabase, async (req, res) => {
                 hours: toHours(totalSeconds),
                 sessions: totalSessions,
                 staffCount: staff.length,
-                channelCount: channels.length
+                channelCount: channels.length,
+                activeDays,
+                averageDailyHours: toHours(totalSeconds / rangeDays),
+                peakDay: peakDay.date,
+                peakHours: toHours(peakDay.seconds)
             },
             staff,
             channels,
