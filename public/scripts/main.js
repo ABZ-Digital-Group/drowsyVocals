@@ -20,10 +20,10 @@ const saveDarkMode = (enabled) => {
 };
 
 const THEME_CELL_SELECTOR = [
-  '.roster-modern-table tbody td.shift-cell',
-  '.roster-modern-table tbody td.house-cell',
-  '.roster-modern-table tbody td.activity-cell',
-  '.roster-modern-table tbody td.status-cell'
+  '.roster-content > table tbody td.shift-cell',
+  '.roster-content > table tbody td.house-cell',
+  '.roster-content > table tbody td.activity-cell',
+  '.roster-content > table tbody td.status-cell'
 ].join(', ');
 
 const darkenThemeCellColor = (color) => {

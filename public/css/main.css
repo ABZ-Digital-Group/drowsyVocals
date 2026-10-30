@@ -5948,14 +5948,14 @@ html[data-theme="dark"] .profile-details {
 html[data-theme="dark"] tbody tr:not(.rank-group-header):not(.bingo-rank-header):hover,
 html[data-theme="dark"] .settings-ranks-table tbody tr:hover,
 html[data-theme="dark"] .bingo-table tbody tr:hover td,
-html[data-theme="dark"] .roster-modern-table tbody tr:hover td {
+html[data-theme="dark"] .roster-content > table tbody tr:hover td {
     background-color: var(--theme-surface-raised);
 }
 
-html[data-theme="dark"] .roster-modern-table tbody td.shift-cell,
-html[data-theme="dark"] .roster-modern-table tbody td.house-cell,
-html[data-theme="dark"] .roster-modern-table tbody td.activity-cell,
-html[data-theme="dark"] .roster-modern-table tbody td.status-cell {
+html[data-theme="dark"] .roster-content > table tbody td.shift-cell,
+html[data-theme="dark"] .roster-content > table tbody td.house-cell,
+html[data-theme="dark"] .roster-content > table tbody td.activity-cell,
+html[data-theme="dark"] .roster-content > table tbody td.status-cell {
     background-color: var(--dark-mode-cell-bg) !important;
     background-image: none !important;
     color: #ffffff !important;
@@ -7936,54 +7936,54 @@ html[data-theme="dark"] .event-feedback-summary > strong {
     color: var(--theme-text) !important;
 }
 
-html[data-theme="dark"] .roster-modern-table tbody td.shift-eu {
+html[data-theme="dark"] .roster-content > table tbody td.shift-eu {
     background: #7f3f46 !important;
 }
 
-html[data-theme="dark"] .roster-modern-table tbody td.shift-na {
+html[data-theme="dark"] .roster-content > table tbody td.shift-na {
     background: #345d9d !important;
 }
 
-html[data-theme="dark"] .roster-modern-table tbody td.shift-au {
+html[data-theme="dark"] .roster-content > table tbody td.shift-au {
     background: #7d5a28 !important;
 }
 
-html[data-theme="dark"] .roster-modern-table tbody td.house-penguin-force {
+html[data-theme="dark"] .roster-content > table tbody td.house-penguin-force {
     background: #126b74 !important;
 }
 
-html[data-theme="dark"] .roster-modern-table tbody td.house-stubo-united {
+html[data-theme="dark"] .roster-content > table tbody td.house-stubo-united {
     background: #57468e !important;
 }
 
-html[data-theme="dark"] .roster-modern-table tbody td.house-drowsy-operators {
+html[data-theme="dark"] .roster-content > table tbody td.house-drowsy-operators {
     background: #93483f !important;
 }
 
-html[data-theme="dark"] .roster-modern-table tbody td.house-exempt {
+html[data-theme="dark"] .roster-content > table tbody td.house-exempt {
     background: #46445e !important;
 }
 
-html[data-theme="dark"] .roster-modern-table tbody td.activity-active {
+html[data-theme="dark"] .roster-content > table tbody td.activity-active {
     background: #245c3b !important;
 }
 
-html[data-theme="dark"] .roster-modern-table tbody td.activity-inactive {
+html[data-theme="dark"] .roster-content > table tbody td.activity-inactive {
     background: #6b3030 !important;
 }
 
-html[data-theme="dark"] .roster-modern-table tbody td.activity-semi-active {
+html[data-theme="dark"] .roster-content > table tbody td.activity-semi-active {
     background: #7b6326 !important;
 }
 
-html[data-theme="dark"] .roster-modern-table tbody td.activity-loa {
+html[data-theme="dark"] .roster-content > table tbody td.activity-loa {
     background: #385c91 !important;
 }
 
-html[data-theme="dark"] .roster-modern-table tbody td.shift-cell,
-html[data-theme="dark"] .roster-modern-table tbody td.house-cell,
-html[data-theme="dark"] .roster-modern-table tbody td.activity-cell,
-html[data-theme="dark"] .roster-modern-table tbody td.status-cell {
+html[data-theme="dark"] .roster-content > table tbody td.shift-cell,
+html[data-theme="dark"] .roster-content > table tbody td.house-cell,
+html[data-theme="dark"] .roster-content > table tbody td.activity-cell,
+html[data-theme="dark"] .roster-content > table tbody td.status-cell {
     background-image: none !important;
     color: #ffffff !important;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
