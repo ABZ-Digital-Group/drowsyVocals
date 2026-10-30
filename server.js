@@ -510,6 +510,11 @@ app.use(async (req, res, next) => {
 const CHANGELOG_ENTRIES = [
     {
         date: '2026-10-30',
+        title: 'Dark mode added',
+        changes: ['Staff can now switch the website between light and dark mode from the account menu. The preference is saved on their device and applies across the site.']
+    },
+    {
+        date: '2026-10-30',
         title: 'Server analytics dashboard added',
         changes: ['Added a privacy-preserving Server Analytics dashboard with selectable history ranges, daily charts, community activity metrics, game activity, member movement, and queue insights powered by DrowsyBot.']
     },

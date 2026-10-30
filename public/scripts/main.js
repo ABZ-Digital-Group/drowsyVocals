@@ -1,5 +1,48 @@
 const SEASONAL_OPT_OUT_KEY = 'drowsyVocalsSeasonalEffectsOptOut';
 const LEGACY_HALLOWEEN_OPT_OUT_KEY = 'drowsyVocalsHalloweenOptOut';
+const THEME_KEY = 'drowsyVocalsTheme';
+
+const readDarkMode = () => {
+  try {
+    return window.localStorage.getItem(THEME_KEY) === 'dark';
+  } catch (error) {
+    console.warn('Theme preference could not be read:', error);
+    return false;
+  }
+};
+
+const saveDarkMode = (enabled) => {
+  try {
+    window.localStorage.setItem(THEME_KEY, enabled ? 'dark' : 'light');
+  } catch (error) {
+    console.warn('Theme preference could not be saved:', error);
+  }
+};
+
+const renderThemeToggle = (enabled) => {
+  document.documentElement.dataset.theme = enabled ? 'dark' : 'light';
+  document.querySelectorAll('[data-theme-toggle]').forEach((toggle) => {
+    toggle.setAttribute('aria-pressed', String(enabled));
+    const icon = toggle.querySelector('.material-symbols-outlined');
+    const label = toggle.querySelector('[data-theme-label]');
+    if (icon) icon.textContent = enabled ? 'light_mode' : 'dark_mode';
+    if (label) label.textContent = enabled ? 'Light mode' : 'Dark mode';
+  });
+};
+
+const initializeTheme = () => {
+  const enabled = readDarkMode();
+  renderThemeToggle(enabled);
+  document.querySelectorAll('[data-theme-toggle]').forEach((toggle) => {
+    toggle.addEventListener('click', () => {
+      const nextEnabled = document.documentElement.dataset.theme !== 'dark';
+      saveDarkMode(nextEnabled);
+      renderThemeToggle(nextEnabled);
+    });
+  });
+};
+
+initializeTheme();
 
 const readSeasonalOptOut = () => {
   try {

@@ -5813,6 +5813,149 @@ dialog button {
     cursor: pointer;
 }
 
+/* User-selectable dark mode. */
+html[data-theme="dark"] {
+    color-scheme: dark;
+    --theme-page-bg: #17152b;
+    --theme-surface: #211f3b;
+    --theme-surface-raised: #2b2850;
+    --theme-text: #f6f4ff;
+    --theme-muted: #b8b5d3;
+    --theme-border: #555180;
+    --theme-link: #b8d0f4;
+}
+
+html[data-theme="dark"] body {
+    background-color: var(--theme-page-bg);
+    color: var(--theme-text);
+}
+
+html[data-theme="dark"] h1,
+html[data-theme="dark"] h2,
+html[data-theme="dark"] h3,
+html[data-theme="dark"] h4,
+html[data-theme="dark"] h5,
+html[data-theme="dark"] h6,
+html[data-theme="dark"] label,
+html[data-theme="dark"] p,
+html[data-theme="dark"] li,
+html[data-theme="dark"] td,
+html[data-theme="dark"] th {
+    color: inherit;
+}
+
+html[data-theme="dark"] h1,
+html[data-theme="dark"] h2,
+html[data-theme="dark"] h3,
+html[data-theme="dark"] h4,
+html[data-theme="dark"] h5,
+html[data-theme="dark"] h6 {
+    color: var(--theme-text) !important;
+}
+
+html[data-theme="dark"] main a {
+    color: var(--theme-link);
+}
+
+html[data-theme="dark"] nav {
+    background-color: #111025;
+}
+
+html[data-theme="dark"] .nav-account-dropdown,
+html[data-theme="dark"] .nav-guidelines-dropdown,
+html[data-theme="dark"] .nav-notifications-dropdown {
+    border-color: var(--theme-border);
+    background-color: var(--theme-surface);
+    box-shadow: 4px 4px 0 #0b0a18;
+}
+
+html[data-theme="dark"] .nav-account-dropdown a,
+html[data-theme="dark"] .nav-guidelines-dropdown a,
+html[data-theme="dark"] .nav-account-action {
+    color: var(--theme-text);
+}
+
+html[data-theme="dark"] .nav-account-dropdown a:hover,
+html[data-theme="dark"] .nav-account-dropdown a:focus-visible,
+html[data-theme="dark"] .nav-guidelines-dropdown a:hover,
+html[data-theme="dark"] .nav-guidelines-dropdown a:focus-visible,
+html[data-theme="dark"] .nav-account-action:hover,
+html[data-theme="dark"] .nav-account-action:focus-visible {
+    background-color: var(--theme-surface-raised);
+    color: var(--theme-text);
+}
+
+.theme-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.theme-toggle .material-symbols-outlined {
+    padding: 0;
+    background: transparent;
+    color: inherit;
+    font-size: 1.15em;
+}
+
+html[data-theme="dark"] .profile-detail,
+html[data-theme="dark"] .profile-detail-full,
+html[data-theme="dark"] .settings-page-access-row,
+html[data-theme="dark"] .settings-stat-item,
+html[data-theme="dark"] .settings-alert,
+html[data-theme="dark"] .analytics-insight,
+html[data-theme="dark"] .analytics-panel,
+html[data-theme="dark"] .application-card,
+html[data-theme="dark"] .account-info-item,
+html[data-theme="dark"] .feedback-entry,
+html[data-theme="dark"] .discord-guild,
+html[data-theme="dark"] .discord-message,
+html[data-theme="dark"] .dashboard-shortcut-btn,
+html[data-theme="dark"] .dashboard-ops-widget {
+    background-color: var(--theme-surface);
+    border-color: var(--theme-border);
+    color: var(--theme-text);
+}
+
+html[data-theme="dark"] .settings-card,
+html[data-theme="dark"] .account-card,
+html[data-theme="dark"] .dashboard-hero-card,
+html[data-theme="dark"] .maintenance-card {
+    background-color: var(--theme-surface);
+    border-color: var(--theme-border);
+}
+
+html[data-theme="dark"] .settings-input,
+html[data-theme="dark"] .settings-textarea,
+html[data-theme="dark"] input,
+html[data-theme="dark"] select,
+html[data-theme="dark"] textarea {
+    border-color: var(--theme-border);
+    background-color: var(--theme-surface-raised);
+    color: var(--theme-text);
+}
+
+html[data-theme="dark"] input::placeholder,
+html[data-theme="dark"] textarea::placeholder {
+    color: var(--theme-muted);
+}
+
+html[data-theme="dark"] table,
+html[data-theme="dark"] .profile-details {
+    border-color: var(--theme-border);
+}
+
+html[data-theme="dark"] tbody tr:not(.rank-group-header):not(.bingo-rank-header):hover,
+html[data-theme="dark"] .settings-ranks-table tbody tr:hover,
+html[data-theme="dark"] .bingo-table tbody tr:hover td,
+html[data-theme="dark"] .roster-modern-table tbody tr:hover td {
+    background-color: var(--theme-surface-raised);
+}
+
+html[data-theme="dark"] .footer {
+    color: var(--theme-muted);
+}
+
 
 
 

@@ -114,6 +114,10 @@
             </button>
             <div class="nav-account-dropdown" id="accountMenu">
                 <a href="/account">Account</a>
+                <button type="button" class="nav-account-action theme-toggle" data-theme-toggle aria-pressed="false">
+                    <span class="material-symbols-outlined" aria-hidden="true">dark_mode</span>
+                    <span data-theme-label>Dark mode</span>
+                </button>
                 <% if ((userIsDeveloper || userType === 'Mr. Sandman' || userType === 'Realm God') && !developerPreviewMode) { %>
                 <form method="post" action="/developer-preview/start">
                     <button type="submit" class="nav-account-action">User view</button>
