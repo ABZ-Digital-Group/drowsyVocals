@@ -5952,6 +5952,15 @@ html[data-theme="dark"] .roster-modern-table tbody tr:hover td {
     background-color: var(--theme-surface-raised);
 }
 
+html[data-theme="dark"] .roster-modern-table tbody td.shift-cell,
+html[data-theme="dark"] .roster-modern-table tbody td.house-cell,
+html[data-theme="dark"] .roster-modern-table tbody td.activity-cell,
+html[data-theme="dark"] .roster-modern-table tbody td.status-cell {
+    background-image: linear-gradient(rgba(13, 12, 31, 0.62), rgba(13, 12, 31, 0.62)) !important;
+    color: #ffffff !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+}
+
 html[data-theme="dark"] .footer {
     color: var(--theme-muted);
 }
