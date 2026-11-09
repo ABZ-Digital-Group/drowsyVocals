@@ -7000,6 +7000,8 @@ app.get('/loa/history', requireDatabase, async (req, res) => {
     if (!hasManagementAccess(req)) return res.status(403).send('You do not have permission to view LOA history.');
 
     try {
+        const showActiveOnly = req.query.active === '1' || req.query.active === 'true';
+        const todayStr = new Date().toISOString().slice(0, 10);
         const requestedPage = parseHistoryPage(req.query.page);
         const [users, reviewerUsers] = await Promise.all([
             db.collection('users').find(
@@ -7025,17 +7027,31 @@ app.get('/loa/history', requireDatabase, async (req, res) => {
             displayName: user.displayName || user.discordUser || user.login?.discordId,
             discordId: user.login?.discordId,
             accountType: user.accountType || 'Unknown',
+            isActive: request.status === 'Approved'
+                && request.startDate <= todayStr
+                && request.endDate >= todayStr,
             reviewedByDisplayName: request.reviewedBy
                 ? nameByDiscordId.get(request.reviewedBy) || request.reviewedBy
                 : null
         }))).sort((a, b) => new Date(b.requestedAt || 0) - new Date(a.requestedAt || 0));
-        const pagination = buildHistoryPagination(loaHistory.length, requestedPage, '/loa/history', 'LOA history pages');
+        const activeCount = loaHistory.filter((request) => request.isActive).length;
+        const visibleHistory = showActiveOnly
+            ? loaHistory.filter((request) => request.isActive)
+            : loaHistory;
+        const pagination = buildHistoryPagination(
+            visibleHistory.length,
+            requestedPage,
+            showActiveOnly ? '/loa/history?active=1' : '/loa/history',
+            showActiveOnly ? 'Active LOA history pages' : 'LOA history pages'
+        );
         const startIndex = (pagination.currentPage - 1) * HISTORY_PAGE_SIZE;
 
         res.render('pages/loa-history', {
             page: 'loa-history',
-            loaHistory: loaHistory.slice(startIndex, startIndex + HISTORY_PAGE_SIZE),
-            pagination
+            loaHistory: visibleHistory.slice(startIndex, startIndex + HISTORY_PAGE_SIZE),
+            pagination,
+            activeCount,
+            showActiveOnly
         });
     } catch (error) {
         console.error('Error loading LOA history:', error);

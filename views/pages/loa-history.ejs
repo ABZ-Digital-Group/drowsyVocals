@@ -17,9 +17,13 @@
                 <%- include('../partials/history-pagination', { pagination: pagination }) %>
                 <div class="profile-details">
                     <div class="profile-detail-full">
-                        <span>All requests</span>
+                        <span><%= showActiveOnly ? 'Currently active requests' : 'All requests' %></span>
+                        <p>
+                            <a class="action-button action-button-primary" href="/loa/history">All requests</a>
+                            <a class="action-button action-button-primary" href="/loa/history?active=1">Active now (<%= activeCount %>)</a>
+                        </p>
                         <% if (!loaHistory.length) { %>
-                        <strong>No LOA requests have been recorded.</strong>
+                        <strong><%= showActiveOnly ? 'No LOAs are currently active.' : 'No LOA requests have been recorded.' %></strong>
                         <% } else { %>
                         <div class="loa-history-table-wrap">
                             <table class="loa-history-table">
@@ -39,7 +43,12 @@
                                         <td><strong><%= request.displayName %></strong><small><%= request.accountType %></small></td>
                                         <td><%= request.startDate %> to <%= request.endDate %></td>
                                         <td><%= request.reason %></td>
-                                        <td><span class="status-badge status-<%= String(request.status || 'Pending').toLowerCase() %>"><%= request.status || 'Pending' %></span></td>
+                                        <td>
+                                            <span class="status-badge status-<%= String(request.status || 'Pending').toLowerCase() %>"><%= request.status || 'Pending' %></span>
+                                            <% if (request.isActive) { %>
+                                            <small style="display: block; color: #1d6b46;">Active now</small>
+                                            <% } %>
+                                        </td>
                                         <td><%= (request.requestedAt || '').slice(0, 10) %></td>
                                         <td>
                                             <%= request.reviewedByDisplayName || (request.placedByAdmin ? 'Placed by Admin' : 'Awaiting review') %>
