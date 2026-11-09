@@ -7001,16 +7001,33 @@ app.get('/loa/history', requireDatabase, async (req, res) => {
 
     try {
         const requestedPage = parseHistoryPage(req.query.page);
-        const users = await db.collection('users').find(
-            { 'loaRequests.0': { $exists: true } },
-            { projection: { displayName: 1, discordUser: 1, accountType: 1, 'login.discordId': 1, loaRequests: 1 } }
-        ).toArray();
+        const [users, reviewerUsers] = await Promise.all([
+            db.collection('users').find(
+                { 'loaRequests.0': { $exists: true } },
+                { projection: { displayName: 1, discordUser: 1, accountType: 1, 'login.discordId': 1, loaRequests: 1 } }
+            ).toArray(),
+            db.collection('users').find(
+                {},
+                { projection: { displayName: 1, discordUser: 1, 'login.discordId': 1 } }
+            ).toArray()
+        ]);
+        const nameByDiscordId = new Map(
+            reviewerUsers
+                .filter((user) => user.login?.discordId)
+                .map((user) => [
+                    user.login.discordId,
+                    user.displayName || user.discordUser || user.login.discordId
+                ])
+        );
 
         const loaHistory = users.flatMap((user) => (Array.isArray(user.loaRequests) ? user.loaRequests : []).map((request) => ({
             ...request,
             displayName: user.displayName || user.discordUser || user.login?.discordId,
             discordId: user.login?.discordId,
-            accountType: user.accountType || 'Unknown'
+            accountType: user.accountType || 'Unknown',
+            reviewedByDisplayName: request.reviewedBy
+                ? nameByDiscordId.get(request.reviewedBy) || request.reviewedBy
+                : null
         }))).sort((a, b) => new Date(b.requestedAt || 0) - new Date(a.requestedAt || 0));
         const pagination = buildHistoryPagination(loaHistory.length, requestedPage, '/loa/history', 'LOA history pages');
         const startIndex = (pagination.currentPage - 1) * HISTORY_PAGE_SIZE;
