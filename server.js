@@ -46,6 +46,8 @@ const botService = createBotService({
 const voiceActivityApiSecret = process.env.VOICE_ACTIVITY_API_SECRET
     || process.env.BOT_API_SECRET
     || process.env.BOT_API_TOKEN;
+const HOUSE_POINT_VOICE_RATE = 2;
+const HOUSE_POINT_DOUBLING_THRESHOLD = 10;
 
 if (!mongoUri) {
     console.error('MONGODB_URI is not configured. Add it to the application environment variables.');
@@ -509,6 +511,11 @@ app.use(async (req, res, next) => {
 });
 const CHANGELOG_ENTRIES = [
     {
+        date: '2026-11-11',
+        title: 'Staff point and moderation references added',
+        changes: ['Staff Activity now publishes the house point earning rules and moderation mute starting points. Completed tracked voice time can automatically award house points, including the approved multiplier for staff already at 10 points.']
+    },
+    {
         date: '2026-10-30',
         title: 'Dark mode coverage and contrast improved',
         changes: ['Dark mode now applies consistent surfaces, controls, dialogs, tables, editors, cards, and feedback states across the website, with improved contrast for configurable roster colors.']
@@ -692,6 +699,82 @@ async function writeAudit(req, action, detail) {
     } catch (error) {
         console.error('Audit logging failed:', error.message);
     }
+}
+
+function getEffectiveHousePointAmount(currentPoints, requestedAmount) {
+    const amount = Number(requestedAmount);
+    return amount > 0 && Number(currentPoints) >= HOUSE_POINT_DOUBLING_THRESHOLD
+        ? amount * 2
+        : amount;
+}
+
+async function awardAutomaticVoicePoints(session) {
+    const targetUser = await db.collection('users').findOne(
+        { 'login.discordId': session.userId },
+        { projection: { displayName: 1, discordUser: 1, house: 1, housePoints: 1, voicePointMinutes: 1 } }
+    );
+    if (!targetUser) {
+        throw new Error(`Voice activity user ${session.userId} was not found.`);
+    }
+
+    const sessionMinutes = Math.floor(Number(session.durationSeconds || 0) / 60);
+    const creditedMinutes = (Number(targetUser.voicePointMinutes) || 0) + sessionMinutes;
+    const completedHours = Math.floor(creditedMinutes / 60);
+    const remainingMinutes = creditedMinutes % 60;
+    const baseAmount = completedHours * HOUSE_POINT_VOICE_RATE;
+    const currentPoints = Number(targetUser.housePoints) || 0;
+    const effectiveAmount = getEffectiveHousePointAmount(currentPoints, baseAmount);
+    const newPoints = Math.max(0, currentPoints + effectiveAmount);
+    const recipientName = targetUser.displayName || targetUser.discordUser || session.userId;
+    const reason = `Voice activity: ${completedHours} completed hour${completedHours === 1 ? '' : 's'}`;
+
+    await db.collection('users').updateOne(
+        { 'login.discordId': session.userId },
+        { $set: { housePoints: newPoints, voicePointMinutes: remainingMinutes } }
+    );
+    if (baseAmount <= 0) return false;
+
+    await db.collection('housePointsLog').insertOne({
+        recipientId: session.userId,
+        recipientName,
+        recipientHouse: targetUser.house || null,
+        amount: effectiveAmount,
+        baseAmount,
+        reason,
+        actorId: 'drowsybot',
+        actorName: 'DrowsyBot',
+        source: 'voice-activity',
+        sourceSessionId: session.sessionId,
+        createdAt: new Date().toISOString()
+    });
+    await db.collection('auditLog').insertOne({
+        action: 'Automatically awarded House Points',
+        detail: `+${effectiveAmount} pts to ${recipientName} (${reason})`,
+        actor: 'drowsybot',
+        actorDisplayName: 'DrowsyBot',
+        createdAt: new Date().toISOString().slice(0, 19)
+    });
+
+    sendDiscordWebhook({
+        title: '# 🏆 House Points Awarded Automatically! 🏆',
+        color: 0xFBBF24,
+        fields: [
+            { name: 'Staff Member', value: `${recipientName} (<@${session.userId}>)`, inline: true },
+            { name: 'House', value: targetUser.house || 'None', inline: true },
+            { name: 'Change', value: `+${effectiveAmount} Pts (Total: ${newPoints})`, inline: true },
+            { name: 'Reason', value: reason },
+            { name: 'Awarded By', value: 'DrowsyBot · tracked voice activity' }
+        ]
+    }, 'housePoints');
+
+    createNotification(
+        session.userId,
+        'House points awarded',
+        `+${effectiveAmount} house points were automatically recorded for your tracked voice activity.`,
+        '/house-points'
+    ).catch((error) => console.error('Failed to create automatic house-points notification:', error.message));
+
+    return true;
 }
 
 // AUTHENTICATED USERS MAY READ CHECK-INS; GODS, DEVELOPERS, AND ALLOWED STAFF MAY WRITE THEM.
@@ -3800,14 +3883,61 @@ app.post('/api/internal/voice-sessions', requireDatabase, async (req, res) => {
                 uniqueDocuments.map((document) => ({
                     updateOne: {
                         filter: { sessionId: document.sessionId },
-                        update: { $setOnInsert: document },
+                        update: { $setOnInsert: { ...document, housePointsAwarded: false } },
                         upsert: true
                     }
                 })),
                 { ordered: false }
             )
             : { upsertedCount: 0 };
-        return res.status(202).json({ accepted: uniqueDocuments.length, inserted: result.upsertedCount || 0 });
+
+        const sessionsToAward = uniqueDocuments.length
+            ? await db.collection('voiceActivitySessions')
+                .find({
+                    sessionId: { $in: uniqueDocuments.map((document) => document.sessionId) },
+                    housePointsAwarded: { $ne: true }
+                })
+                .toArray()
+            : [];
+        let pointsAwarded = 0;
+        for (const session of sessionsToAward) {
+            const claimResult = await db.collection('voiceActivitySessions').updateOne(
+                {
+                    sessionId: session.sessionId,
+                    housePointsAwarded: { $ne: true },
+                    housePointsAwardProcessing: { $ne: true }
+                },
+                { $set: { housePointsAwardProcessing: true } }
+            );
+            if (!claimResult.modifiedCount) continue;
+
+            try {
+                if (await awardAutomaticVoicePoints(session)) pointsAwarded += 1;
+                await db.collection('voiceActivitySessions').updateOne(
+                    { sessionId: session.sessionId, housePointsAwardProcessing: true },
+                    {
+                        $set: {
+                            housePointsAwarded: true,
+                            housePointsAwardedAt: new Date().toISOString()
+                        },
+                        $unset: { housePointsAwardProcessing: '' }
+                    }
+                );
+            } catch (error) {
+                console.error(`Automatic voice house-point award failed for session ${session.sessionId}:`, error);
+                await db.collection('voiceActivitySessions').updateOne(
+                    { sessionId: session.sessionId, housePointsAwardProcessing: true },
+                    { $unset: { housePointsAwardProcessing: '' } }
+                );
+            }
+        }
+        if (pointsAwarded) broadcastDataUpdate('users');
+
+        return res.status(202).json({
+            accepted: uniqueDocuments.length,
+            inserted: result.upsertedCount || 0,
+            pointsAwarded
+        });
     } catch (error) {
         console.error('Voice activity ingestion failed:', error);
         return res.status(500).json({ error: 'Unable to record voice activity.' });
@@ -4944,15 +5074,16 @@ app.post('/house-points/award', requireDatabase, async (req, res) => {
             return res.redirect('/house-points');
         }
 
-        const effectiveAmount = cleanAmount;
         const actor = await db.collection('users').findOne(
             { 'login.discordId': req.session.currentuser },
             { projection: { displayName: 1, discordUser: 1 } }
         );
 
+        let recordedChanges = 0;
         for (const cleanDiscordId of cleanDiscordIds) {
             const targetUser = targetUsersById.get(cleanDiscordId);
             const currentPoints = Number(targetUser.housePoints) || 0;
+            const effectiveAmount = getEffectiveHousePointAmount(currentPoints, cleanAmount);
             const newPoints = Math.max(0, currentPoints + effectiveAmount);
 
             await db.collection('users').updateOne(
@@ -4965,9 +5096,11 @@ app.post('/house-points/award', requireDatabase, async (req, res) => {
                 recipientName: targetUser.displayName || targetUser.discordUser || cleanDiscordId,
                 recipientHouse: targetUser.house || null,
                 amount: effectiveAmount,
+                baseAmount: cleanAmount,
                 reason: cleanReason,
                 actorId: req.session.currentuser,
                 actorName: actor?.displayName || actor?.discordUser || req.session.currentuser,
+                source: 'manual',
                 createdAt: new Date().toISOString()
             };
 
@@ -4992,10 +5125,11 @@ app.post('/house-points/award', requireDatabase, async (req, res) => {
                 `${effectiveAmount >= 0 ? '+' : ''}${effectiveAmount} house points were recorded for your account.`,
                 '/house-points'
             ).catch((error) => console.error('Failed to create house-points notification:', error.message));
+            recordedChanges += 1;
         }
 
         broadcastDataUpdate('users');
-        req.flash('success_msg', `Recorded point change of ${effectiveAmount >= 0 ? '+' : ''}${effectiveAmount} pts for ${cleanDiscordIds.length} staff member${cleanDiscordIds.length === 1 ? '' : 's'}.`);
+        req.flash('success_msg', `Recorded point change for ${recordedChanges} staff member${recordedChanges === 1 ? '' : 's'}. Awards are doubled for accounts already at ${HOUSE_POINT_DOUBLING_THRESHOLD} or more points.`);
         res.redirect('/house-points');
     } catch (error) {
         console.error('Error awarding points:', error);
@@ -5019,8 +5153,13 @@ app.post('/house-points/reset', requireDatabase, async (req, res) => {
         );
         const actorName = actor?.displayName || actor?.discordUser || req.session.currentuser;
         const resetResult = await db.collection('users').updateMany(
-            { housePoints: { $exists: true, $ne: 0 } },
-            { $set: { housePoints: 0 } }
+            {
+                $or: [
+                    { housePoints: { $exists: true, $ne: 0 } },
+                    { voicePointMinutes: { $exists: true, $gt: 0 } }
+                ]
+            },
+            { $set: { housePoints: 0, voicePointMinutes: 0 } }
         );
         const announcement = `House points have been reset to 0 for a new competition cycle by ${actorName}.`;
 

@@ -65,11 +65,23 @@
             .staff-activity-table th, .staff-activity-table td { padding: 12px 8px; border-bottom: 1px solid var(--cloud-lilac); text-align: left; vertical-align: top; }
             .staff-activity-table th { color: var(--dusty-blue-purple); font-size: .75em; letter-spacing: .05em; text-transform: uppercase; }
             .staff-activity-table td small { display: block; margin-top: 3px; color: var(--dusty-blue-purple); }
+            .staff-activity-reference { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; margin-bottom: 26px; }
+            .staff-activity-reference-card { min-width: 0; padding: 20px; border: 1px solid var(--cloud-lilac); border-radius: 14px; background: var(--cloud-white); box-shadow: 0 8px 24px rgba(41, 39, 82, .07); }
+            .staff-activity-reference-card h2 { display: flex; align-items: center; gap: 8px; margin: 0 0 6px; color: var(--night-indigo); font-size: 1.15em; }
+            .staff-activity-reference-card h2 .material-symbols-outlined { color: var(--deep-lilac); font-size: 1.1em; }
+            .staff-activity-reference-card > p { margin: 0 0 14px; color: var(--dusty-blue-purple); font-size: .86em; line-height: 1.5; }
+            .staff-activity-reference-table { width: 100%; border-collapse: collapse; }
+            .staff-activity-reference-table th, .staff-activity-reference-table td { padding: 10px 8px; border-bottom: 1px solid var(--cloud-lilac); text-align: left; vertical-align: top; }
+            .staff-activity-reference-table th { color: var(--dusty-blue-purple); font-size: .72em; letter-spacing: .05em; text-transform: uppercase; }
+            .staff-activity-reference-table td { color: var(--night-indigo); font-size: .88em; line-height: 1.45; }
+            .staff-activity-reference-table tr:last-child td { border-bottom: 0; }
+            .staff-activity-reference-note { margin: 14px 0 0; padding: 11px 12px; border-left: 3px solid var(--moonlight-yellow); border-radius: 6px; background: rgba(255, 241, 194, .45); color: var(--night-indigo); font-size: .82em; line-height: 1.5; }
             @media (max-width: 800px) {
                 .staff-activity-header { align-items: stretch; flex-direction: column; }
                 .staff-activity-note { max-width: none; }
                 .staff-activity-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
                 .staff-activity-insights { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+                .staff-activity-reference { grid-template-columns: 1fr; }
                 .staff-activity-grid { grid-template-columns: 1fr; }
                 .staff-activity-panel-wide { grid-column: auto; }
             }
@@ -108,6 +120,36 @@
                 <span>Live monitoring enabled · refreshes every minute</span>
                 <% } %>
             </div>
+
+            <section class="staff-activity-reference" aria-label="Staff team reference">
+                <article class="staff-activity-reference-card">
+                    <h2><span class="material-symbols-outlined" aria-hidden="true">emoji_events</span>House point earning guide</h2>
+                    <p>These rules make routine activity count consistently, even when an administrator is not online to observe it.</p>
+                    <table class="staff-activity-reference-table">
+                        <thead><tr><th>Activity</th><th>House points</th><th>How it is recorded</th></tr></thead>
+                        <tbody>
+                            <tr><td>Tracked voice activity</td><td>2 per completed hour</td><td>Automatically from qualifying non-AFK voice sessions</td></tr>
+                            <tr><td>Other contributions</td><td>Set by management</td><td>Use the House Points award log with a clear reason</td></tr>
+                            <tr><td>Account already at 10+ points</td><td>Award is doubled</td><td>A 2-point award becomes 4 points</td></tr>
+                        </tbody>
+                    </table>
+                    <p class="staff-activity-reference-note">Voice time is accumulated across channel changes, so partial sessions are not lost. Sessions shorter than one minute are not recorded.</p>
+                </article>
+                <article class="staff-activity-reference-card">
+                    <h2><span class="material-symbols-outlined" aria-hidden="true">gavel</span>Mute-duration starting points</h2>
+                    <p>Use these as consistent starting points, then consider context, intent, history, and safeguarding needs.</p>
+                    <table class="staff-activity-reference-table">
+                        <thead><tr><th>Offense pattern</th><th>Starting point</th></tr></thead>
+                        <tbody>
+                            <tr><td>Minor spam or disruptive off-topic behaviour</td><td>5-minute mute</td></tr>
+                            <tr><td>Repeated minor disruption after a warning</td><td>30-minute mute</td></tr>
+                            <tr><td>Targeted harassment or sustained disruption</td><td>1-hour mute and notify management</td></tr>
+                            <tr><td>Threats, hate, slurs, sexual misconduct, or serious safety concerns</td><td>Escalate immediately; do not rely on a mute alone</td></tr>
+                        </tbody>
+                    </table>
+                    <p class="staff-activity-reference-note">Repeated or severe conduct should move up the scale. Document the reason and escalate whenever the situation is unclear or someone may be at risk.</p>
+                </article>
+            </section>
 
             <section class="staff-activity-summary" aria-label="Activity summary">
                 <div class="staff-activity-stat"><span>Voice hours (last <%= rangeDays %> days, incl. live)</span><strong><%= summary.hours.toFixed(2) %></strong></div>
