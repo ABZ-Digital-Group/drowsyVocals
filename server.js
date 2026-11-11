@@ -513,7 +513,7 @@ const CHANGELOG_ENTRIES = [
     {
         date: '2026-11-11',
         title: 'Staff point and moderation references added',
-        changes: ['Staff Activity now publishes the house point earning rules, while the Staff Guidelines page contains the editable moderation handbook and mute starting points. Completed tracked voice time can automatically award house points, including the approved multiplier for staff already at 10 points.']
+        changes: ['Staff Activity now publishes the house point earning rules, while the Staff Guidelines page contains the editable moderation handbook and mute starting points. Completed tracked voice time can automatically award house points, including the approved multiplier for staff already at 10 points. The Staff Guidelines page now has a clearer handbook layout with responsive tables, command examples, and dark-mode styling.']
     },
     {
         date: '2026-10-30',
