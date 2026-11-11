@@ -513,7 +513,7 @@ const CHANGELOG_ENTRIES = [
     {
         date: '2026-11-11',
         title: 'Staff point and moderation references added',
-        changes: ['Staff Activity now publishes the house point earning rules and moderation mute starting points. Completed tracked voice time can automatically award house points, including the approved multiplier for staff already at 10 points.']
+        changes: ['Staff Activity now publishes the house point earning rules, while the Staff Guidelines page contains the editable moderation handbook and mute starting points. Completed tracked voice time can automatically award house points, including the approved multiplier for staff already at 10 points.']
     },
     {
         date: '2026-10-30',
@@ -681,6 +681,120 @@ const CHANGELOG_ENTRIES = [
         changes: ['Removed the automatic doubling of house points for users with more than 10 points.']
     }
 ];
+
+const DEFAULT_STAFF_GUIDELINES_HTML = `
+<h1>Staff Guidelines</h1>
+<p><strong>Updated:</strong> 11 November 2026</p>
+<hr>
+<h2>Higher Ups Team</h2>
+<ul>
+    <li><strong>mr.smoothie (smooth)</strong> - Owner and Discord Partner</li>
+</ul>
+<h2>Drowsy Mission Statement</h2>
+<p>We are not here to just sing along to a track; we are here to own the stage. We are a global, boundary-pushing Performing Arts community built for creators who refuse to be boxed in. From vocal powerhouses and instrumentalists to theatrical acts and live performance, this is a space to collaborate, experiment, and share your craft with the world. If you have a talent, we have the spotlight.</p>
+<h2>Our Top Three</h2>
+<ol>
+    <li><strong>Community First, Always:</strong> We prioritize a vibrant, safe, and genuinely fun environment above everything else. A great performance starts with a supportive audience.</li>
+    <li><strong>Fearless Expression:</strong> We champion camaraderie over competition. This is a judgment-free zone designed to lift each other up and inspire everyone to take the stage.</li>
+    <li><strong>Integrity-Driven Growth:</strong> We grow organically and authentically. No cheap gimmicks, no shady tactics - just real community, talent, and honest connection.</li>
+</ol>
+<h2>House Points (Brownie Points)</h2>
+<p>Our Staff Team has three houses run by the Owner and two Gods of the server. When you join the staff team you will be issued a house, which you can check in the Drowsy Vocals Staff Roster.</p>
+<ul>
+    <li>Each week your house competes to earn House Points for good deeds such as welcoming members, bumping the server, or hosting open mics in Shy Stage.</li>
+    <li>Tracked voice activity earns <strong>2 House Points per completed accumulated hour</strong>. DrowsyBot records qualifying non-AFK voice sessions, so an administrator does not need to be online at the time.</li>
+    <li>Voice minutes carry across channel changes. Sessions shorter than one minute and AFK-channel time do not count.</li>
+    <li>When an account already has 10 or more House Points, positive awards are doubled. For example, a 2-point award becomes 4 points.</li>
+    <li>Other House Point awards must be recorded with a clear reason in the House Points log.</li>
+    <li>At the end of the week, the house with the most points wins the House Cup and takes home $75,000 Casino Cash for the in-server casino.</li>
+    <li>House Points can be given for good deeds and taken for bad behaviour.</li>
+</ul>
+<h2>Staff Responsibilities</h2>
+<h3>Tired Esquire (Trial Moderator)</h3>
+<p>This is a trainee position and a helper role within voice and text channels. Use de-escalation tactics first and report further assistance to your direct higher-up, such as a Knight or supervisor. Watch text channels and voice channels for bad behaviour. You may move users between channels and disconnect them if needed. Your commands include <code>-warn</code>, <code>-mute</code>, and <code>-kick</code>.</p>
+<h3>Nighty Knight (Moderator)</h3>
+<p>Knights are moderators who can decide whether a user should be muted. Report continuous rule-breaking to a supervisor after you have done everything you can as a Knight. Help keep text channels and voice channels free from trolling and drama.</p>
+<h3>Dreamland Guard (Supervisor)</h3>
+<p>Guards supervise front-line staff, provide direct guidance to Squires and Knights, and have authority to issue bans and host events autonomously. Use an objective, non-biased approach to conflict resolution and ensure moderation actions are consistent, justified, and professional.</p>
+<h3>Dreamy Defender (Admin)</h3>
+<p>Drowsy Defenders are the administrative backbone of Drowsy Vocals. Beyond moderation, you manage staff rostering, human resources, staff mentorship, and strategic event scheduling. You oversee the staff hierarchy and help keep the community active, healthy, and compliant.</p>
+<h2>Staff Guidelines</h2>
+<ul>
+    <li><strong>All staff are representatives of the server:</strong> When you are online within Drowsy Vocals, and around other servers on Discord, you represent Drowsy Vocals whether you make it apparent or not. Act accordingly and maintain professionalism.</li>
+    <li><strong>Help moderate members:</strong> Our Squires and Knights are the front line of defence from griefers and disruptive people.</li>
+    <li><strong>Assist users with server information:</strong> Help users understand how Shy Stage and other channels work so they can become active community members. Avoid moving users into full voice channels when a larger available channel would work better.</li>
+    <li><strong>Use de-escalation first:</strong> Before applying a punishment, attempt to de-escalate when the situation allows it.</li>
+    <li><strong>With great power comes great responsibility:</strong> The permissions and privileges given to staff must be used correctly. Privilege abuse is not tolerated.</li>
+    <li><strong>Stay active:</strong> Staff are expected to complete 14 hours of voice activity per week, which can be split into approximately 2 hours per day. Real life takes priority; use the Staff Breaks channel when you need time away.</li>
+    <li><strong>Respect goes both ways:</strong> Higher-ups are there to guide staff in the right direction, and staff should treat one another respectfully.</li>
+    <li><strong>You were here first:</strong> If you are first on the scene, lead the conclusion and let staff of the same rank know if you need help. Higher-ups may override this when necessary.</li>
+    <li><strong>Confidentiality:</strong> Staff Lounge information must stay away from the public. Do not share private staff information with the community.</li>
+    <li><strong>Progression:</strong> Promotions consider performance, activity, and contribution. Demotions can happen when staff rules are broken, requirements are not met, or a staff member receives three strikes or citations.</li>
+    <li><strong>Strikes:</strong> Staff members who break these guidelines may receive strikes. Higher-ups decide whether the result is demotion or removal based on the circumstances.</li>
+</ul>
+<h2>Actions and Accountability</h2>
+<p>All staff members are accountable for their actions. Before making a decision, ask yourself:</p>
+<ul>
+    <li>Have I obtained all the information?</li>
+    <li>Am I invested in the dispute?</li>
+    <li>Am I aware that a mistake has happened, but no Higher Ups are available to fix it?</li>
+</ul>
+<p>There may be situations that require more specific judgment. When in doubt, ask a Higher Up. You and only you are accountable for your actions.</p>
+<h2>Moderation and Mute Guidance</h2>
+<p>Use the following as consistent starting points, not as an inflexible replacement for judgment. Consider intent, context, previous warnings, the user's history, and the safety of everyone involved. Document the reason for every action.</p>
+<table>
+    <thead><tr><th>Situation</th><th>Starting point</th><th>Follow-up</th></tr></thead>
+    <tbody>
+        <tr><td>Minor spam or disruptive off-topic behaviour</td><td>5-minute mute</td><td>Explain the issue and de-escalate when possible.</td></tr>
+        <tr><td>Repeated minor disruption after a warning</td><td>30-minute mute</td><td>Record the warning and notify a supervisor if it continues.</td></tr>
+        <tr><td>Targeted harassment or sustained disruption</td><td>1-hour mute</td><td>Notify management and preserve relevant context.</td></tr>
+        <tr><td>Threats, hate, slurs, sexual misconduct, or serious safety concerns</td><td>Escalate immediately</td><td>Do not rely on a mute alone; contact a Higher Up and follow safeguarding procedures.</td></tr>
+        <tr><td>Repeated or severe conduct</td><td>Move up the scale</td><td>Ask a Higher Up when the appropriate action is unclear.</td></tr>
+    </tbody>
+</table>
+<h3>Mute command</h3>
+<p>If no duration is provided, the default duration is 10 minutes. The maximum mute duration is 3 hours. The Carl Bot applies the NIGHTMARE role, which prevents the user from seeing or typing in text and voice channels. The role is removed automatically when the duration expires. The Tickets channel remains available for an appeal or warning.</p>
+<p>Duration shorthand: <code>m</code> = minute, <code>h</code> = hour, <code>d</code> = day.</p>
+<ul>
+    <li><code>-mute &lt;user&gt; {duration} &lt;reason&gt;</code></li>
+    <li><code>-mute @mr.smoothie 1h Mic Spamming within Pillow Talk I.</code></li>
+    <li><code>-mute 370982518088007690 30m Mic Spamming within Pillow Talk I.</code></li>
+</ul>
+<h2>Commands</h2>
+<p>All staff are expected to know their commands or know where to find them quickly. Turn on Developer Mode in Discord so you can copy a user's unique ID. This helps ensure commands are run on the correct account.</p>
+<h3>Warn</h3>
+<p>Warn users when their behaviour is outside acceptable conditions. Three warnings escalate a user to Administration for review. When a fourth warning appears, bring it to a Higher Up immediately.</p>
+<ul>
+    <li><code>-warn &lt;user&gt; &lt;reason&gt;</code></li>
+    <li><code>-warn @mr.smoothie Breaking the following rules: 4, 3, and 11. Please be more respectful of other users.</code></li>
+    <li><code>-warn 370982518088007690 Breaking the following rule: 12. Please be more careful with song choices.</code></li>
+</ul>
+<h3>Stats</h3>
+<p><code>s?u</code> allows you to view server statistics for yourself and others.</p>
+<p><strong>Keep all commands in bot channels, then purge command messages from public view.</strong></p>
+<h2>Logs, Mod Logs, and Promotion/Demotion Logs</h2>
+<ul>
+    <li><strong>Logs:</strong> Records changes within the server.</li>
+    <li><strong>Mod Logs:</strong> Records moderation actions, including who was involved, who ran the command, the reason, and when it happened.</li>
+    <li><strong>Promotion and Demotion Logs:</strong> Records staff hires, removals, promotions, and demotions.</li>
+</ul>
+<h2>Support Tickets</h2>
+<p>Support tickets allow community members and staff to raise concerns, make suggestions, or report staff or community members. Tickets are private to the public and can be seen by the staff team.</p>
+<ul>
+    <li><code>/ticket close</code></li>
+    <li><code>/ticket add {user}</code></li>
+</ul>
+<ul>
+    <li>The first staff member who responds is responsible for the ticket. Other staff should remain silent unless asked to join.</li>
+    <li>If the ticket reports a specific staff member, that person should not respond to the ticket.</li>
+    <li>Knights can assist with an appeal but must contact a Guard or Higher Up for a decision.</li>
+    <li>If you become flustered or upset, step away and tag another staff member to take over.</li>
+</ul>
+<p>Once closed, tickets are saved as text files in a separate channel with their attachments.</p>
+<h2>Additional Resources</h2>
+<p>Contact a Dreamland Guard or Drowsy Defender whenever you have questions about procedure or a specific situation. Asking for clarity is encouraged. If you need time away, use the staff break process and you can be reinstated with your tags when you return.</p>
+<p>Realm Gods are available through an open-door policy for concerns, including concerns about leadership. Concerns may also be submitted anonymously and confidentially.</p>
+`;
 
 async function writeAudit(req, action, detail) {
     if (!db || !req.session.currentuser) return;
@@ -8061,7 +8175,7 @@ async function renderGuidelinePage(req, res, slug, title) {
         res.render('pages/guidelines', {
             page: slug,
             title,
-            content: document?.content || '',
+            content: document?.content || (slug === 'staff-guidelines' ? DEFAULT_STAFF_GUIDELINES_HTML : ''),
             updatedAt: document?.updatedAt || null,
             canEditGuidelines: hasGodAccess(req)
         });
