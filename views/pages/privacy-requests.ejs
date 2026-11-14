@@ -61,6 +61,8 @@
                                 <% if (request.requestType === 'access' && request.status === 'completed' && request.exportReadyAt) { %>
                                     <a class="privacy-export-link" href="/privacy-requests/<%= request._id %>/export">Download your data copy (JSON)</a>
                                     <small class="privacy-export-note">Your copy is available here for 12 months. Sign in to this account to download it.</small>
+                                <% } else if (request.requestType === 'access' && request.status === 'completed') { %>
+                                    <small class="privacy-export-note">A data copy is not available for this request yet. Please contact management to prepare one.</small>
                                 <% } %>
                             </article>
                         <% }); %>
@@ -99,6 +101,27 @@
                                     <label for="response-<%= request._id %>">Response note (visible to the requester)</label>
                                     <textarea id="response-<%= request._id %>" name="responseNote" maxlength="2000" rows="3"><%= request.responseNote || '' %></textarea>
                                     <button type="submit">Save review</button>
+                                </form>
+                            </article>
+                        <% }); %>
+                    <% } %>
+                </section>
+                <section class="privacy-card">
+                    <h2>Completed access requests needing a data copy</h2>
+                    <% if (!exportRecoveryRequests.length) { %>
+                        <p>No completed access requests are waiting for a data copy.</p>
+                    <% } else { %>
+                        <% exportRecoveryRequests.forEach((request) => { %>
+                            <article class="privacy-request-item">
+                                <div class="privacy-request-meta">
+                                    <strong><%= requestTypeLabels[request.requestType] || request.requestType %> · <%= request.discordId %></strong>
+                                    <span class="privacy-status"><%= request.status %></span>
+                                </div>
+                                <p><%= request.details %></p>
+                                <small>Submitted <%= new Date(request.submittedAt).toLocaleString() %></small>
+                                <p class="privacy-export-note">This request was completed without a saved data copy. Verify the requester and records, then prepare the private download.</p>
+                                <form action="/privacy-requests/<%= request._id %>/complete-access" method="POST">
+                                    <button class="privacy-export-button" type="submit">Prepare data copy</button>
                                 </form>
                             </article>
                         <% }); %>

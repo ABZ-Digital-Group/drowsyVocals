@@ -6542,7 +6542,7 @@ app.get('/privacy-requests', requireDatabase, async (req, res) => {
     if (!req.session.loggedin) return res.redirect('/');
 
     try {
-        const [ownRequests, adminRequests, adminHistory] = await Promise.all([
+        const [ownRequests, adminRequests, closedAdminRequests, exportRecoveryRequests] = await Promise.all([
             db.collection('privacyRequests')
                 .find({ discordId: req.session.currentuser })
                 .project({ exportDataJson: 0 })
@@ -6564,14 +6564,33 @@ app.get('/privacy-requests', requireDatabase, async (req, res) => {
                     .sort({ closedAt: -1 })
                     .limit(100)
                     .toArray()
+                : Promise.resolve([]),
+            hasGodAccess(req)
+                ? db.collection('privacyRequests')
+                    .find({
+                        requestType: 'access',
+                        status: 'completed',
+                        $or: [
+                            { exportReadyAt: { $exists: false } },
+                            { exportDataJson: { $exists: false } },
+                            { exportDataJson: '' },
+                            { exportDataJson: null }
+                        ]
+                    })
+                    .project({ exportDataJson: 0 })
+                    .sort({ closedAt: -1 })
+                    .limit(100)
                 : Promise.resolve([])
         ]);
+        const recoveryRequestIds = new Set(exportRecoveryRequests.map((request) => request._id.toString()));
+        const adminHistory = closedAdminRequests.filter((request) => !recoveryRequestIds.has(request._id.toString()));
 
         res.render('pages/privacy-requests', {
             page: 'privacy-requests',
             ownRequests,
             adminRequests,
             adminHistory,
+            exportRecoveryRequests,
             isPrivacyAdmin: hasGodAccess(req),
             requestTypes: PRIVACY_REQUEST_TYPES
         });
@@ -6681,13 +6700,25 @@ app.post('/privacy-requests/:requestId/complete-access', requireDatabase, async 
     }
 
     try {
-        const request = await db.collection('privacyRequests').findOne({
+        const requestFilter = {
             _id: new ObjectId(req.params.requestId),
             requestType: 'access',
-            status: { $in: ['received', 'in_review'] }
-        });
+            $or: [
+                { status: { $in: ['received', 'in_review'] } },
+                {
+                    status: 'completed',
+                    $or: [
+                        { exportReadyAt: { $exists: false } },
+                        { exportDataJson: { $exists: false } },
+                        { exportDataJson: '' },
+                        { exportDataJson: null }
+                    ]
+                }
+            ]
+        };
+        const request = await db.collection('privacyRequests').findOne(requestFilter);
         if (!request) {
-            req.flash('error_msg', 'An open access request was not found.');
+            req.flash('error_msg', 'An access request that needs a data copy was not found.');
             return res.redirect('/privacy-requests');
         }
 
@@ -6707,11 +6738,7 @@ app.post('/privacy-requests/:requestId/complete-access', requireDatabase, async 
         }
 
         const updateResult = await db.collection('privacyRequests').updateOne(
-            {
-                _id: request._id,
-                status: { $in: ['received', 'in_review'] },
-                requestType: 'access'
-            },
+            requestFilter,
             {
                 $set: {
                     status: 'completed',
@@ -6745,7 +6772,7 @@ app.post('/privacy-requests/:requestId/complete-access', requireDatabase, async 
         res.redirect('/privacy-requests');
     } catch (error) {
         console.error('Error preparing privacy data export:', error);
-        req.flash('error_msg', 'Unable to prepare the data copy. The request remains open for review.');
+        req.flash('error_msg', 'Unable to prepare the data copy. The request status has not changed; review it and retry.');
         res.redirect('/privacy-requests');
     }
 });
@@ -6754,12 +6781,22 @@ app.get('/privacy-requests/:requestId/export', requireDatabase, async (req, res)
     if (!req.session.loggedin || !req.session.currentuser) return res.redirect('/');
 
     try {
-        const request = await findCompletedAccessRequest(
-            req.params.requestId,
-            req.session.currentuser,
-            { projection: { exportDataJson: 1 } }
+        if (!ObjectId.isValid(req.params.requestId)) return res.status(404).send('Data copy not found.');
+        const request = await db.collection('privacyRequests').findOne(
+            {
+                _id: new ObjectId(req.params.requestId),
+                discordId: req.session.currentuser,
+                requestType: 'access'
+            },
+            { projection: { status: 1, exportReadyAt: 1, exportDataJson: 1 } }
         );
-        if (!request?.exportDataJson) return res.status(404).send('Data copy not found.');
+        if (!request) return res.status(404).send('Data copy not found.');
+        if (request.status !== 'completed' || !request.exportReadyAt) {
+            return res.status(409).send('This data copy has not been prepared yet. Please check your privacy request status.');
+        }
+        if (typeof request.exportDataJson !== 'string' || !request.exportDataJson) {
+            return res.status(410).send('This request has no saved data copy. Please contact management to prepare one.');
+        }
 
         const filename = `drowsy-vocals-data-copy-${new Date().toISOString().slice(0, 10)}.json`;
         res.set('Cache-Control', 'no-store, private');
