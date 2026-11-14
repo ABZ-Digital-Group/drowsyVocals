@@ -4673,10 +4673,18 @@ app.get('/bot', requireDatabase, async (req, res) => {
             };
         }).filter(item => Boolean(item.userId));
         const guildConfigs = readBotJson(path.join(BOT_DATA_DIR, 'guild-config.json'), {});
+        const configuredGuildId = String(botEnv.DISCORD_GUILD_ID || '').trim();
+        const botGuilds = Array.isArray(botLiveState.guilds) ? botLiveState.guilds : [];
+        const portalBotLiveState = {
+            ...botLiveState,
+            guilds: configuredGuildId
+                ? botGuilds.filter(guild => String(guild.id) === configuredGuildId)
+                : botGuilds
+        };
 
         res.render('pages/bot', {
             page: 'bot',
-            botLiveState,
+            botLiveState: portalBotLiveState,
             botEnv,
             nowSinging,
             obsAds,
@@ -5182,9 +5190,21 @@ async function sendBotApiPostDetailed(pathname, bodyParams = {}, timeoutMs = 500
     }
 }
 
+function formatDiscordDmMessage(message) {
+    const cleanMessage = (message || '').toString().trim().replace(/\r\n?/g, '\n');
+    const formattedMessage = cleanMessage.split('\n').map((line, index) => {
+        if (!line.trim()) return '';
+        if (index === 0) return `**${line.trim()}**`;
+        const label = line.match(/^([^:\n]{1,40}):\s*(.*)$/);
+        return label ? `**${label[1]}:** ${label[2]}` : line;
+    }).join('\n').replace(/\n{3,}/g, '\n\n');
+
+    return formattedMessage.length <= 1900 ? formattedMessage : cleanMessage;
+}
+
 async function sendBotDirectMessageDetailed(discordId, message) {
     const cleanDiscordId = (discordId || '').toString().trim();
-    const cleanMessage = (message || '').toString().trim();
+    const cleanMessage = formatDiscordDmMessage(message);
     if (!cleanDiscordId || !cleanMessage) {
         return { success: false, attemptedPaths: [], error: 'Discord ID and message are required.' };
     }
@@ -5427,7 +5447,18 @@ async function sendPasswordResetDiscordDm(discordId, resetLink) {
 
 async function sendBotDirectMessage(discordId, message) {
     const delivery = await sendBotDirectMessageDetailed(discordId, message);
-    return Boolean(delivery.success);
+    if (!delivery.success) {
+        const result = delivery.result;
+        console.error('Discord DM delivery failed through portal:', {
+            recipientId: (discordId || '').toString().trim() || null,
+            attemptedPaths: delivery.attemptedPaths,
+            path: delivery.path || result?.path || null,
+            status: result?.status ?? null,
+            error: String(result?.error || delivery.error || 'Unknown bot API error.')
+        });
+        return false;
+    }
+    return true;
 }
 
 function normalizeDiscordId(value) {
