@@ -353,8 +353,8 @@ app.use(async (req, res, next) => {
 // MAINTENANCE MODE MIDDLEWARE
 app.use(async (req, res, next) => {
     // Always allow static files, health checks, login/auth pages, logout, and external webhook ingestion
-    const bypassedPaths = ['/health', '/logout', '/login', '/index', '/terms', '/terms/accept', '/api/v1/auth/accept-terms', '/forgot-password', '/reset-password', '/event-feedback', '/staff-application', '/api/applications/webhook', '/api/internal/voice-sessions', '/developer-preview/stop'];
-    if (bypassedPaths.includes(req.path) || req.path.startsWith('/css') || req.path.startsWith('/scripts') || req.path.startsWith('/assets') || req.path.startsWith('/uploads')) {
+    const bypassedPaths = ['/health', '/logout', '/login', '/index', '/terms', '/terms/accept', '/privacy', '/privacy-requests', '/api/v1/auth/accept-terms', '/forgot-password', '/reset-password', '/event-feedback', '/staff-application', '/api/applications/webhook', '/api/internal/voice-sessions', '/developer-preview/stop'];
+    if (bypassedPaths.includes(req.path) || req.path.startsWith('/privacy-requests/') || req.path.startsWith('/css') || req.path.startsWith('/scripts') || req.path.startsWith('/assets') || req.path.startsWith('/uploads')) {
         return next();
     }
 
@@ -402,7 +402,7 @@ app.use((req, res, next) => {
 
 // SUSPENDED ACCOUNTS CANNOT CONTINUE USING AN ACTIVE SESSION.
 app.use(async (req, res, next) => {
-    const termsBypassedPaths = ['/logout', '/terms', '/terms/accept', '/api/v1/auth/login', '/api/v1/auth/logout', '/api/v1/auth/accept-terms'];
+    const termsBypassedPaths = ['/logout', '/terms', '/terms/accept', '/privacy', '/privacy-requests', '/api/v1/auth/login', '/api/v1/auth/logout', '/api/v1/auth/accept-terms'];
     const termsBypassedStatic = ['/css', '/scripts', '/assets', '/uploads'];
     if (!isDatabaseReady || !db || !req.session.loggedin || !req.session.currentuser) return next();
 
@@ -427,6 +427,7 @@ app.use(async (req, res, next) => {
         if (
             !termsAccepted
             && !termsBypassedPaths.includes(req.path)
+            && !req.path.startsWith('/privacy-requests/')
             && !termsBypassedStatic.some((prefix) => req.path.startsWith(prefix))
         ) {
             if (req.path.startsWith('/api/')) {
@@ -600,6 +601,11 @@ app.use(async (req, res, next) => {
     }
 });
 const CHANGELOG_ENTRIES = [
+    {
+        date: '2026-11-14',
+        title: 'Automatic personal data exports added',
+        changes: ['Gods and Developers can prepare an access-request export without writing a response; requesters receive a private portal download and linked file downloads.']
+    },
     {
         date: '2026-11-14',
         title: 'Terms of Service added',
@@ -6352,6 +6358,186 @@ app.get('/dashboard', requireDatabase, async (req, res) => {
     }
 });
 
+function sanitizePrivacyExportValue(value) {
+    if (value instanceof Date) return value.toISOString();
+    if (Buffer.isBuffer(value)) return { encoding: 'base64', data: value.toString('base64') };
+    if (value && value._bsontype === 'ObjectId') return value.toHexString();
+    if (Array.isArray(value)) return value.map(sanitizePrivacyExportValue);
+    if (!value || typeof value !== 'object') return value;
+
+    return Object.entries(value).reduce((result, [key, entry]) => {
+        if (/password|token|secret|credential/i.test(key)) return result;
+        result[key === '_id' ? 'id' : key] = sanitizePrivacyExportValue(entry);
+        return result;
+    }, Object.create(null));
+}
+
+async function buildPrivacyDataExport(discordId, requestId, completedAt, responseNote, publicBaseUrl) {
+    const requestObjectId = new ObjectId(requestId);
+    const exportUrl = (routePath) => `${publicBaseUrl}${routePath}`;
+    const [
+        user,
+        applications,
+        voiceSessions,
+        housePoints,
+        notifications,
+        appeals,
+        checkIns,
+        feedback,
+        eventFeedback,
+        loas,
+        reports,
+        auditEntries,
+        deletedHistory,
+        privacyRequests,
+        events,
+        scheduledEvents,
+        avatar,
+        profileBackground
+    ] = await Promise.all([
+        db.collection('users').findOne({ 'login.discordId': discordId }),
+        db.collection('applications').find({
+            $or: [{ discordId }, { applicantDiscordId: discordId }]
+        }).toArray(),
+        db.collection('voiceActivitySessions').find({ userId: discordId }).sort({ startedAt: -1 }).toArray(),
+        db.collection('housePointsLog').find({ recipientId: discordId }).sort({ createdAt: -1 }).toArray(),
+        db.collection('notifications').find({ recipientId: discordId }).sort({ createdAt: -1 }).toArray(),
+        db.collection('strikeAppeals').find({ applicantDiscordId: discordId }).sort({ submittedAt: -1 }).toArray(),
+        db.collection('checkIns').find({ targetDiscordId: discordId }).sort({ createdAt: -1 }).toArray(),
+        db.collection('feedback').find({
+            $or: [{ discordId }, { submittedByDiscordId: discordId }]
+        }).sort({ submittedAt: -1 }).toArray(),
+        db.collection('eventFeedback').find({ submittedByDiscordId: discordId }).sort({ submittedAt: -1 }).toArray(),
+        db.collection('loas').find({ discordId }).sort({ createdAt: -1 }).toArray(),
+        db.collection('reports').find({ discordId }).sort({ _id: -1 }).toArray(),
+        db.collection('auditLog').find({ actor: discordId }).sort({ createdAt: -1 }).toArray(),
+        db.collection('deletedUserHistory').findOne({ discordId }),
+        db.collection('privacyRequests').find(
+            { discordId },
+            { projection: { exportDataJson: 0 } }
+        ).sort({ submittedAt: -1 }).toArray(),
+        db.collection('events').find({
+            $or: [{ host: discordId }, { coHost: discordId }, { admin: discordId }]
+        }, { projection: { title: 1, date: 1, time: 1, host: 1, coHost: 1, admin: 1 } }).toArray(),
+        db.collection('scheduledEvents').find({
+            $or: [{ host: discordId }, { coHost: discordId }, { admin: discordId }]
+        }, { projection: { title: 1, scheduledStartTime: 1, host: 1, coHost: 1, admin: 1 } }).toArray(),
+        db.collection('avatars').findOne({ discordId }, { projection: { contentType: 1 } }),
+        db.collection('profileBackgrounds').findOne({ discordId }, { projection: { contentType: 1 } })
+    ]);
+
+    if (!user) throw new Error('The account linked to this privacy request no longer exists.');
+
+    const closedPrivacyRequests = privacyRequests.map((item) => {
+        const safeItem = sanitizePrivacyExportValue(item);
+        delete safeItem.reviewedBy;
+        delete safeItem.expireAt;
+        if (item._id.equals(requestObjectId)) {
+            safeItem.status = 'completed';
+            safeItem.responseNote = responseNote;
+            safeItem.closedAt = completedAt.toISOString();
+        }
+        return safeItem;
+    });
+    const safeCheckIns = checkIns.map((checkIn) => {
+        const safeCheckIn = sanitizePrivacyExportValue(checkIn);
+        delete safeCheckIn.authorDiscordId;
+        delete safeCheckIn.authorDisplayName;
+        delete safeCheckIn.updatedBy;
+        delete safeCheckIn.visibleUserIds;
+        if (Array.isArray(safeCheckIn.editHistory)) {
+            safeCheckIn.editHistory = safeCheckIn.editHistory.map((entry) => {
+                delete entry.editedBy;
+                return entry;
+            });
+        }
+        safeCheckIn.attachments = (checkIn.attachments || []).filter((attachment) => (
+            typeof attachment.filename === 'string' && attachment.filename
+        )).map((attachment) => ({
+            originalName: attachment.originalName,
+            mimeType: attachment.mimeType,
+            size: attachment.size,
+            downloadUrl: exportUrl(`/privacy-requests/${requestId}/export/check-ins/${checkIn._id}/attachments/${encodeURIComponent(attachment.filename)}`)
+        }));
+        return safeCheckIn;
+    });
+    const safeApplications = sanitizePrivacyExportValue(applications);
+    safeApplications.forEach((application) => {
+        delete application.managerNotes;
+    });
+    const eventAssignments = [
+        ...events.map((event) => ({ ...event, scheduled: false })),
+        ...scheduledEvents.map((event) => ({ ...event, scheduled: true }))
+    ].map((event) => {
+        const assignedRole = event.host === discordId
+            ? 'host'
+            : (event.coHost === discordId ? 'co-host' : 'admin');
+        return {
+            title: event.title || '',
+            date: event.date || event.scheduledStartTime || '',
+            time: event.time || '',
+            assignedRole
+        };
+    });
+
+    return {
+        export: {
+            generatedAt: completedAt.toISOString(),
+            format: 'Drowsy Vocals personal data export',
+            accountDiscordId: discordId,
+            notes: [
+                'Password hashes, authentication tokens, and other credentials are excluded.',
+                'Applications without a matching account Discord ID are not automatically linked.',
+                'Management audit entries include action and date only; details are omitted to avoid disclosing other people’s information.',
+                'File downloads require signing in to the same account that submitted the request.'
+            ]
+        },
+        account: sanitizePrivacyExportValue(user),
+        records: {
+            applications: safeApplications,
+            voiceActivitySessions: sanitizePrivacyExportValue(voiceSessions),
+            housePoints: sanitizePrivacyExportValue(housePoints),
+            notifications: sanitizePrivacyExportValue(notifications),
+            strikeAppeals: sanitizePrivacyExportValue(appeals),
+            checkIns: safeCheckIns,
+            feedback: sanitizePrivacyExportValue(feedback),
+            eventFeedback: sanitizePrivacyExportValue(eventFeedback),
+            leaveRequests: sanitizePrivacyExportValue(loas),
+            reports: sanitizePrivacyExportValue(reports),
+            auditActivity: auditEntries.map((entry) => ({
+                id: entry._id.toString(),
+                action: entry.action || '',
+                createdAt: entry.createdAt || ''
+            })),
+            deletedAccountHistory: sanitizePrivacyExportValue(deletedHistory),
+            privacyRequests: closedPrivacyRequests,
+            eventAssignments
+        },
+        files: {
+            avatar: avatar?.contentType
+                ? { contentType: avatar.contentType, downloadUrl: exportUrl(`/privacy-requests/${requestId}/export/files/avatar`) }
+                : null,
+            profileBackground: profileBackground?.contentType
+                ? { contentType: profileBackground.contentType, downloadUrl: exportUrl(`/privacy-requests/${requestId}/export/files/profile-background`) }
+                : null
+        }
+    };
+}
+
+async function findCompletedAccessRequest(requestId, discordId, projection = { _id: 1 }) {
+    if (!ObjectId.isValid(requestId)) return null;
+    return db.collection('privacyRequests').findOne(
+        {
+            _id: new ObjectId(requestId),
+            discordId,
+            requestType: 'access',
+            status: 'completed',
+            exportReadyAt: { $exists: true }
+        },
+        { projection }
+    );
+}
+
 app.get('/privacy-requests', requireDatabase, async (req, res) => {
     if (!req.session.loggedin) return res.redirect('/');
 
@@ -6359,12 +6545,14 @@ app.get('/privacy-requests', requireDatabase, async (req, res) => {
         const [ownRequests, adminRequests, adminHistory] = await Promise.all([
             db.collection('privacyRequests')
                 .find({ discordId: req.session.currentuser })
+                .project({ exportDataJson: 0 })
                 .sort({ submittedAt: -1 })
                 .limit(20)
                 .toArray(),
             hasGodAccess(req)
                 ? db.collection('privacyRequests')
                     .find({ status: { $in: ['received', 'in_review'] } })
+                    .project({ exportDataJson: 0 })
                     .sort({ submittedAt: 1 })
                     .limit(100)
                     .toArray()
@@ -6372,6 +6560,7 @@ app.get('/privacy-requests', requireDatabase, async (req, res) => {
             hasGodAccess(req)
                 ? db.collection('privacyRequests')
                     .find({ status: { $in: ['completed', 'declined'] } })
+                    .project({ exportDataJson: 0 })
                     .sort({ closedAt: -1 })
                     .limit(100)
                     .toArray()
@@ -6435,9 +6624,16 @@ app.post('/privacy-requests/:requestId/status', requireDatabase, async (req, res
     }
 
     try {
-        const request = await db.collection('privacyRequests').findOne({ _id: new ObjectId(requestId) });
+        const request = await db.collection('privacyRequests').findOne(
+            { _id: new ObjectId(requestId) },
+            { projection: { requestType: 1, status: 1, exportReadyAt: 1 } }
+        );
         if (!request) {
             req.flash('error_msg', 'Privacy request not found.');
+            return res.redirect('/privacy-requests');
+        }
+        if (request.requestType === 'access' && status === 'completed' && !request.exportReadyAt) {
+            req.flash('error_msg', 'Use “Complete with data copy” to prepare and securely deliver an access request.');
             return res.redirect('/privacy-requests');
         }
 
@@ -6453,8 +6649,15 @@ app.post('/privacy-requests/:requestId/status', requireDatabase, async (req, res
         if (['completed', 'declined'].includes(status)) {
             update.$set.expireAt = shiftUtcMonths(updatedAt, 12);
             update.$set.closedAt = updatedAt.toISOString();
+            if (request.requestType === 'access' && status !== 'completed') {
+                update.$unset = { exportReadyAt: '', exportDataJson: '' };
+            }
         } else {
             update.$unset = { expireAt: '', closedAt: '' };
+            if (request.requestType === 'access') {
+                update.$unset.exportReadyAt = '';
+                update.$unset.exportDataJson = '';
+            }
         }
 
         await db.collection('privacyRequests').updateOne({ _id: request._id }, update);
@@ -6465,6 +6668,161 @@ app.post('/privacy-requests/:requestId/status', requireDatabase, async (req, res
         console.error('Error updating privacy request:', error);
         req.flash('error_msg', 'Unable to update the privacy request.');
         res.redirect('/privacy-requests');
+    }
+});
+
+app.post('/privacy-requests/:requestId/complete-access', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !hasGodAccess(req)) {
+        return res.status(403).send('You do not have permission to manage privacy requests.');
+    }
+    if (!ObjectId.isValid(req.params.requestId)) {
+        req.flash('error_msg', 'Privacy request not found.');
+        return res.redirect('/privacy-requests');
+    }
+
+    try {
+        const request = await db.collection('privacyRequests').findOne({
+            _id: new ObjectId(req.params.requestId),
+            requestType: 'access',
+            status: { $in: ['received', 'in_review'] }
+        });
+        if (!request) {
+            req.flash('error_msg', 'An open access request was not found.');
+            return res.redirect('/privacy-requests');
+        }
+
+        const completedAt = new Date();
+        const responseNote = 'Your personal data copy is ready. Sign in to Privacy & Data Requests and choose “Download your data copy”.';
+        const requestHost = String(req.get('host') || '').trim();
+        const requestProtocol = req.protocol === 'https' ? 'https' : (isProduction ? 'https' : 'http');
+        const publicBaseUrl = passwordResetUrlBase || (requestHost ? `${requestProtocol}://${requestHost}` : '');
+        const exportDataJson = JSON.stringify(
+            await buildPrivacyDataExport(request.discordId, request._id.toString(), completedAt, responseNote, publicBaseUrl),
+            null,
+            2
+        );
+        if (Buffer.byteLength(exportDataJson, 'utf8') > 12 * 1024 * 1024) {
+            req.flash('error_msg', 'This data copy is too large to prepare automatically. Please review the request manually.');
+            return res.redirect('/privacy-requests');
+        }
+
+        const updateResult = await db.collection('privacyRequests').updateOne(
+            {
+                _id: request._id,
+                status: { $in: ['received', 'in_review'] },
+                requestType: 'access'
+            },
+            {
+                $set: {
+                    status: 'completed',
+                    responseNote,
+                    exportDataJson,
+                    exportReadyAt: completedAt.toISOString(),
+                    reviewedBy: req.session.currentuser,
+                    updatedAt: completedAt.toISOString(),
+                    closedAt: completedAt.toISOString(),
+                    expireAt: shiftUtcMonths(completedAt, 12)
+                }
+            }
+        );
+        if (!updateResult.modifiedCount) {
+            req.flash('error_msg', 'This request was already updated. Refresh the page and review its status.');
+            return res.redirect('/privacy-requests');
+        }
+
+        await writeAudit(req, 'Completed privacy access request', `Prepared a personal data export for ${request.discordId}`);
+        try {
+            await createNotification(
+                request.discordId,
+                'Your data copy is ready',
+                'Your requested personal data copy is ready to download from Privacy & Data Requests.',
+                '/privacy-requests'
+            );
+        } catch (notificationError) {
+            console.error('Privacy data export notification failed:', notificationError);
+        }
+        req.flash('success_msg', 'The data copy was prepared. The requester can download it after signing in.');
+        res.redirect('/privacy-requests');
+    } catch (error) {
+        console.error('Error preparing privacy data export:', error);
+        req.flash('error_msg', 'Unable to prepare the data copy. The request remains open for review.');
+        res.redirect('/privacy-requests');
+    }
+});
+
+app.get('/privacy-requests/:requestId/export', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !req.session.currentuser) return res.redirect('/');
+
+    try {
+        const request = await findCompletedAccessRequest(
+            req.params.requestId,
+            req.session.currentuser,
+            { projection: { exportDataJson: 1 } }
+        );
+        if (!request?.exportDataJson) return res.status(404).send('Data copy not found.');
+
+        const filename = `drowsy-vocals-data-copy-${new Date().toISOString().slice(0, 10)}.json`;
+        res.set('Cache-Control', 'no-store, private');
+        res.type('application/json').attachment(filename).send(request.exportDataJson);
+    } catch (error) {
+        console.error('Error downloading privacy data export:', error);
+        res.status(500).send('Unable to download the data copy.');
+    }
+});
+
+app.get('/privacy-requests/:requestId/export/files/:fileType', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !req.session.currentuser) return res.redirect('/');
+    if (!['avatar', 'profile-background'].includes(req.params.fileType)) return res.sendStatus(404);
+
+    try {
+        const request = await findCompletedAccessRequest(req.params.requestId, req.session.currentuser);
+        if (!request) return res.sendStatus(404);
+
+        const collectionName = req.params.fileType === 'avatar' ? 'avatars' : 'profileBackgrounds';
+        const image = await db.collection(collectionName).findOne(
+            { discordId: req.session.currentuser },
+            { projection: { contentType: 1, data: 1 } }
+        );
+        if (!image?.data || !image.contentType) return res.sendStatus(404);
+
+        res.set('Cache-Control', 'no-store, private');
+        res.type(image.contentType).attachment(`drowsy-vocals-${req.params.fileType}`).send(image.data.buffer || image.data);
+    } catch (error) {
+        console.error('Error downloading privacy export image:', error);
+        res.status(500).send('Unable to download the image.');
+    }
+});
+
+app.get('/privacy-requests/:requestId/export/check-ins/:checkInId/attachments/:filename', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !req.session.currentuser) return res.redirect('/');
+    if (!ObjectId.isValid(req.params.checkInId)) return res.sendStatus(404);
+
+    try {
+        const request = await findCompletedAccessRequest(req.params.requestId, req.session.currentuser);
+        if (!request) return res.sendStatus(404);
+        const checkIn = await db.collection('checkIns').findOne({
+            _id: new ObjectId(req.params.checkInId),
+            targetDiscordId: req.session.currentuser
+        });
+        const attachment = checkIn?.attachments?.find((item) => item.filename === req.params.filename);
+        if (!attachment || path.basename(attachment.filename) !== attachment.filename) return res.sendStatus(404);
+
+        const storedAttachment = await db.collection('checkInAttachments').findOne(
+            { _id: attachment.filename },
+            { projection: { contentType: 1, data: 1 } }
+        );
+        const attachmentData = storedAttachment?.data
+            ? (storedAttachment.data.buffer || storedAttachment.data)
+            : await fs.promises.readFile(path.join(CHECK_IN_UPLOAD_DIR, attachment.filename));
+        const safeFilename = path.basename(attachment.originalName || attachment.filename).replace(/["\r\n]/g, '_');
+        res.set('Cache-Control', 'no-store, private');
+        res.type(storedAttachment?.contentType || attachment.mimeType || 'application/octet-stream')
+            .attachment(safeFilename)
+            .send(attachmentData);
+    } catch (error) {
+        if (error.code === 'ENOENT') return res.sendStatus(404);
+        console.error('Error downloading privacy export attachment:', error);
+        res.status(500).send('Unable to download the attachment.');
     }
 });
 

@@ -246,6 +246,39 @@ main{
     padding-top: 16px;
     border-top: 1px solid var(--cloud-lilac);
 }
+.privacy-export-note {
+    display: block;
+    margin: 10px 0;
+    color: var(--dusty-blue-purple);
+    line-height: 1.5;
+}
+.privacy-export-link {
+    display: inline-flex;
+    margin-top: 14px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    color: var(--cloud-white);
+    background: var(--deep-lilac);
+    font-weight: 700;
+    text-decoration: none;
+}
+.privacy-export-link:hover, .privacy-export-link:focus-visible {
+    background: var(--night-indigo);
+    text-decoration: underline;
+}
+.privacy-export-button {
+    padding: 10px 14px;
+    border: 0;
+    border-radius: 8px;
+    color: var(--cloud-white);
+    background: #315d4a;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+}
+.privacy-export-button:hover, .privacy-export-button:focus-visible {
+    background: #244b3a;
+}
 .privacy-message {
     padding: 12px 16px;
     border-radius: 8px;

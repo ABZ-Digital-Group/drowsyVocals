@@ -39,6 +39,10 @@ Gods and Developers can enable the manual Halloween or Christmas theme from **Se
 
 The public privacy notice is available at `/privacy`. Signed-in users can submit access, correction, erasure, restriction, portability, objection, or other privacy requests at `/privacy-requests`; Gods and Developers can review requests and record a response there. Requests are reviewed manually and are not automatically fulfilled by submission.
 
+For access requests, Gods and Developers can use **Complete with data copy** after verifying the requester and reviewing whether the records are appropriate to share. This creates a JSON snapshot of the account and directly linked records, excludes password hashes and credentials, and makes it available only to the requester through the authenticated portal for 12 months. Uploaded profile images and check-in attachments are provided through separate authenticated download links in the export. An in-app notification tells the requester the copy is ready; sensitive data is not sent through Discord DMs.
+
+The automatic export does not associate legacy/external applications that lack the account's exact Discord ID, omits application manager notes, and includes only action and date (not detail text) for audit activity. Requests that need a broader review still need staff handling.
+
 Application intake enforces a minimum age of 13, including submissions received through the external application webhook. Scheduled database cleanup runs at connection and daily for the record categories and periods described in the privacy notice. Completed check-in attachments are removed from both MongoDB and the local upload directory when their check-in records expire.
 
 Before relying on this as a compliance program, have qualified privacy counsel review applicable legal bases, children’s privacy requirements, international data transfers, and retention. In particular:

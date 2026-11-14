@@ -58,6 +58,10 @@
                                 <p><%= request.details %></p>
                                 <small>Submitted <%= new Date(request.submittedAt).toLocaleString() %></small>
                                 <% if (request.responseNote) { %><p class="privacy-response"><strong>Staff response:</strong> <%= request.responseNote %></p><% } %>
+                                <% if (request.requestType === 'access' && request.status === 'completed' && request.exportReadyAt) { %>
+                                    <a class="privacy-export-link" href="/privacy-requests/<%= request._id %>/export">Download your data copy (JSON)</a>
+                                    <small class="privacy-export-note">Your copy is available here for 12 months. Sign in to this account to download it.</small>
+                                <% } %>
                             </article>
                         <% }); %>
                     </div>
@@ -78,6 +82,12 @@
                                 </div>
                                 <p><%= request.details %></p>
                                 <small>Submitted <%= new Date(request.submittedAt).toLocaleString() %></small>
+                                <% if (request.requestType === 'access' && ['received', 'in_review'].includes(request.status)) { %>
+                                    <p class="privacy-export-note">After verifying the requester and reviewing whether the records are appropriate to share, prepare the copy automatically. It will be available as a private portal download, not sent in a Discord DM.</p>
+                                    <form action="/privacy-requests/<%= request._id %>/complete-access" method="POST">
+                                        <button class="privacy-export-button" type="submit">Approve &amp; prepare data copy</button>
+                                    </form>
+                                <% } %>
                                 <form action="/privacy-requests/<%= request._id %>/status" method="POST" class="privacy-review-form">
                                     <label for="status-<%= request._id %>">Status</label>
                                     <select id="status-<%= request._id %>" name="status" required>
