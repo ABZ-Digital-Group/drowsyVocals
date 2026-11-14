@@ -603,7 +603,7 @@ const CHANGELOG_ENTRIES = [
     {
         date: '2026-11-14',
         title: 'Terms of Service added',
-        changes: ['Added a public Terms of Service page and recorded active-account acceptance before portal and API access.']
+        changes: ['Added a responsive, themed Terms of Service page and recorded active-account acceptance before portal and API access.']
     },
     {
         date: '2026-11-14',

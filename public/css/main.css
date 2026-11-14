@@ -122,22 +122,29 @@ main{
     flex: 1 0 auto;
 }
 .privacy-page, .privacy-requests-page {
-    width: min(100% - 32px, 1000px);
-    margin: 32px auto;
+    width: min(100%, 920px);
+    box-sizing: border-box;
+    margin: clamp(24px, 5vw, 48px) auto;
+    padding: 0 clamp(16px, 3vw, 28px);
 }
 .privacy-heading, .privacy-requests-heading {
+    position: relative;
+    overflow: hidden;
     margin-bottom: 24px;
     padding: clamp(20px, 4vw, 36px);
     border-radius: 18px;
     color: var(--cloud-white);
-    background: var(--night-indigo);
+    background: linear-gradient(135deg, var(--night-indigo), #514d87 72%, var(--deep-lilac));
+    box-shadow: 0 14px 32px rgba(41, 39, 82, .16);
 }
 .privacy-heading h1, .privacy-requests-heading h1 {
     margin: 0 0 12px;
     font-size: clamp(2rem, 5vw, 3rem);
+    line-height: 1.1;
 }
 .privacy-heading p, .privacy-requests-heading p {
-    max-width: 760px;
+    max-width: 68ch;
+    line-height: 1.65;
 }
 .privacy-heading a, .privacy-requests-heading a {
     color: var(--moonlight-yellow);
@@ -154,19 +161,33 @@ main{
     margin-bottom: 20px;
     padding: clamp(18px, 3vw, 28px);
     border: 1px solid var(--cloud-lilac);
-    border-radius: 14px;
+    border-radius: 16px;
     background: var(--warm-white);
+    box-shadow: 0 10px 28px rgba(41, 39, 82, .07);
+}
+.privacy-document {
+    padding: clamp(22px, 4vw, 40px);
+}
+.privacy-document section {
+    max-width: 76ch;
 }
 .privacy-document section + section {
-    margin-top: 24px;
-    padding-top: 18px;
+    margin-top: 26px;
+    padding-top: 22px;
     border-top: 1px solid var(--cloud-lilac);
 }
 .privacy-document h2, .privacy-card h2 {
     margin-top: 0;
+    color: var(--night-indigo);
+    font-size: clamp(1.1rem, 2.5vw, 1.35rem);
+    line-height: 1.3;
+}
+.privacy-document p, .privacy-document li {
+    color: #4b4a68;
+    line-height: 1.75;
 }
 .privacy-document li {
-    margin: 8px 0;
+    margin: 9px 0;
 }
 .privacy-request-form, .privacy-review-form {
     display: grid;
@@ -247,6 +268,19 @@ main{
     height: 18px;
     margin: 2px 0 0;
     accent-color: var(--night-indigo);
+}
+@media (max-width: 600px) {
+    .privacy-page, .privacy-requests-page {
+        margin: 20px auto;
+        padding: 0 12px;
+    }
+    .privacy-heading, .privacy-requests-heading {
+        margin-bottom: 16px;
+        border-radius: 14px;
+    }
+    .privacy-document, .privacy-card {
+        border-radius: 12px;
+    }
 }
 .login-page {
     margin: 0;
@@ -6194,6 +6228,35 @@ html[data-theme="dark"] {
     --theme-muted: #b8b5d3;
     --theme-border: #555180;
     --theme-link: #b8d0f4;
+}
+
+html[data-theme="dark"] .privacy-document,
+html[data-theme="dark"] .privacy-card,
+html[data-theme="dark"] .privacy-request-item {
+    border-color: var(--theme-border);
+    background: var(--theme-surface);
+    color: var(--theme-text);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, .2);
+}
+
+html[data-theme="dark"] .privacy-document h2,
+html[data-theme="dark"] .privacy-document p,
+html[data-theme="dark"] .privacy-document li {
+    color: var(--theme-text) !important;
+}
+
+html[data-theme="dark"] .privacy-document section + section,
+html[data-theme="dark"] .privacy-review-form {
+    border-color: var(--theme-border);
+}
+
+html[data-theme="dark"] .privacy-request-form textarea,
+html[data-theme="dark"] .privacy-review-form textarea,
+html[data-theme="dark"] .privacy-request-form select,
+html[data-theme="dark"] .privacy-review-form select {
+    border-color: var(--theme-border);
+    background: var(--theme-surface-raised);
+    color: var(--theme-text);
 }
 
 html[data-theme="dark"] body {
