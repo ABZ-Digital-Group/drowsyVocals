@@ -839,6 +839,10 @@
                                         <span>Forgot-Password DM Probe</span>
                                     </h3>
                                     <p class="settings-card-desc">Send a one-click test DM through the password reset delivery path to your own Discord account (<code><%= currentuser %></code>).</p>
+                                    <p class="settings-card-desc" style="margin-top: 6px;">
+                                        Configured DM route: <code><%= passwordResetDmPath %></code><br>
+                                        Probe fallback routes: <code><%= (passwordResetDmFallbackPaths || []).join(', ') %></code>
+                                    </p>
                                 </div>
                             </div>
 

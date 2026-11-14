@@ -53,11 +53,18 @@ const PASSWORD_RESET_TOKEN_TTL_MINUTES = (() => {
     if (!Number.isFinite(parsed)) return 20;
     return Math.max(5, Math.min(120, Math.floor(parsed)));
 })();
-const passwordResetDmPath = (() => {
-    const configuredPath = String(process.env.BOT_PASSWORD_RESET_DM_PATH || '/actions/direct-message').trim();
-    if (!configuredPath) return '/actions/direct-message';
-    return configuredPath.startsWith('/') ? configuredPath : `/${configuredPath}`;
-})();
+function normalizeBotApiPath(value, fallback) {
+    const candidate = String(value || '').trim();
+    if (!candidate) return fallback;
+    return candidate.startsWith('/') ? candidate : `/${candidate}`;
+}
+const passwordResetDmPath = normalizeBotApiPath(process.env.BOT_PASSWORD_RESET_DM_PATH, '/actions/direct-message');
+const PASSWORD_RESET_DM_ROUTE_FALLBACKS = [
+    '/actions/direct-message',
+    '/actions/dm',
+    '/admin/api/direct-message',
+    '/admin/api/dm'
+];
 const passwordResetUrlBase = String(process.env.PASSWORD_RESET_URL_BASE || '').trim().replace(/\/+$/, '');
 const LOA_PENDING_REMINDER_DAYS = (() => {
     const parsed = Number(process.env.LOA_PENDING_REMINDER_DAYS);
@@ -547,6 +554,11 @@ app.use(async (req, res, next) => {
     }
 });
 const CHANGELOG_ENTRIES = [
+    {
+        date: '2026-11-14',
+        title: 'DM probe diagnostics improved',
+        changes: ['Forgot-password DM probes now report clearer Bot API failures and can retry common DM endpoint routes when the configured path is unavailable.']
+    },
     {
         date: '2026-11-14',
         title: 'Voice activity channels configurable',
@@ -1812,7 +1824,7 @@ function getBotApiConfig() {
         baseUrl,
         headers: {
             Accept: 'application/json',
-            ...(token ? { 'X-Bot-Api-Key': token } : {})
+            ...(token ? { 'X-Bot-Api-Key': token, Authorization: `Bearer ${token}` } : {})
         }
     };
 }
@@ -4674,7 +4686,9 @@ app.get('/bot', requireDatabase, async (req, res) => {
             settings,
             bingoTemplates,
             activeBingoTemplateId,
-            activeBingoTemplate
+            activeBingoTemplate,
+            passwordResetDmPath,
+            passwordResetDmFallbackPaths: getPasswordResetDmPaths()
         });
     } catch (error) {
         console.error('Error loading bot management portal:', error);
@@ -5049,16 +5063,28 @@ app.post('/bot/password-reset/probe', requireDatabase, async (req, res) => {
     ].join('\n');
 
     try {
-        const probeResult = await sendBotApiPost(passwordResetDmPath, {
-            userId: targetDiscordId,
-            message: probeMessage
-        });
-        if (!probeResult || probeResult.ok === false || probeResult.success === false) {
-            req.flash('error_msg', 'DM probe failed. Verify BOT API connectivity and DM endpoint routing.');
+        const probeDelivery = await sendBotDirectMessageDetailed(targetDiscordId, probeMessage);
+        if (!probeDelivery.success) {
+            const status = probeDelivery.result?.status;
+            const routedPath = probeDelivery.path || passwordResetDmPath;
+            if (status === 401) {
+                req.flash('error_msg', `DM probe failed: bot API authentication was rejected on ${routedPath}.`);
+            } else if ([404, 405].includes(Number(status))) {
+                req.flash('error_msg', `DM probe failed: no DM route accepted the request (last attempted ${routedPath}).`);
+            } else {
+                const detail = String(probeDelivery.result?.error || probeDelivery.error || 'Unknown bot API error.').slice(0, 200);
+                req.flash('error_msg', `DM probe failed on ${routedPath}: ${detail}`);
+            }
+            console.error('DM probe routing diagnostics:', {
+                attemptedPaths: probeDelivery.attemptedPaths,
+                finalPath: routedPath,
+                status,
+                error: probeDelivery.result?.error || probeDelivery.error || null
+            });
             return res.redirect('/bot#config');
         }
 
-        await writeAudit(req, 'Sent forgot-password DM probe', `Probe DM sent to ${targetDiscordId}`);
+        await writeAudit(req, 'Sent forgot-password DM probe', `Probe DM sent to ${targetDiscordId} via ${probeDelivery.path}`);
         req.flash('success_msg', 'Probe DM sent successfully. Check your Discord direct messages.');
         return res.redirect('/bot#config');
     } catch (error) {
@@ -5085,6 +5111,87 @@ async function sendBotApiPost(pathname, bodyParams = {}) {
             });
             if (res.ok) {
                 return await res.json();
+            }
+
+            function getPasswordResetDmPaths() {
+                const deduped = new Set([passwordResetDmPath, ...PASSWORD_RESET_DM_ROUTE_FALLBACKS].map((route) => normalizeBotApiPath(route, '/actions/direct-message')));
+                return [...deduped];
+            }
+
+            async function sendBotApiPostDetailed(pathname, bodyParams = {}, timeoutMs = 5000) {
+                const botApi = getBotApiConfig();
+                const cleanPath = normalizeBotApiPath(pathname, '/');
+                if (!botApi.baseUrl) {
+                    return { ok: false, status: null, path: cleanPath, error: 'BOT_API_URL is not configured.' };
+                }
+
+                const url = `${botApi.baseUrl}${cleanPath}`;
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+                try {
+                    const res = await fetch(url, {
+                        method: 'POST',
+                        headers: { ...botApi.headers, 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: new URLSearchParams(bodyParams).toString(),
+                        signal: controller.signal
+                    });
+                    const rawPayload = await res.text();
+                    let payload = {};
+                    if (rawPayload) {
+                        try {
+                            payload = JSON.parse(rawPayload);
+                        } catch {
+                            payload = { raw: rawPayload };
+                        }
+                    }
+
+                    const successBlocked = payload && (payload.ok === false || payload.success === false);
+                    if (res.ok && !successBlocked) {
+                        return { ok: true, status: res.status, path: cleanPath, payload };
+                    }
+
+                    return {
+                        ok: false,
+                        status: res.status,
+                        path: cleanPath,
+                        payload,
+                        error: String(payload.error || payload.message || rawPayload || `HTTP ${res.status}`)
+                    };
+                } catch (error) {
+                    if (error.name === 'AbortError') {
+                        return { ok: false, status: null, path: cleanPath, error: `Bot API request timed out after ${timeoutMs}ms.` };
+                    }
+                    return { ok: false, status: null, path: cleanPath, error: `Bot API unreachable: ${error.message}` };
+                } finally {
+                    clearTimeout(timeout);
+                }
+            }
+
+            async function sendBotDirectMessageDetailed(discordId, message) {
+                const cleanDiscordId = (discordId || '').toString().trim();
+                const cleanMessage = (message || '').toString().trim();
+                if (!cleanDiscordId || !cleanMessage) {
+                    return { success: false, attemptedPaths: [], error: 'Discord ID and message are required.' };
+                }
+
+                const dmPaths = getPasswordResetDmPaths();
+                let lastResult = null;
+                for (const dmPath of dmPaths) {
+                    const result = await sendBotApiPostDetailed(dmPath, {
+                        userId: cleanDiscordId,
+                        message: cleanMessage
+                    }, 7000);
+                    if (result.ok) {
+                        return { success: true, path: dmPath, result, attemptedPaths: dmPaths };
+                    }
+
+                    lastResult = result;
+                    const shouldTryFallback = [404, 405].includes(Number(result.status));
+                    if (!shouldTryFallback) break;
+                }
+
+                return { success: false, path: lastResult?.path, result: lastResult, attemptedPaths: dmPaths };
             }
             console.error(`Bot API returned HTTP ${res.status} on ${pathname}`);
         } finally {
@@ -5310,17 +5417,8 @@ async function sendPasswordResetDiscordDm(discordId, resetLink) {
 }
 
 async function sendBotDirectMessage(discordId, message) {
-    const cleanDiscordId = (discordId || '').toString().trim();
-    const cleanMessage = (message || '').toString().trim();
-    if (!cleanDiscordId || !cleanMessage) return false;
-
-    const response = await sendBotApiPost(passwordResetDmPath, {
-        userId: cleanDiscordId,
-        message: cleanMessage
-    });
-    if (!response) return false;
-    if (response.ok === false || response.success === false) return false;
-    return true;
+    const delivery = await sendBotDirectMessageDetailed(discordId, message);
+    return Boolean(delivery.success);
 }
 
 function normalizeDiscordId(value) {
