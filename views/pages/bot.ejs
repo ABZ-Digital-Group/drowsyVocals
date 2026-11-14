@@ -836,9 +836,9 @@
                                 <div class="settings-card-title-wrap">
                                     <h3 class="settings-card-title">
                                         <span class="material-symbols-outlined">mark_email_read</span>
-                                        <span>Forgot-Password DM Probe</span>
+                                        <span>Discord DM Delivery Test</span>
                                     </h3>
-                                    <p class="settings-card-desc">Send a one-click test DM through the password reset delivery path to your own Discord account (<code><%= currentuser %></code>).</p>
+                                    <p class="settings-card-desc">Send a clearly labeled, one-off DM test through the same delivery path to a staff member.</p>
                                     <p class="settings-card-desc" style="margin-top: 6px;">
                                         Configured DM route: <code><%= passwordResetDmPath %></code><br>
                                         Probe fallback routes: <code><%= (passwordResetDmFallbackPaths || []).join(', ') %></code>
@@ -846,10 +846,16 @@
                                 </div>
                             </div>
 
-                            <form action="/bot/password-reset/probe" method="POST" style="display: flex; justify-content: flex-start;">
+                            <form action="/bot/password-reset/probe" method="POST" onsubmit="return confirm('Send a one-off DM test to the selected staff member?');" style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                                <select name="targetDiscordId" class="settings-input" required>
+                                    <option value="">Select staff member...</option>
+                                    <% users.filter(function(user) { return user.login && user.login.discordId; }).forEach(function(user) { %>
+                                    <option value="<%= user.login.discordId %>"><%= user.displayName || user.discordUser || user.login.discordId %> - <%= user.login.discordId %></option>
+                                    <% }); %>
+                                </select>
                                 <button type="submit" class="settings-btn settings-btn-primary">
                                     <span class="material-symbols-outlined">send</span>
-                                    Send Probe DM
+                                    Send Test DM
                                 </button>
                             </form>
                         </div>

@@ -5034,32 +5034,33 @@ app.post('/bot/config', requireDatabase, async (req, res) => {
     res.redirect('/bot#config');
 });
 
-// SEND A ONE-CLICK PASSWORD RESET DM PROBE TO THE CURRENT GOD/DEVELOPER ACCOUNT.
+// SEND A ONE-OFF DM DELIVERY TEST TO A SELECTED STAFF MEMBER.
 app.post('/bot/password-reset/probe', requireDatabase, async (req, res) => {
     if (!req.session.loggedin || !hasGodAccess(req)) {
         req.flash('error_msg', 'Unauthorized.');
         return res.redirect('/dashboard');
     }
 
-    const targetDiscordId = (req.session.currentuser || '').toString().trim();
+    const targetDiscordId = normalizeDiscordId(req.body.targetDiscordId);
     if (!targetDiscordId) {
-        req.flash('error_msg', 'Unable to resolve your Discord ID for the probe.');
+        req.flash('error_msg', 'Select a staff member with a valid Discord ID.');
         return res.redirect('/bot#config');
     }
 
-    const probeToken = crypto.randomBytes(32).toString('hex');
-    const probeLink = buildPasswordResetLink(req, probeToken);
-    if (!probeLink) {
-        req.flash('error_msg', 'Password reset URL is not configured. Set PASSWORD_RESET_URL_BASE and try again.');
+    const targetUser = await db.collection('users').findOne(
+        { 'login.discordId': targetDiscordId },
+        { projection: { displayName: 1, discordUser: 1 } }
+    );
+    if (!targetUser) {
+        req.flash('error_msg', 'The selected staff member was not found.');
         return res.redirect('/bot#config');
     }
 
+    const targetName = targetUser.displayName || targetUser.discordUser || targetDiscordId;
     const probeMessage = [
-        '🧪 Drowsy Vocals forgot-password DM probe.',
+        '🧪 Drowsy Vocals DM delivery test.',
         '',
-        'This checks DM delivery from the management portal.',
-        'The link below is a delivery test only and cannot reset a password:',
-        probeLink
+        'This is a one-off test message from Drowsy Vocals management. No action is required.'
     ].join('\n');
 
     try {
@@ -5073,7 +5074,7 @@ app.post('/bot/password-reset/probe', requireDatabase, async (req, res) => {
             } else if ([404, 405].includes(Number(status))) {
                 req.flash('error_msg', `DM probe failed: no DM route accepted the request (last attempted ${routedPath}).`);
             } else if (detail.toLowerCase().includes('no mutual guild')) {
-                req.flash('error_msg', `DM probe failed for Discord ID ${targetDiscordId}: bot reports no mutual guild on ${routedPath}. Verify this account ID in Settings and check Discord privacy settings for server DMs.`);
+                req.flash('error_msg', `DM probe failed for ${targetName} on ${routedPath}: ${detail.slice(0, 200)}`);
             } else {
                 req.flash('error_msg', `DM probe failed on ${routedPath}: ${detail.slice(0, 200)}`);
             }
@@ -5087,11 +5088,11 @@ app.post('/bot/password-reset/probe', requireDatabase, async (req, res) => {
             return res.redirect('/bot#config');
         }
 
-        await writeAudit(req, 'Sent forgot-password DM probe', `Probe DM sent to ${targetDiscordId} via ${probeDelivery.path}`);
-        req.flash('success_msg', 'Probe DM sent successfully. Check your Discord direct messages.');
+        await writeAudit(req, 'Sent Discord DM delivery test', `Test DM sent to ${targetName} (${targetDiscordId}) via ${probeDelivery.path}`);
+        req.flash('success_msg', `Test DM sent to ${targetName}.`);
         return res.redirect('/bot#config');
     } catch (error) {
-        console.error('Error sending forgot-password DM probe:', error);
+        console.error('Error sending Discord DM delivery test:', error);
         req.flash('error_msg', 'Unable to send a DM probe right now.');
         return res.redirect('/bot#config');
     }
