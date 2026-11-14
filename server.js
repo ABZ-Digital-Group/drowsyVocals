@@ -550,7 +550,7 @@ const CHANGELOG_ENTRIES = [
     {
         date: '2026-11-14',
         title: 'Voice activity channels configurable',
-        changes: ['Management can choose which voice channels count toward staff activity hours and future automatic house-point awards.']
+        changes: ['Management can choose which voice channels count toward staff activity hours and future automatic house-point awards using a multi-select channel picker populated from all bot-visible voice channels.']
     },
     {
         date: '2026-11-14',
@@ -4391,6 +4391,7 @@ app.get('/staff-activity', requireDatabase, async (req, res) => {
         const voiceActivityChannelIds = Array.isArray(activitySettings.voiceActivityChannelIds)
             ? activitySettings.voiceActivityChannelIds.filter((channelId) => /^\d{17,20}$/.test(String(channelId)))
             : [];
+        const guildById = new Map((botLiveState.guilds || []).map((guild) => [guild.id, guild]));
         const channelOptionsById = new Map();
         const addChannelOption = (guildId, guildName, channelId, channelName) => {
             const cleanChannelId = String(channelId || '').trim();
@@ -4401,12 +4402,20 @@ app.get('/staff-activity', requireDatabase, async (req, res) => {
                 channelName: channelName || cleanChannelId
             });
         };
+        (botLiveState.guilds || []).forEach((guild) => {
+            const reportedChannels = Array.isArray(guild.voiceChannels) && guild.voiceChannels.length
+                ? guild.voiceChannels
+                : (Array.isArray(guild.channels) ? guild.channels : []);
+            reportedChannels.forEach((channel) => {
+                addChannelOption(guild.id, guild.name, channel.id, channel.name);
+            });
+        });
         activitySessions.forEach((session) => {
             addChannelOption(session.guildId, session.guildName, session.channelId, session.channelName);
         });
         (botLiveState.discordMembers || []).forEach((member) => {
             if (!member.voiceChannelId || member.voiceChannelId === afkChannelByGuild.get(member.guildId)) return;
-            const guild = (botLiveState.guilds || []).find((item) => item.id === member.guildId);
+            const guild = guildById.get(member.guildId);
             addChannelOption(
                 member.guildId,
                 guild?.name || member.guildId,
