@@ -4403,9 +4403,10 @@ app.get('/staff-activity', requireDatabase, async (req, res) => {
             });
         };
         (botLiveState.guilds || []).forEach((guild) => {
-            const reportedChannels = Array.isArray(guild.voiceChannels) && guild.voiceChannels.length
-                ? guild.voiceChannels
-                : (Array.isArray(guild.channels) ? guild.channels : []);
+            const reportedChannels = [
+                ...(Array.isArray(guild.channels) ? guild.channels : []),
+                ...(Array.isArray(guild.voiceChannels) ? guild.voiceChannels : [])
+            ];
             reportedChannels.forEach((channel) => {
                 addChannelOption(guild.id, guild.name, channel.id, channel.name);
             });

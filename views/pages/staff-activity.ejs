@@ -79,7 +79,11 @@
             .staff-activity-channel-settings { margin-bottom: 22px; padding: 20px; border: 1px solid var(--cloud-lilac); border-radius: 14px; background: var(--cloud-white); box-shadow: 0 8px 24px rgba(41, 39, 82, .07); }
             .staff-activity-channel-settings h2 { margin: 0 0 6px; color: var(--night-indigo); font-size: 1.15em; }
             .staff-activity-channel-settings > p { margin: 0 0 14px; color: var(--dusty-blue-purple); font-size: .88em; line-height: 1.5; }
-            .staff-activity-channel-options { display: block; width: 100%; max-width: 700px; min-height: 220px; margin: 12px 0; padding: 8px; border: 1px solid var(--cloud-lilac); border-radius: 9px; background: var(--cloud-white); color: var(--night-indigo); }
+            .staff-activity-channel-picker { position: relative; max-width: 700px; margin: 12px 0; }
+            .staff-activity-channel-trigger { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border: 1px solid var(--cloud-lilac); border-radius: 9px; background: var(--cloud-white); color: var(--night-indigo); text-align: left; cursor: pointer; }
+            .staff-activity-channel-menu { position: absolute; z-index: 15; top: calc(100% + 6px); left: 0; right: 0; max-height: 280px; overflow-y: auto; padding: 8px; border: 1px solid var(--cloud-lilac); border-radius: 9px; background: var(--cloud-white); box-shadow: 0 10px 25px rgba(41, 39, 82, .14); }
+            .staff-activity-channel-menu[hidden] { display: none; }
+            .staff-activity-channel-select-all { display: block; margin: 2px 4px 8px; color: var(--night-indigo); font-size: .84em; }
             .staff-activity-channel-option { display: flex; align-items: flex-start; gap: 9px; padding: 10px 12px; border: 1px solid var(--cloud-lilac); border-radius: 9px; color: var(--night-indigo); }
             .staff-activity-channel-option input { margin-top: 3px; }
             .staff-activity-channel-option span, .staff-activity-channel-option small { display: block; }
@@ -152,15 +156,26 @@
                         <span><strong>Only selected channels</strong><small>Hours and future points count only in the channels checked below.</small></span>
                     </label>
                     <% if (voiceActivityChannelOptions.length) { %>
-                    <label for="voiceActivityChannelIds">Channels that count for activity</label>
-                    <select id="voiceActivityChannelIds" class="staff-activity-channel-options" name="voiceActivityChannelIds" multiple>
-                        <% voiceActivityChannelOptions.forEach(function(channel) { %>
-                        <option value="<%= channel.channelId %>"<%= voiceActivityChannelIds.includes(channel.channelId) ? ' selected' : '' %>>
-                            <%= channel.guildName %> · <%= channel.channelName %> · <%= channel.channelId %>
-                        </option>
-                        <% }); %>
-                    </select>
-                    <p style="margin: 0 0 12px; color: var(--dusty-blue-purple); font-size: .82em;">Hold Ctrl (Windows) or Command (Mac) to select multiple channels.</p>
+                    <label for="voiceActivityChannelTrigger">Channels that count for activity</label>
+                    <div class="staff-activity-channel-picker" data-channel-picker>
+                        <button id="voiceActivityChannelTrigger" class="staff-activity-channel-trigger" type="button" data-channel-trigger aria-haspopup="listbox" aria-expanded="false">
+                            <span data-channel-summary>Select channels</span>
+                            <span class="material-symbols-outlined" aria-hidden="true">arrow_drop_down</span>
+                        </button>
+                        <div class="staff-activity-channel-menu" data-channel-menu hidden>
+                            <label class="staff-activity-channel-select-all">
+                                <input type="checkbox" data-channel-select-all>
+                                Select all listed channels
+                            </label>
+                            <% voiceActivityChannelOptions.forEach(function(channel) { %>
+                            <label class="staff-activity-channel-option">
+                                <input type="checkbox" name="voiceActivityChannelIds" value="<%= channel.channelId %>"<%= voiceActivityChannelIds.includes(channel.channelId) ? ' checked' : '' %> data-channel-checkbox>
+                                <span><strong><%= channel.channelName %></strong><small><%= channel.guildName %> · <%= channel.channelId %></small></span>
+                            </label>
+                            <% }); %>
+                        </div>
+                    </div>
+                    <p style="margin: 0 0 12px; color: var(--dusty-blue-purple); font-size: .82em;">Open the dropdown and tick as many channels as needed.</p>
                     <% } else { %>
                     <p>No voice channels have been discovered yet. You can paste channel IDs below.</p>
                     <% } %>
@@ -310,6 +325,61 @@
         </main>
         <div class="footer"><p>&copy; 2026 Drowsy Vocals | All rights reserved.</p></div>
         <script>
+            (function setupVoiceActivityChannelPicker() {
+                const picker = document.querySelector('[data-channel-picker]');
+                if (!picker) return;
+
+                const trigger = picker.querySelector('[data-channel-trigger]');
+                const menu = picker.querySelector('[data-channel-menu]');
+                const selectAll = picker.querySelector('[data-channel-select-all]');
+                const checkboxes = Array.from(picker.querySelectorAll('[data-channel-checkbox]'));
+                const summary = picker.querySelector('[data-channel-summary]');
+
+                const closeMenu = () => {
+                    menu.hidden = true;
+                    trigger.setAttribute('aria-expanded', 'false');
+                };
+                const openMenu = () => {
+                    menu.hidden = false;
+                    trigger.setAttribute('aria-expanded', 'true');
+                };
+                const refreshSummary = () => {
+                    const selected = checkboxes.filter((checkbox) => checkbox.checked);
+                    if (!selected.length) {
+                        summary.textContent = 'Select channels';
+                    } else if (selected.length === 1) {
+                        const channelLabel = selected[0].closest('label')?.querySelector('strong')?.textContent || '1 channel';
+                        summary.textContent = channelLabel;
+                    } else {
+                        summary.textContent = `${selected.length} channels selected`;
+                    }
+                    if (selectAll) {
+                        selectAll.checked = selected.length > 0 && selected.length === checkboxes.length;
+                    }
+                };
+
+                trigger.addEventListener('click', () => {
+                    if (menu.hidden) openMenu();
+                    else closeMenu();
+                });
+                if (selectAll) {
+                    selectAll.addEventListener('change', () => {
+                        checkboxes.forEach((checkbox) => {
+                            checkbox.checked = selectAll.checked;
+                        });
+                        refreshSummary();
+                    });
+                }
+                checkboxes.forEach((checkbox) => checkbox.addEventListener('change', refreshSummary));
+
+                document.addEventListener('click', (event) => {
+                    if (!picker.contains(event.target)) closeMenu();
+                });
+                document.addEventListener('keydown', (event) => {
+                    if (event.key === 'Escape') closeMenu();
+                });
+                refreshSummary();
+            }());
             window.setTimeout(() => window.location.reload(), 60 * 1000);
         </script>
     </body>
