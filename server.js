@@ -4299,6 +4299,7 @@ app.get('/staff-activity', requireDatabase, async (req, res) => {
                 : [],
             getBotLiveState()
         ]);
+        const countedActivitySessions = activitySessions.filter((session) => session.eligibleForActivity !== false);
 
         const toHours = (seconds) => Number((Number(seconds || 0) / 3600).toFixed(2));
         const dailyTotals = new Map();
@@ -4386,7 +4387,6 @@ app.get('/staff-activity', requireDatabase, async (req, res) => {
                     durationSeconds: Number.isFinite(startedMs) ? Math.max(0, (Date.now() - startedMs) / 1000) : 0
                 };
             });
-        const countedActivitySessions = activitySessions.filter((session) => session.eligibleForActivity !== false);
         const voiceActivityChannelMode = activitySettings.voiceActivityChannelMode === 'selected' ? 'selected' : 'all';
         const voiceActivityChannelIds = Array.isArray(activitySettings.voiceActivityChannelIds)
             ? activitySettings.voiceActivityChannelIds.filter((channelId) => /^\d{17,20}$/.test(String(channelId)))
