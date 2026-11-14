@@ -6,6 +6,17 @@ Set `BOT_API_URL` to the bot's private API URL and set `BOT_API_SECRET` to the s
 
 The Management > Staff Activity page receives completed voice sessions at `/api/internal/voice-sessions`. Configure the bot's `ACTIVITY_API_URL` to this application's public HTTPS URL. It uses `ACTIVITY_API_SECRET` when set, or the shared `BOT_API_SECRET` by default. The endpoint is authenticated, idempotent, and stores sessions in MongoDB.
 
+## Discord forgot-password recovery
+
+The login screen now supports **Forgot your password?** and sends reset links through DrowsyBot DMs. Configure these variables in the portal environment:
+
+- `BOT_PASSWORD_RESET_DM_PATH` (default: `/actions/direct-message`) – bot API endpoint used to deliver DMs
+- `PASSWORD_RESET_TOKEN_TTL_MINUTES` (default: `20`) – validity period for reset tokens (clamped to 5–120)
+- `PASSWORD_RESET_URL_BASE` (optional) – public base URL for reset links when reverse proxy host detection is not reliable
+
+Reset tokens are single-use, short-lived, and existing sessions for the account are revoked after a successful reset.
+Gods and Developers can run a one-click DM delivery probe from **Bot > Bot Core Configuration** to verify the reset DM endpoint wiring.
+
 ## Role-based page access
 
 Gods and Developers can open **Settings > Page Access** to restrict authenticated pages to selected configured ranks. Pages remain unchanged until **Restrict** is enabled for them; an enabled rule with no selected ranks denies the page to every non-privileged role. Gods and Developers always retain access, including while using the developer preview mode.

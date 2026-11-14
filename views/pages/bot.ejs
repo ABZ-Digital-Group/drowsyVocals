@@ -830,6 +830,25 @@
                                 </div>
                             </form>
                         </div>
+
+                        <div class="settings-card">
+                            <div class="settings-card-header">
+                                <div class="settings-card-title-wrap">
+                                    <h3 class="settings-card-title">
+                                        <span class="material-symbols-outlined">mark_email_read</span>
+                                        <span>Forgot-Password DM Probe</span>
+                                    </h3>
+                                    <p class="settings-card-desc">Send a one-click test DM through the password reset delivery path to your own Discord account (<code><%= currentuser %></code>).</p>
+                                </div>
+                            </div>
+
+                            <form action="/bot/password-reset/probe" method="POST" style="display: flex; justify-content: flex-start;">
+                                <button type="submit" class="settings-btn settings-btn-primary">
+                                    <span class="material-symbols-outlined">send</span>
+                                    Send Probe DM
+                                </button>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </section>

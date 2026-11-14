@@ -11,6 +11,14 @@
                     <img src="/assets/drowsyNew.png" alt="Drowsy Vocals Logo">
                 </div>
                 <div class="login-form">
+                    <% const loginSuccessMessage = Array.isArray(success_msg) ? success_msg[0] : success_msg; %>
+                    <% const loginErrorMessage = Array.isArray(error_msg) ? error_msg[0] : error_msg; %>
+                    <% if (loginSuccessMessage) { %>
+                    <div class="login-form-message is-success" role="status"><%= loginSuccessMessage %></div>
+                    <% } %>
+                    <% if (loginErrorMessage) { %>
+                    <div class="login-form-message is-error" role="alert"><%= loginErrorMessage %></div>
+                    <% } %>
                     <form class="login-form-actions" action="/login" method="POST">
 
                         <label for="discordId">Discord ID:</label>
@@ -21,6 +29,9 @@
 
                         <button type="submit">Login</button>
                     </form>
+                    <div class="login-helper-links">
+                        <a href="/forgot-password" class="login-help-link">Forgot your password?</a>
+                    </div>
                     <div class="footer">
                         <p>&copy; 2026 Drowsy Vocals | All rights reserved.</p>
                     </div>

@@ -709,6 +709,43 @@ body.seasonal-theme-christmas.christmas-login-page.christmas-seasonal-active .lo
     border-radius: 5px;
     outline: none;
 }
+.login-form-message {
+    width: min(460px, 88%);
+    padding: 10px 14px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    font-size: .95em;
+}
+.login-form-message.is-success {
+    background: #10b98122;
+    border: 1px solid #10b98144;
+    color: #047857;
+}
+.login-form-message.is-error {
+    background: #ef444422;
+    border: 1px solid #ef444444;
+    color: #b91c1c;
+}
+.login-helper-links {
+    margin-top: 14px;
+    margin-bottom: 10px;
+}
+.login-help-link {
+    color: var(--night-indigo);
+    font-weight: 600;
+    text-decoration: none;
+}
+.login-help-link:hover,
+.login-help-link:focus-visible {
+    text-decoration: underline;
+}
+.login-help-note {
+    margin: 16px 0 4px;
+    width: min(460px, 88%);
+    color: #4c5565;
+    font-size: .9em;
+    text-align: center;
+}
 
 nav {
     display: flex;
@@ -8115,6 +8152,22 @@ html[data-theme="dark"] .login-form {
 
 html[data-theme="dark"] .login-form-actions label {
     color: var(--theme-text) !important;
+}
+
+html[data-theme="dark"] .login-help-link {
+    color: #c6c9ff;
+}
+
+html[data-theme="dark"] .login-help-note {
+    color: var(--theme-muted);
+}
+
+html[data-theme="dark"] .login-form-message.is-success {
+    color: #6ee7b7;
+}
+
+html[data-theme="dark"] .login-form-message.is-error {
+    color: #fca5a5;
 }
 
 html[data-theme="dark"] dialog {

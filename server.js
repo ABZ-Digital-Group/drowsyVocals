@@ -48,6 +48,17 @@ const voiceActivityApiSecret = process.env.VOICE_ACTIVITY_API_SECRET
     || process.env.BOT_API_TOKEN;
 const HOUSE_POINT_VOICE_RATE = 2;
 const HOUSE_POINT_DOUBLING_THRESHOLD = 10;
+const PASSWORD_RESET_TOKEN_TTL_MINUTES = (() => {
+    const parsed = Number(process.env.PASSWORD_RESET_TOKEN_TTL_MINUTES);
+    if (!Number.isFinite(parsed)) return 20;
+    return Math.max(5, Math.min(120, Math.floor(parsed)));
+})();
+const passwordResetDmPath = (() => {
+    const configuredPath = String(process.env.BOT_PASSWORD_RESET_DM_PATH || '/actions/direct-message').trim();
+    if (!configuredPath) return '/actions/direct-message';
+    return configuredPath.startsWith('/') ? configuredPath : `/${configuredPath}`;
+})();
+const passwordResetUrlBase = String(process.env.PASSWORD_RESET_URL_BASE || '').trim().replace(/\/+$/, '');
 
 if (!mongoUri) {
     console.error('MONGODB_URI is not configured. Add it to the application environment variables.');
@@ -147,6 +158,22 @@ function safeTimingCompare(a, b) {
     const bufB = Buffer.from(b, 'utf8');
     if (bufA.length !== bufB.length) return false;
     return crypto.timingSafeEqual(bufA, bufB);
+}
+
+function hashPasswordResetToken(token) {
+    return crypto.createHash('sha256').update(token).digest('hex');
+}
+
+function buildPasswordResetLink(req, rawToken) {
+    const requestHost = String(req.get('host') || '').trim();
+    const protocol = req.protocol === 'https' ? 'https' : (isProduction ? 'https' : 'http');
+    const baseUrl = passwordResetUrlBase || (requestHost ? `${protocol}://${requestHost}` : '');
+    if (!baseUrl) return '';
+    return `${baseUrl}/reset-password?token=${encodeURIComponent(rawToken)}`;
+}
+
+function isValidPasswordResetToken(token) {
+    return /^[a-f0-9]{64}$/i.test((token || '').toString().trim());
 }
 
 app.use((req, res, next) => {
@@ -287,7 +314,7 @@ app.use(async (req, res, next) => {
 // MAINTENANCE MODE MIDDLEWARE
 app.use(async (req, res, next) => {
     // Always allow static files, health checks, login/auth pages, logout, and external webhook ingestion
-    const bypassedPaths = ['/health', '/logout', '/login', '/index', '/event-feedback', '/staff-application', '/api/applications/webhook', '/api/internal/voice-sessions', '/developer-preview/stop'];
+    const bypassedPaths = ['/health', '/logout', '/login', '/index', '/forgot-password', '/reset-password', '/event-feedback', '/staff-application', '/api/applications/webhook', '/api/internal/voice-sessions', '/developer-preview/stop'];
     if (bypassedPaths.includes(req.path) || req.path.startsWith('/css') || req.path.startsWith('/scripts') || req.path.startsWith('/assets') || req.path.startsWith('/uploads')) {
         return next();
     }
@@ -510,6 +537,11 @@ app.use(async (req, res, next) => {
     }
 });
 const CHANGELOG_ENTRIES = [
+    {
+        date: '2026-11-14',
+        title: 'Discord forgot-password recovery added',
+        changes: ['Staff can now request a secure password-reset link from the login screen. The link is delivered through DrowsyBot Discord direct messages, uses a short-lived single-use token, and signs out active sessions once the password is changed.']
+    },
     {
         date: '2026-11-11',
         title: 'Staff point and moderation references added',
@@ -2299,7 +2331,9 @@ function connectDB() {
             await Promise.all([
                 nextDb.collection('voiceActivitySessions').createIndex({ sessionId: 1 }, { unique: true }),
                 nextDb.collection('voiceActivitySessions').createIndex({ userId: 1, startedAt: -1 }),
-                nextDb.collection('voiceActivitySessions').createIndex({ channelId: 1, startedAt: -1 })
+                nextDb.collection('voiceActivitySessions').createIndex({ channelId: 1, startedAt: -1 }),
+                nextDb.collection('passwordResetTokens').createIndex({ discordId: 1 }, { unique: true }),
+                nextDb.collection('passwordResetTokens').createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 })
             ]);
             isDatabaseReady = true;
             startLiveUpdates();
@@ -4773,6 +4807,54 @@ app.post('/bot/config', requireDatabase, async (req, res) => {
     res.redirect('/bot#config');
 });
 
+// SEND A ONE-CLICK PASSWORD RESET DM PROBE TO THE CURRENT GOD/DEVELOPER ACCOUNT.
+app.post('/bot/password-reset/probe', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !hasGodAccess(req)) {
+        req.flash('error_msg', 'Unauthorized.');
+        return res.redirect('/dashboard');
+    }
+
+    const targetDiscordId = (req.session.currentuser || '').toString().trim();
+    if (!targetDiscordId) {
+        req.flash('error_msg', 'Unable to resolve your Discord ID for the probe.');
+        return res.redirect('/bot#config');
+    }
+
+    const probeToken = crypto.randomBytes(32).toString('hex');
+    const probeLink = buildPasswordResetLink(req, probeToken);
+    if (!probeLink) {
+        req.flash('error_msg', 'Password reset URL is not configured. Set PASSWORD_RESET_URL_BASE and try again.');
+        return res.redirect('/bot#config');
+    }
+
+    const probeMessage = [
+        '🧪 Drowsy Vocals forgot-password DM probe.',
+        '',
+        'This checks DM delivery from the management portal.',
+        'The link below is a delivery test only and cannot reset a password:',
+        probeLink
+    ].join('\n');
+
+    try {
+        const probeResult = await sendBotApiPost(passwordResetDmPath, {
+            userId: targetDiscordId,
+            message: probeMessage
+        });
+        if (!probeResult || probeResult.ok === false || probeResult.success === false) {
+            req.flash('error_msg', 'DM probe failed. Verify BOT API connectivity and DM endpoint routing.');
+            return res.redirect('/bot#config');
+        }
+
+        await writeAudit(req, 'Sent forgot-password DM probe', `Probe DM sent to ${targetDiscordId}`);
+        req.flash('success_msg', 'Probe DM sent successfully. Check your Discord direct messages.');
+        return res.redirect('/bot#config');
+    } catch (error) {
+        console.error('Error sending forgot-password DM probe:', error);
+        req.flash('error_msg', 'Unable to send a DM probe right now.');
+        return res.redirect('/bot#config');
+    }
+});
+
 // WEB STAGE CONTROLLER ACTIONS (BOT API FORWARDER)
 async function sendBotApiPost(pathname, bodyParams = {}) {
     const botApi = getBotApiConfig();
@@ -5001,6 +5083,213 @@ app.post('/bot/announcement', requireDatabase, async (req, res) => {
 });
 
 // USER LOGIN (WITH BRUTE-FORCE RATE LIMITING & SESSION REGENERATION)
+async function sendPasswordResetDiscordDm(discordId, resetLink) {
+    const message = [
+        '🔐 Drowsy Vocals password reset requested.',
+        '',
+        `Use this secure link to set a new password (expires in ${PASSWORD_RESET_TOKEN_TTL_MINUTES} minutes):`,
+        resetLink,
+        '',
+        'If you did not request this, you can safely ignore this message.'
+    ].join('\n');
+
+    const response = await sendBotApiPost(passwordResetDmPath, {
+        userId: discordId,
+        message
+    });
+    if (!response) return false;
+    if (response.ok === false || response.success === false) return false;
+    return true;
+}
+
+app.get('/forgot-password', (req, res) => {
+    if (req.session.loggedin) return res.redirect('/dashboard');
+    res.render('pages/forgot-password');
+});
+
+app.post('/forgot-password', requireDatabase, async (req, res) => {
+    if (req.session.loggedin) return res.redirect('/dashboard');
+
+    const clientIp = req.ip || req.connection?.remoteAddress || 'unknown';
+    const rateLimitKey = `forgot_password_${clientIp}`;
+
+    if (!checkRateLimit(rateLimitKey, 6, 15 * 60 * 1000)) {
+        req.flash('error_msg', 'Too many reset requests. Please wait 15 minutes and try again.');
+        return res.redirect('/forgot-password');
+    }
+
+    const discordId = (req.body.discordId || '').toString().trim();
+    if (!discordId) {
+        recordRateLimitAttempt(rateLimitKey);
+        req.flash('error_msg', 'Discord ID is required.');
+        return res.redirect('/forgot-password');
+    }
+
+    recordRateLimitAttempt(rateLimitKey);
+
+    const genericMessage = 'If that Discord ID is linked to an account, we sent reset instructions in Discord DMs.';
+
+    try {
+        const userDoc = await db.collection('users').findOne(
+            { 'login.discordId': discordId },
+            { projection: { suspended: 1, 'login.discordId': 1 } }
+        );
+
+        if (!userDoc || userDoc.suspended) {
+            req.flash('success_msg', genericMessage);
+            return res.redirect('/forgot-password');
+        }
+
+        const rawToken = crypto.randomBytes(32).toString('hex');
+        const resetLink = buildPasswordResetLink(req, rawToken);
+
+        if (!resetLink) {
+            console.error('Password reset link generation failed: no public base URL configured.');
+            req.flash('success_msg', genericMessage);
+            return res.redirect('/forgot-password');
+        }
+
+        const dmSent = await sendPasswordResetDiscordDm(userDoc.login.discordId, resetLink);
+        if (dmSent) {
+            await db.collection('passwordResetTokens').updateOne(
+                { discordId: userDoc.login.discordId },
+                {
+                    $set: {
+                        discordId: userDoc.login.discordId,
+                        tokenHash: hashPasswordResetToken(rawToken),
+                        expiresAt: new Date(Date.now() + PASSWORD_RESET_TOKEN_TTL_MINUTES * 60 * 1000),
+                        requestedAt: new Date(),
+                        requestedIp: clientIp
+                    }
+                },
+                { upsert: true }
+            );
+        } else {
+            console.error(`Password reset DM delivery failed for Discord ID ${userDoc.login.discordId}.`);
+        }
+
+        req.flash('success_msg', genericMessage);
+        res.redirect('/forgot-password');
+    } catch (error) {
+        console.error('Error handling forgot-password request:', error);
+        req.flash('success_msg', genericMessage);
+        res.redirect('/forgot-password');
+    }
+});
+
+app.get('/reset-password', requireDatabase, async (req, res) => {
+    if (req.session.loggedin) return res.redirect('/account');
+
+    const token = (req.query.token || '').toString().trim();
+    if (!isValidPasswordResetToken(token)) {
+        req.flash('error_msg', 'That reset link is invalid or expired.');
+        return res.redirect('/forgot-password');
+    }
+
+    try {
+        const resetRecord = await db.collection('passwordResetTokens').findOne(
+            {
+                tokenHash: hashPasswordResetToken(token),
+                expiresAt: { $gt: new Date() }
+            },
+            { projection: { _id: 1 } }
+        );
+
+        if (!resetRecord) {
+            req.flash('error_msg', 'That reset link is invalid or expired.');
+            return res.redirect('/forgot-password');
+        }
+    } catch (error) {
+        console.error('Error validating password-reset token:', error);
+        req.flash('error_msg', 'Unable to verify the reset link right now. Please try again.');
+        return res.redirect('/forgot-password');
+    }
+
+    res.render('pages/reset-password', { token });
+});
+
+app.post('/reset-password', requireDatabase, async (req, res) => {
+    if (req.session.loggedin) return res.redirect('/account');
+
+    const clientIp = req.ip || req.connection?.remoteAddress || 'unknown';
+    const rateLimitKey = `reset_password_${clientIp}`;
+
+    if (!checkRateLimit(rateLimitKey, 10, 15 * 60 * 1000)) {
+        req.flash('error_msg', 'Too many reset attempts. Please wait 15 minutes and try again.');
+        return res.redirect('/forgot-password');
+    }
+
+    const token = (req.body.token || '').toString().trim();
+    const newPassword = (req.body.newPassword || '').toString();
+    const confirmPassword = (req.body.confirmPassword || '').toString();
+
+    if (!isValidPasswordResetToken(token)) {
+        recordRateLimitAttempt(rateLimitKey);
+        req.flash('error_msg', 'That reset link is invalid or expired.');
+        return res.redirect('/forgot-password');
+    }
+
+    if (!newPassword || !confirmPassword) {
+        recordRateLimitAttempt(rateLimitKey);
+        req.flash('error_msg', 'New password and confirmation are required.');
+        return res.redirect(`/reset-password?token=${encodeURIComponent(token)}`);
+    }
+
+    if (newPassword.length < 8) {
+        recordRateLimitAttempt(rateLimitKey);
+        req.flash('error_msg', 'New password must be at least 8 characters.');
+        return res.redirect(`/reset-password?token=${encodeURIComponent(token)}`);
+    }
+
+    if (newPassword !== confirmPassword) {
+        recordRateLimitAttempt(rateLimitKey);
+        req.flash('error_msg', 'New password and confirmation do not match.');
+        return res.redirect(`/reset-password?token=${encodeURIComponent(token)}`);
+    }
+
+    try {
+        const tokenHash = hashPasswordResetToken(token);
+        const resetRecord = await db.collection('passwordResetTokens').findOne({
+            tokenHash,
+            expiresAt: { $gt: new Date() }
+        });
+
+        if (!resetRecord?.discordId) {
+            recordRateLimitAttempt(rateLimitKey);
+            req.flash('error_msg', 'That reset link is invalid or expired.');
+            return res.redirect('/forgot-password');
+        }
+
+        const newHash = await bcrypt.hash(newPassword, saltRounds);
+        const updateResult = await db.collection('users').updateOne(
+            { 'login.discordId': resetRecord.discordId },
+            {
+                $set: { 'login.password': newHash },
+                $unset: { mustResetPassword: '' }
+            }
+        );
+
+        if (!updateResult.matchedCount) {
+            await db.collection('passwordResetTokens').deleteOne({ _id: resetRecord._id });
+            recordRateLimitAttempt(rateLimitKey);
+            req.flash('error_msg', 'That account is no longer available. Contact management.');
+            return res.redirect('/forgot-password');
+        }
+
+        await db.collection('passwordResetTokens').deleteOne({ _id: resetRecord._id });
+        await db.collection('sessions').deleteMany({ 'session.currentuser': resetRecord.discordId });
+        resetRateLimit(rateLimitKey);
+
+        req.flash('success_msg', 'Password updated successfully. Please sign in with your new password.');
+        res.redirect('/index?splash=1');
+    } catch (error) {
+        console.error('Error resetting password:', error);
+        recordRateLimitAttempt(rateLimitKey);
+        req.flash('error_msg', 'Unable to reset password right now. Please try again.');
+        res.redirect(`/reset-password?token=${encodeURIComponent(token)}`);
+    }
+});
+
 app.post('/login', requireDatabase, async (req, res) => {
     const clientIp = req.ip || req.connection?.remoteAddress || 'unknown';
     const rateLimitKey = `login_${clientIp}`;
