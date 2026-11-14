@@ -549,6 +549,11 @@ app.use(async (req, res, next) => {
 const CHANGELOG_ENTRIES = [
     {
         date: '2026-11-14',
+        title: 'Voice activity channels configurable',
+        changes: ['Management can choose which voice channels count toward staff activity hours and future automatic house-point awards.']
+    },
+    {
+        date: '2026-11-14',
         title: 'Expanded staff direct-message alerts',
         changes: ['DrowsyBot now sends account security DMs (password changes, suspension status updates, and new login IP alerts), strike and appeal decision DMs, event assignment/update/cancellation and pre-event reminder DMs, and pending LOA review reminders after a configurable delay.']
     },
@@ -1867,6 +1872,8 @@ const SETTINGS_CATEGORIES = ['ranks', 'houses', 'shifts', 'activities'];
 
 const DEFAULT_SETTINGS = {
     checkInAccessUserIds: [],
+    voiceActivityChannelMode: 'all',
+    voiceActivityChannelIds: [],
     ranks: [
         { name: 'Mr. Sandman', order: 0, capacity: null, minDaysInGrade: null },
         { name: 'Realm God', order: 1, capacity: null, minDaysInGrade: null },
@@ -1932,6 +1939,11 @@ async function getSettings() {
     }
 
     return settingsDoc;
+}
+
+function isVoiceActivityChannelAllowed(settings, channelId) {
+    if (settings.voiceActivityChannelMode !== 'selected') return true;
+    return (settings.voiceActivityChannelIds || []).includes(String(channelId));
 }
 
 function buildColorMap(list) {
@@ -4052,6 +4064,7 @@ app.post('/api/internal/voice-sessions', requireDatabase, async (req, res) => {
         return res.status(400).json({ error: 'sessions must be an array containing no more than 500 items.' });
     }
 
+    const activitySettings = await getSettings();
     const discordIdPattern = /^\d{17,20}$/;
     const safeName = (value, fallback) => {
         const name = String(value || '').trim();
@@ -4093,6 +4106,7 @@ app.post('/api/internal/voice-sessions', requireDatabase, async (req, res) => {
             startedAt: new Date(startedMs).toISOString(),
             endedAt: new Date(endedMs).toISOString(),
             durationSeconds,
+            eligibleForActivity: isVoiceActivityChannelAllowed(activitySettings, channelId),
             receivedAt: new Date()
         });
     }
@@ -4133,6 +4147,23 @@ app.post('/api/internal/voice-sessions', requireDatabase, async (req, res) => {
             if (!claimResult.modifiedCount) continue;
 
             try {
+                const eligibleForActivity = typeof session.eligibleForActivity === 'boolean'
+                    ? session.eligibleForActivity
+                    : isVoiceActivityChannelAllowed(activitySettings, session.channelId);
+                if (!eligibleForActivity) {
+                    await db.collection('voiceActivitySessions').updateOne(
+                        { sessionId: session.sessionId, housePointsAwardProcessing: true },
+                        {
+                            $set: {
+                                housePointsAwarded: true,
+                                housePointsAwardedAt: new Date().toISOString()
+                            },
+                            $unset: { housePointsAwardProcessing: '' }
+                        }
+                    );
+                    continue;
+                }
+
                 if (await awardAutomaticVoicePoints(session)) pointsAwarded += 1;
                 await db.collection('voiceActivitySessions').updateOne(
                     { sessionId: session.sessionId, housePointsAwardProcessing: true },
@@ -4166,11 +4197,72 @@ app.post('/api/internal/voice-sessions', requireDatabase, async (req, res) => {
 });
 
 // STAFF VOICE ACTIVITY DASHBOARD
+app.post('/staff-activity/channels', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !hasManagementAccess(req)) {
+        req.flash('error_msg', 'You are not authorized to manage voice activity channels.');
+        return res.redirect('/staff-activity');
+    }
+
+    const mode = String(req.body.voiceActivityChannelMode || '');
+    if (!['all', 'selected'].includes(mode)) {
+        req.flash('error_msg', 'Choose whether all channels or selected channels count for activity.');
+        return res.redirect('/staff-activity#voice-channels');
+    }
+
+    const submittedIds = [
+        req.body.voiceActivityChannelIds,
+        req.body.additionalVoiceActivityChannelIds
+    ].flatMap((value) => Array.isArray(value) ? value : (value ? [value] : []))
+        .flatMap((value) => String(value).split(/[,\s]+/))
+        .map((value) => value.trim())
+        .filter(Boolean);
+    if (submittedIds.some((id) => !/^\d{17,20}$/.test(id))) {
+        req.flash('error_msg', 'Voice channel IDs must contain 17 to 20 digits.');
+        return res.redirect('/staff-activity#voice-channels');
+    }
+
+    const channelIds = [...new Set(submittedIds)];
+    if (channelIds.length > 500) {
+        req.flash('error_msg', 'Select no more than 500 voice channels.');
+        return res.redirect('/staff-activity#voice-channels');
+    }
+    if (mode === 'selected' && !channelIds.length) {
+        req.flash('error_msg', 'Select at least one channel, or choose all channels.');
+        return res.redirect('/staff-activity#voice-channels');
+    }
+
+    try {
+        await db.collection('settings').updateOne(
+            { _id: 'appSettings' },
+            {
+                $set: {
+                    voiceActivityChannelMode: mode,
+                    voiceActivityChannelIds: mode === 'selected' ? channelIds : [],
+                    voiceActivityChannelsUpdatedAt: new Date().toISOString(),
+                    voiceActivityChannelsUpdatedBy: req.session.currentuser
+                }
+            },
+            { upsert: true }
+        );
+        await writeAudit(
+            req,
+            'Updated voice activity channel eligibility',
+            mode === 'all' ? 'All voice channels count.' : `${channelIds.length} voice channel(s) selected.`
+        );
+        req.flash('success_msg', 'Voice activity channel settings updated.');
+    } catch (error) {
+        console.error('Error updating voice activity channel settings:', error);
+        req.flash('error_msg', 'Unable to update voice activity channel settings.');
+    }
+    res.redirect('/staff-activity#voice-channels');
+});
+
 app.get('/staff-activity', requireDatabase, async (req, res) => {
     if (!req.session.loggedin) return res.redirect('/');
     if (!hasManagementAccess(req)) return res.status(403).send('You do not have permission to view staff activity.');
 
     try {
+        const activitySettings = await getSettings();
         const requestedRange = Number.parseInt(req.query.range, 10);
         const rangeDays = [7, 14].includes(requestedRange) ? requestedRange : 14;
         const now = new Date();
@@ -4267,7 +4359,7 @@ app.get('/staff-activity', requireDatabase, async (req, res) => {
                 dayCursorMs = dayEndMs;
             }
         };
-        activitySessions.forEach((session) => {
+        countedActivitySessions.forEach((session) => {
             const activityRange = getClippedRange(session.startedAt, session.endedAt);
             if (activityRange) addActivity(session, activityRange);
         });
@@ -4279,6 +4371,7 @@ app.get('/staff-activity', requireDatabase, async (req, res) => {
                 member.voiceChannelId
                 && userById.has(member.userId)
                 && member.voiceChannelId !== afkChannelByGuild.get(member.guildId)
+                && isVoiceActivityChannelAllowed(activitySettings, member.voiceChannelId)
             ))
             .map((member) => {
                 const startedMs = Date.parse(member.voiceJoinedAt || '');
@@ -4293,6 +4386,39 @@ app.get('/staff-activity', requireDatabase, async (req, res) => {
                     durationSeconds: Number.isFinite(startedMs) ? Math.max(0, (Date.now() - startedMs) / 1000) : 0
                 };
             });
+        const countedActivitySessions = activitySessions.filter((session) => session.eligibleForActivity !== false);
+        const voiceActivityChannelMode = activitySettings.voiceActivityChannelMode === 'selected' ? 'selected' : 'all';
+        const voiceActivityChannelIds = Array.isArray(activitySettings.voiceActivityChannelIds)
+            ? activitySettings.voiceActivityChannelIds.filter((channelId) => /^\d{17,20}$/.test(String(channelId)))
+            : [];
+        const channelOptionsById = new Map();
+        const addChannelOption = (guildId, guildName, channelId, channelName) => {
+            const cleanChannelId = String(channelId || '').trim();
+            if (!/^\d{17,20}$/.test(cleanChannelId) || channelOptionsById.has(cleanChannelId)) return;
+            channelOptionsById.set(cleanChannelId, {
+                channelId: cleanChannelId,
+                guildName: guildName || guildId || 'Discord',
+                channelName: channelName || cleanChannelId
+            });
+        };
+        activitySessions.forEach((session) => {
+            addChannelOption(session.guildId, session.guildName, session.channelId, session.channelName);
+        });
+        (botLiveState.discordMembers || []).forEach((member) => {
+            if (!member.voiceChannelId || member.voiceChannelId === afkChannelByGuild.get(member.guildId)) return;
+            const guild = (botLiveState.guilds || []).find((item) => item.id === member.guildId);
+            addChannelOption(
+                member.guildId,
+                guild?.name || member.guildId,
+                member.voiceChannelId,
+                member.voiceChannelName
+            );
+        });
+        voiceActivityChannelIds.forEach((channelId) => {
+            addChannelOption(null, 'Configured channel', channelId, channelId);
+        });
+        const voiceActivityChannelOptions = [...channelOptionsById.values()]
+            .sort((a, b) => `${a.guildName} ${a.channelName}`.localeCompare(`${b.guildName} ${b.channelName}`));
         liveSessions.forEach((session) => {
             const activityRange = session.startedAt
                 ? getClippedRange(session.startedAt, new Date().toISOString())
@@ -4308,7 +4434,7 @@ app.get('/staff-activity', requireDatabase, async (req, res) => {
         const daily = [...dailyTotals.values()]
             .sort((a, b) => a.date.localeCompare(b.date))
             .map((item) => ({ ...item, hours: toHours(item.seconds) }));
-        const recent = activitySessions.slice(0, 100).map((session) => ({
+        const recent = countedActivitySessions.slice(0, 100).map((session) => ({
             ...session,
             displayName: userById.get(session.userId)?.displayName || session.userName || session.userId,
             durationMinutes: Math.round(Number(session.durationSeconds || 0) / 60),
@@ -4322,7 +4448,7 @@ app.get('/staff-activity', requireDatabase, async (req, res) => {
             durationMinutes: Math.floor(Number(session.durationSeconds || 0) / 60)
         }));
         const totalSeconds = staff.reduce((sum, item) => sum + item.seconds, 0);
-        const totalSessions = activitySessions.length;
+        const totalSessions = countedActivitySessions.length;
         const activeDays = daily.filter((item) => item.seconds > 0).length;
         const peakDay = daily.reduce(
             (peak, item) => item.seconds > peak.seconds ? item : peak,
@@ -4347,6 +4473,10 @@ app.get('/staff-activity', requireDatabase, async (req, res) => {
             daily,
             recent,
             live,
+            canManageActivityChannels: hasManagementAccess(req),
+            voiceActivityChannelMode,
+            voiceActivityChannelIds,
+            voiceActivityChannelOptions,
             botOnline: Boolean(botLiveState.online),
             trackingConfigured: Boolean(voiceActivityApiSecret),
             botConnectionError: botLiveState.connectionError || null

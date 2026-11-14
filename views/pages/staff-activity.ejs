@@ -76,6 +76,18 @@
             .staff-activity-reference-table td { color: var(--night-indigo); font-size: .88em; line-height: 1.45; }
             .staff-activity-reference-table tr:last-child td { border-bottom: 0; }
             .staff-activity-reference-note { margin: 14px 0 0; padding: 11px 12px; border-left: 3px solid var(--moonlight-yellow); border-radius: 6px; background: rgba(255, 241, 194, .45); color: var(--night-indigo); font-size: .82em; line-height: 1.5; }
+            .staff-activity-channel-settings { margin-bottom: 22px; padding: 20px; border: 1px solid var(--cloud-lilac); border-radius: 14px; background: var(--cloud-white); box-shadow: 0 8px 24px rgba(41, 39, 82, .07); }
+            .staff-activity-channel-settings h2 { margin: 0 0 6px; color: var(--night-indigo); font-size: 1.15em; }
+            .staff-activity-channel-settings > p { margin: 0 0 14px; color: var(--dusty-blue-purple); font-size: .88em; line-height: 1.5; }
+            .staff-activity-channel-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 8px; max-height: 280px; margin: 12px 0; overflow-y: auto; }
+            .staff-activity-channel-option { display: flex; align-items: flex-start; gap: 9px; padding: 10px 12px; border: 1px solid var(--cloud-lilac); border-radius: 9px; color: var(--night-indigo); }
+            .staff-activity-channel-option input { margin-top: 3px; }
+            .staff-activity-channel-option span, .staff-activity-channel-option small { display: block; }
+            .staff-activity-channel-option small { margin-top: 3px; color: var(--dusty-blue-purple); }
+            .staff-activity-channel-settings textarea { display: block; width: 100%; max-width: 600px; min-height: 64px; margin: 8px 0 12px; padding: 9px 11px; border: 1px solid var(--cloud-lilac); border-radius: 8px; }
+            .staff-activity-channel-settings button { padding: 9px 14px; border: 0; border-radius: 8px; color: var(--cloud-white); background: var(--night-indigo); font-weight: bold; cursor: pointer; }
+            .staff-activity-message { margin: 0 0 12px; padding: 10px 12px; border-radius: 8px; color: var(--night-indigo); background: var(--cloud-lilac); }
+            .staff-activity-message.is-error { color: #8b3d51; background: #f9e5eb; }
             @media (max-width: 800px) {
                 .staff-activity-header { align-items: stretch; flex-direction: column; }
                 .staff-activity-note { max-width: none; }
@@ -119,6 +131,44 @@
                 <span>Live monitoring enabled · refreshes every minute</span>
                 <% } %>
             </div>
+
+            <% if (canManageActivityChannels) { %>
+            <section id="voice-channels" class="staff-activity-channel-settings" aria-labelledby="voice-channels-heading">
+                <h2 id="voice-channels-heading">Counted voice channels</h2>
+                <p>Choose which channels count toward activity hours and future automatic house-point awards. This applies to sessions received after saving; previously recorded hours and points are unchanged.</p>
+                <% if (success_msg && success_msg.length) { %>
+                <p class="staff-activity-message" role="status"><%= Array.isArray(success_msg) ? success_msg[0] : success_msg %></p>
+                <% } %>
+                <% if (error_msg && error_msg.length) { %>
+                <p class="staff-activity-message is-error" role="alert"><%= Array.isArray(error_msg) ? error_msg[0] : error_msg %></p>
+                <% } %>
+                <form action="/staff-activity/channels" method="POST">
+                    <label class="staff-activity-channel-option">
+                        <input type="radio" name="voiceActivityChannelMode" value="all"<%= voiceActivityChannelMode === 'all' ? ' checked' : '' %>>
+                        <span><strong>All channels</strong><small>Count every qualifying voice channel.</small></span>
+                    </label>
+                    <label class="staff-activity-channel-option" style="margin-top: 8px;">
+                        <input type="radio" name="voiceActivityChannelMode" value="selected"<%= voiceActivityChannelMode === 'selected' ? ' checked' : '' %>>
+                        <span><strong>Only selected channels</strong><small>Hours and future points count only in the channels checked below.</small></span>
+                    </label>
+                    <% if (voiceActivityChannelOptions.length) { %>
+                    <div class="staff-activity-channel-options">
+                        <% voiceActivityChannelOptions.forEach(function(channel) { %>
+                        <label class="staff-activity-channel-option">
+                            <input type="checkbox" name="voiceActivityChannelIds" value="<%= channel.channelId %>"<%= voiceActivityChannelIds.includes(channel.channelId) ? ' checked' : '' %>>
+                            <span><strong><%= channel.channelName %></strong><small><%= channel.guildName %> · <%= channel.channelId %></small></span>
+                        </label>
+                        <% }); %>
+                    </div>
+                    <% } else { %>
+                    <p>No voice channels have been discovered yet. You can paste channel IDs below.</p>
+                    <% } %>
+                    <label for="additionalVoiceActivityChannelIds">Add channel IDs not listed above</label>
+                    <textarea id="additionalVoiceActivityChannelIds" name="additionalVoiceActivityChannelIds" placeholder="Paste one or more Discord channel IDs, separated by spaces or commas"></textarea>
+                    <button type="submit">Save channel settings</button>
+                </form>
+            </section>
+            <% } %>
 
             <section class="staff-activity-reference" aria-label="Staff team reference">
                 <article class="staff-activity-reference-card">
