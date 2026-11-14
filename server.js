@@ -59,6 +59,16 @@ const passwordResetDmPath = (() => {
     return configuredPath.startsWith('/') ? configuredPath : `/${configuredPath}`;
 })();
 const passwordResetUrlBase = String(process.env.PASSWORD_RESET_URL_BASE || '').trim().replace(/\/+$/, '');
+const LOA_PENDING_REMINDER_DAYS = (() => {
+    const parsed = Number(process.env.LOA_PENDING_REMINDER_DAYS);
+    if (!Number.isFinite(parsed)) return 3;
+    return Math.max(1, Math.min(30, Math.floor(parsed)));
+})();
+const EVENT_ASSIGNMENT_REMINDER_HOURS = (() => {
+    const parsed = Number(process.env.EVENT_ASSIGNMENT_REMINDER_HOURS);
+    if (!Number.isFinite(parsed)) return 24;
+    return Math.max(1, Math.min(168, Math.floor(parsed)));
+})();
 
 if (!mongoUri) {
     console.error('MONGODB_URI is not configured. Add it to the application environment variables.');
@@ -537,6 +547,16 @@ app.use(async (req, res, next) => {
     }
 });
 const CHANGELOG_ENTRIES = [
+    {
+        date: '2026-11-14',
+        title: 'Expanded staff direct-message alerts',
+        changes: ['DrowsyBot now sends account security DMs (password changes, suspension status updates, and new login IP alerts), strike and appeal decision DMs, event assignment/update/cancellation and pre-event reminder DMs, and pending LOA review reminders after a configurable delay.']
+    },
+    {
+        date: '2026-11-14',
+        title: 'LOA and rank change DMs added',
+        changes: ['DrowsyBot now sends direct-message reminders when approved LOAs start and end, plus direct notifications when staff are promoted or demoted.']
+    },
     {
         date: '2026-11-14',
         title: 'Discord forgot-password recovery added',
@@ -2685,9 +2705,10 @@ app.post('/update-user', requireDatabase, async (req, res) => {
         const auditDetails = `${cleanDisplayName} (${cleanOriginalId} -> ${cleanDiscordId})${dateChanges.length ? `; ${dateChanges.join('; ')}` : ''}`;
         await writeAudit(req, 'Updated Staff Member', auditDetails);
         if (isPromotion) {
+            const rankChangeType = getRankChangeType(existingUser.accountType, cleanAccountType);
             sendPdLogsWebhook(
-                getRankChangeType(existingUser.accountType, cleanAccountType) === 'promotion' ? '# ⬆️ Staff Promoted ⬆️' : 'Staff Demoted',
-                getRankChangeType(existingUser.accountType, cleanAccountType) === 'promotion' ? 0x3B82F6 : 0xF97316,
+                rankChangeType === 'promotion' ? '# ⬆️ Staff Promoted ⬆️' : 'Staff Demoted',
+                rankChangeType === 'promotion' ? 0x3B82F6 : 0xF97316,
                 [
                     { name: 'Staff Member', value: `${cleanDisplayName} (<@${cleanDiscordId}>)`, inline: true },
                     { name: 'Previous Rank', value: existingUser.accountType || 'Unassigned', inline: true },
@@ -2695,6 +2716,14 @@ app.post('/update-user', requireDatabase, async (req, res) => {
                     { name: 'Changed By', value: `<@${req.session.currentuser}>`, inline: true }
                 ]
             );
+            const rankDmMessage = [
+                rankChangeType === 'promotion' ? '🎉 You have been promoted in Drowsy Vocals.' : '📣 Your rank has been updated in Drowsy Vocals.',
+                `Previous rank: ${existingUser.accountType || 'Unassigned'}`,
+                `New rank: ${cleanAccountType || 'Unassigned'}`,
+                `Changed by: <@${req.session.currentuser}>`
+            ].join('\n');
+            sendBotDirectMessage(cleanDiscordId, rankDmMessage)
+                .catch((error) => console.error('Failed to send rank update DM:', error.message));
         }
         req.flash('success_msg', `Updated profile for ${cleanDisplayName}.`);
         res.redirect('/roster');
@@ -2801,6 +2830,14 @@ app.post('/promote-user', requireDatabase, async (req, res) => {
             { name: 'New Rank', value: cleanAccountType, inline: true },
             { name: 'Changed By', value: `<@${req.session.currentuser}>`, inline: true }
         ]);
+        const rankDmMessage = [
+            isPromotion ? '🎉 You have been promoted in Drowsy Vocals.' : '📣 Your rank has been updated in Drowsy Vocals.',
+            `Previous rank: ${user.accountType || 'Unassigned'}`,
+            `New rank: ${cleanAccountType || 'Unassigned'}`,
+            `Changed by: <@${req.session.currentuser}>`
+        ].join('\n');
+        sendBotDirectMessage(cleanDiscordId, rankDmMessage)
+            .catch((error) => console.error('Failed to send promotion/demotion DM:', error.message));
         req.flash('success_msg', `${user.displayName || cleanDiscordId} is now ${cleanAccountType}.`);
         res.redirect('/roster');
     } catch (error) {
@@ -2855,6 +2892,13 @@ app.post('/add-strike', requireDatabase, async (req, res) => {
                 { name: 'Reason', value: trimmedReason }
             ]
         }, 'strikes');
+        const strikeMessage = [
+            `⚠️ A ${strikeCount}-strike action was added to your account.`,
+            `Reason: ${trimmedReason}`,
+            `Issued by: <@${req.session.currentuser}>`
+        ].join('\n');
+        sendBotDirectMessage(discordId, strikeMessage)
+            .catch((dmError) => console.error('Failed to send strike-issued DM:', dmError.message));
 
         req.flash('success_msg', 'Strike issued successfully.');
         res.redirect('/roster');
@@ -2877,11 +2921,24 @@ app.post('/remove-strike', requireDatabase, async (req, res) => {
     if (!discordId || !strikeId) return res.redirect('/roster');
 
     try {
+        const user = await db.collection('users').findOne(
+            { 'login.discordId': discordId, 'strikes.id': strikeId },
+            { projection: { displayName: 1, discordUser: 1, strikes: 1 } }
+        );
+        const removedStrike = (user?.strikes || []).find((strike) => strike.id === strikeId);
+
         await db.collection('users').updateOne(
             { 'login.discordId': discordId },
             { $pull: { strikes: { id: strikeId } } }
         );
         await writeAudit(req, 'Removed Strike', `Removed strike ${strikeId} from ${discordId}`);
+        const strikeRemovedMessage = [
+            '✅ A strike was removed from your account.',
+            removedStrike?.reason ? `Previous reason: ${removedStrike.reason}` : '',
+            `Removed by: <@${req.session.currentuser}>`
+        ].filter(Boolean).join('\n');
+        sendBotDirectMessage(discordId, strikeRemovedMessage)
+            .catch((dmError) => console.error('Failed to send strike-removed DM:', dmError.message));
         req.flash('success_msg', 'Strike removed.');
         res.redirect('/roster');
     } catch (error) {
@@ -2924,6 +2981,13 @@ app.post('/toggle-suspension', requireDatabase, async (req, res) => {
             { $set: { suspended } }
         );
         await writeAudit(req, suspended ? 'Suspended User Account' : 'Unsuspended User Account', `${user.displayName || user.discordUser || discordId} (${discordId})`);
+        const suspensionMessage = [
+            suspended ? '⛔ Your account has been suspended.' : '✅ Your account suspension has been lifted.',
+            `Updated by: <@${req.session.currentuser}>`,
+            suspended ? 'Contact management if you need to appeal this action.' : ''
+        ].filter(Boolean).join('\n');
+        sendBotDirectMessage(discordId, suspensionMessage)
+            .catch((dmError) => console.error('Failed to send suspension DM:', dmError.message));
         req.flash('success_msg', `${user.displayName || discordId} has been ${suspended ? 'suspended' : 'unsuspended'}.`);
     } catch (error) {
         console.error('Error toggling account suspension:', error);
@@ -3090,6 +3154,15 @@ app.post('/appeals/:appealId/decision', requireDatabase, async (req, res) => {
             `Your strike appeal was ${decision.toLowerCase()}.`,
             '/account'
         ).catch((error) => console.error('Failed to create appeal notification:', error.message));
+        const appealDecisionMessage = [
+            decision === 'Approved'
+                ? '✅ Your strike appeal was approved and the strike was removed.'
+                : '❌ Your strike appeal was denied and the strike remains on record.',
+            `Reviewed by: <@${reviewerId}>`,
+            managerNote ? `Manager note: ${managerNote}` : ''
+        ].filter(Boolean).join('\n');
+        sendBotDirectMessage(appeal.applicantDiscordId, appealDecisionMessage)
+            .catch((dmError) => console.error('Failed to send appeal-decision DM:', dmError.message));
         req.flash('success_msg', `Appeal decision recorded: ${decision}.`);
         res.redirect('/appeals');
     } catch (e) {
@@ -5093,13 +5166,99 @@ async function sendPasswordResetDiscordDm(discordId, resetLink) {
         'If you did not request this, you can safely ignore this message.'
     ].join('\n');
 
+    return sendBotDirectMessage(discordId, message);
+}
+
+async function sendBotDirectMessage(discordId, message) {
+    const cleanDiscordId = (discordId || '').toString().trim();
+    const cleanMessage = (message || '').toString().trim();
+    if (!cleanDiscordId || !cleanMessage) return false;
+
     const response = await sendBotApiPost(passwordResetDmPath, {
-        userId: discordId,
-        message
+        userId: cleanDiscordId,
+        message: cleanMessage
     });
     if (!response) return false;
     if (response.ok === false || response.success === false) return false;
     return true;
+}
+
+function normalizeDiscordId(value) {
+    const candidate = (value || '').toString().trim();
+    return /^\d{17,20}$/.test(candidate) ? candidate : null;
+}
+
+function getEventAssignmentRecipients(event = {}) {
+    const assignments = [
+        { roleLabel: 'Host', discordId: normalizeDiscordId(event.host) },
+        { roleLabel: 'Co-Host', discordId: normalizeDiscordId(event.coHost) },
+        { roleLabel: 'Admin on Duty', discordId: normalizeDiscordId(event.admin) }
+    ].filter((entry) => Boolean(entry.discordId));
+
+    const recipientMap = new Map();
+    assignments.forEach((entry) => {
+        if (!recipientMap.has(entry.discordId)) {
+            recipientMap.set(entry.discordId, new Set());
+        }
+        recipientMap.get(entry.discordId).add(entry.roleLabel);
+    });
+
+    return [...recipientMap.entries()].map(([discordId, roles]) => ({
+        discordId,
+        roles: [...roles]
+    }));
+}
+
+function getDiscordTimestampLabel(dateIso) {
+    const timestamp = Math.floor(new Date(dateIso).getTime() / 1000);
+    if (!Number.isFinite(timestamp) || timestamp <= 0) return dateIso || 'TBD';
+    return `<t:${timestamp}:F>`;
+}
+
+function sendEventAssignmentDms(event, type, actorDiscordId) {
+    const recipients = getEventAssignmentRecipients(event);
+    if (!recipients.length) return;
+
+    const eventTitle = (event?.title || 'Untitled Event').toString();
+    const eventStartLabel = getDiscordTimestampLabel(event?.scheduledStartTime);
+
+    recipients.forEach(({ discordId, roles }) => {
+        const roleLabel = roles.join(', ');
+        let lines = [];
+
+        if (type === 'created') {
+            lines = [
+                `📅 You were assigned to "${eventTitle}".`,
+                `Role: ${roleLabel}`,
+                `Starts: ${eventStartLabel}`,
+                `Assigned by: <@${actorDiscordId}>`
+            ];
+        } else if (type === 'updated') {
+            lines = [
+                `✏️ "${eventTitle}" was updated.`,
+                `Your role: ${roleLabel}`,
+                `Starts: ${eventStartLabel}`,
+                `Updated by: <@${actorDiscordId}>`
+            ];
+        } else if (type === 'cancelled') {
+            lines = [
+                `🗑️ "${eventTitle}" was cancelled and removed from schedule.`,
+                `Your previous role: ${roleLabel}`,
+                `Cancelled by: <@${actorDiscordId}>`
+            ];
+        } else if (type === 'reminder') {
+            lines = [
+                `⏰ Reminder: "${eventTitle}" starts in about ${EVENT_ASSIGNMENT_REMINDER_HOURS} hour(s).`,
+                `Your role: ${roleLabel}`,
+                `Start time: ${eventStartLabel}`
+            ];
+        } else {
+            return;
+        }
+
+        sendBotDirectMessage(discordId, lines.join('\n'))
+            .catch((error) => console.error('Failed to send event assignment DM:', error.message));
+    });
 }
 
 app.get('/forgot-password', (req, res) => {
@@ -5279,6 +5438,10 @@ app.post('/reset-password', requireDatabase, async (req, res) => {
         await db.collection('passwordResetTokens').deleteOne({ _id: resetRecord._id });
         await db.collection('sessions').deleteMany({ 'session.currentuser': resetRecord.discordId });
         resetRateLimit(rateLimitKey);
+        sendBotDirectMessage(
+            resetRecord.discordId,
+            '🔐 Your Drowsy Vocals password was reset successfully. If this was not you, contact management immediately.'
+        ).catch((dmError) => console.error('Failed to send password-reset confirmation DM:', dmError.message));
 
         req.flash('success_msg', 'Password updated successfully. Please sign in with your new password.');
         res.redirect('/index?splash=1');
@@ -5349,11 +5512,30 @@ app.post('/login', requireDatabase, async (req, res) => {
             req.session.accountType = currentAccountType;
             req.session.isDeveloper = currentIsDeveloper;
 
-            // Update lastSeen immediately on login
-            db.collection('users').updateOne(
+            // Update lastSeen immediately on login and notify on new login IPs.
+            db.collection('users').findOneAndUpdate(
                 { 'login.discordId': discordId },
-                { $set: { lastSeen: new Date() } }
-            ).catch((err) => console.error('Login presence update failed:', err.message));
+                {
+                    $set: {
+                        lastSeen: new Date(),
+                        'security.lastLoginAt': new Date(),
+                        'security.lastLoginIp': clientIp
+                    }
+                },
+                { projection: { 'security.lastLoginIp': 1 }, returnDocument: 'before' }
+            ).then((previousUser) => {
+                const previousIp = (previousUser?.security?.lastLoginIp || '').toString().trim();
+                if (previousIp && previousIp !== clientIp && clientIp !== 'unknown') {
+                    const ipAlertMessage = [
+                        '🔔 New login detected for your Drowsy Vocals account.',
+                        `Current IP: ${clientIp}`,
+                        `Previous IP: ${previousIp}`,
+                        'If this was not you, change your password immediately and contact management.'
+                    ].join('\n');
+                    sendBotDirectMessage(discordId, ipAlertMessage)
+                        .catch((dmError) => console.error('Failed to send login security DM:', dmError.message));
+                }
+            }).catch((err) => console.error('Login presence update failed:', err.message));
 
             req.session.save((saveError) => {
                 if (saveError) {
@@ -6027,6 +6209,10 @@ app.post('/change-password', requireDatabase, async (req, res) => {
                 $unset: { mustResetPassword: '' }
             }
         );
+        sendBotDirectMessage(
+            currentDiscordId,
+            '🔐 Your Drowsy Vocals password was changed successfully. If this was not you, contact management immediately.'
+        ).catch((dmError) => console.error('Failed to send password-change confirmation DM:', dmError.message));
 
         req.flash('success_msg', 'Password updated successfully.');
         res.redirect('/account');
@@ -7306,6 +7492,7 @@ app.post('/events/create', requireDatabase, async (req, res) => {
             color: 0x8B5CF6,
             fields: webhookFields
         }, 'events');
+        sendEventAssignmentDms(newEvent, 'created', req.session.currentuser);
 
         req.flash('success_msg', `Event "${cleanTitle}" scheduled successfully.`);
         res.redirect('/events');
@@ -7371,6 +7558,14 @@ app.post('/events/:eventId/update', requireDatabase, async (req, res) => {
     }
 
     try {
+        const query = {
+            $or: [
+                { id: eventId },
+                { _id: ObjectId.isValid(eventId) ? new ObjectId(eventId) : null }
+            ]
+        };
+        const existingEvent = await db.collection('scheduledEvents').findOne(query);
+
         const updateDoc = {
             title: cleanTitle,
             description: cleanDesc,
@@ -7382,15 +7577,10 @@ app.post('/events/:eventId/update', requireDatabase, async (req, res) => {
             scheduledStartTime,
             scheduledEndTime,
             timezone: EVENT_TIME_ZONE,
+            assignmentReminderForStartTime: null,
+            assignmentReminderSentAt: null,
             updatedBy: req.session.currentuser,
             updatedAt: new Date().toISOString()
-        };
-
-        const query = {
-            $or: [
-                { id: eventId },
-                { _id: ObjectId.isValid(eventId) ? new ObjectId(eventId) : null }
-            ]
         };
 
         const result = await db.collection('scheduledEvents').findOneAndUpdate(
@@ -7429,6 +7619,9 @@ app.post('/events/:eventId/update', requireDatabase, async (req, res) => {
                 color: 0x3B82F6,
                 fields: updateWebhookFields
             }, 'events');
+            if (existingEvent) {
+                sendEventAssignmentDms({ ...existingEvent, ...updateDoc }, 'updated', req.session.currentuser);
+            }
 
             req.flash('success_msg', `Event "${cleanTitle}" updated successfully.`);
         } else {
@@ -7458,6 +7651,7 @@ app.post('/events/:eventId/delete', requireDatabase, async (req, res) => {
 
         if (deleted) {
             await writeAudit(req, 'Deleted Scheduled Event', deleted.title || eventId);
+            sendEventAssignmentDms(deleted, 'cancelled', req.session.currentuser);
             req.flash('success_msg', 'Event removed from schedule.');
         } else {
             req.flash('error_msg', 'Event not found.');
@@ -7716,6 +7910,13 @@ app.post('/review-loa', requireDatabase, async (req, res) => {
             `Your LOA request was ${decision.toLowerCase()}.`,
             '/loa'
         ).catch((error) => console.error('Failed to create LOA notification:', error.message));
+        const loaReviewMessage = [
+            decision === 'Approved' ? '✅ Your LOA request was approved.' : '❌ Your LOA request was denied.',
+            reqDetail ? `Dates: ${reqDetail.startDate} to ${reqDetail.endDate}` : '',
+            `Reviewed by: <@${req.session.currentuser}>`
+        ].filter(Boolean).join('\n');
+        sendBotDirectMessage(discordId, loaReviewMessage)
+            .catch((error) => console.error('Failed to send LOA review DM:', error.message));
         req.flash('success_msg', `LOA request ${decision.toLowerCase()}.`);
         res.redirect('/loa');
     } catch (error) {
@@ -7817,6 +8018,14 @@ app.post('/admin/place-loa', requireDatabase, async (req, res) => {
             `You have been placed on LOA from ${startDate} to ${endDate} by ${adminName}.`,
             '/loa'
         ).catch((error) => console.error('Failed to create LOA notification:', error.message));
+        const adminLoaMessage = [
+            isApproved ? '✅ Management has placed you on an approved LOA.' : '📩 Management has submitted an LOA request for you.',
+            `Dates: ${startDate} to ${endDate}`,
+            `Reason: ${trimmedReason}`,
+            `Handled by: <@${req.session.currentuser}>`
+        ].join('\n');
+        sendBotDirectMessage(targetDiscordId, adminLoaMessage)
+            .catch((error) => console.error('Failed to send management LOA DM:', error.message));
 
         req.flash('success_msg', `Successfully placed ${targetName} on LOA (${status}).`);
         res.redirect('/loa');
@@ -7878,6 +8087,13 @@ app.post('/admin/end-loa', requireDatabase, async (req, res) => {
             `Your LOA has been ended early by management. Your activity status is now Active.`,
             '/loa'
         ).catch((error) => console.error('Failed to create LOA notification:', error.message));
+        const endedEarlyMessage = [
+            'ℹ️ Your LOA has been ended early by management.',
+            'Your status is now Active.',
+            `Updated by: <@${req.session.currentuser}>`
+        ].join('\n');
+        sendBotDirectMessage(discordId, endedEarlyMessage)
+            .catch((error) => console.error('Failed to send LOA ended-early DM:', error.message));
 
         req.flash('success_msg', `Concluded LOA early for ${targetName}. Activity restored to Active.`);
         res.redirect('/loa');
@@ -7894,11 +8110,13 @@ async function processExpiredLoas() {
 
     try {
         const todayStr = new Date().toISOString().slice(0, 10);
-        const usersWithApprovedLoas = await db.collection('users').find({
-            'loaRequests.status': 'Approved'
+        const nowMs = Date.now();
+        const pendingThresholdMs = LOA_PENDING_REMINDER_DAYS * 24 * 60 * 60 * 1000;
+        const usersWithLoaRequests = await db.collection('users').find({
+            'loaRequests.0': { $exists: true }
         }).toArray();
 
-        for (const user of usersWithApprovedLoas) {
+        for (const user of usersWithLoaRequests) {
             const activeLoas = (user.loaRequests || []).filter(r => (
                 r.status === 'Approved'
                 && r.startDate <= todayStr
@@ -7910,6 +8128,13 @@ async function processExpiredLoas() {
                     { 'login.discordId': user.login.discordId },
                     { $set: { activity: 'LOA' } }
                 );
+                const loaStartMessage = [
+                    '🏖️ Your approved LOA is now active.',
+                    `Dates: ${activeLoas[0].startDate} to ${activeLoas[0].endDate}`,
+                    'Enjoy your break and take care.'
+                ].join('\n');
+                sendBotDirectMessage(user.login.discordId, loaStartMessage)
+                    .catch((error) => console.error('Failed to send LOA start DM:', error.message));
             } else if (activeLoas.length === 0 && user.activity === 'LOA') {
                 await db.collection('users').updateOne(
                     { 'login.discordId': user.login.discordId },
@@ -7928,6 +8153,39 @@ async function processExpiredLoas() {
                         { name: 'Notice', value: 'Scheduled LOA period has concluded.' }
                     ]
                 }, 'loa');
+                const loaEndedMessage = [
+                    '👋 Your scheduled LOA period has ended.',
+                    'Your status is now Active. Welcome back!'
+                ].join('\n');
+                sendBotDirectMessage(user.login.discordId, loaEndedMessage)
+                    .catch((error) => console.error('Failed to send LOA end DM:', error.message));
+            }
+
+            const pendingLoas = (user.loaRequests || []).filter((request) => {
+                if (request.status !== 'Pending' || request.pendingReminderSentAt) return false;
+                const requestedAtMs = Date.parse(request.requestedAt || '');
+                if (!Number.isFinite(requestedAtMs)) return false;
+                return nowMs - requestedAtMs >= pendingThresholdMs;
+            });
+
+            for (const pendingRequest of pendingLoas) {
+                const pendingReminderMessage = [
+                    `⏳ Your LOA request is still pending after ${LOA_PENDING_REMINDER_DAYS} day(s).`,
+                    `Requested dates: ${pendingRequest.startDate} to ${pendingRequest.endDate}`,
+                    'Management has been notified and will review it as soon as possible.'
+                ].join('\n');
+                sendBotDirectMessage(user.login.discordId, pendingReminderMessage)
+                    .catch((error) => console.error('Failed to send pending LOA DM reminder:', error.message));
+
+                await db.collection('users').updateOne(
+                    { 'login.discordId': user.login.discordId },
+                    {
+                        $set: {
+                            'loaRequests.$[request].pendingReminderSentAt': new Date().toISOString().slice(0, 19)
+                        }
+                    },
+                    { arrayFilters: [{ 'request.id': pendingRequest.id }] }
+                );
             }
         }
     } catch (e) {
@@ -7935,8 +8193,42 @@ async function processExpiredLoas() {
     }
 }
 
+async function processEventAssignmentReminders() {
+    if (!isDatabaseReady || !db) return;
+
+    try {
+        const nowMs = Date.now();
+        const reminderWindowMs = EVENT_ASSIGNMENT_REMINDER_HOURS * 60 * 60 * 1000;
+        const upcomingEvents = await db.collection('scheduledEvents').find({
+            scheduledStartTime: { $exists: true, $ne: null }
+        }).toArray();
+
+        for (const event of upcomingEvents) {
+            const startMs = Date.parse(event.scheduledStartTime || '');
+            if (!Number.isFinite(startMs)) continue;
+            const msUntilStart = startMs - nowMs;
+            if (msUntilStart <= 0 || msUntilStart > reminderWindowMs) continue;
+            if (event.assignmentReminderForStartTime === event.scheduledStartTime) continue;
+
+            sendEventAssignmentDms(event, 'reminder', event.updatedBy || event.createdBy || 'SYSTEM');
+            await db.collection('scheduledEvents').updateOne(
+                { _id: event._id },
+                {
+                    $set: {
+                        assignmentReminderForStartTime: event.scheduledStartTime,
+                        assignmentReminderSentAt: new Date().toISOString()
+                    }
+                }
+            );
+        }
+    } catch (error) {
+        console.error('Error processing event assignment reminders:', error.message);
+    }
+}
+
 // Check for scheduled LOA starts and expired LOAs every 30 minutes
 setInterval(processExpiredLoas, 30 * 60 * 1000);
+setInterval(processEventAssignmentReminders, 30 * 60 * 1000);
 
 // VIEW ALL STAFF APPLICATIONS
 app.get('/applications', requireDatabase, async (req, res) => {
@@ -9140,6 +9432,7 @@ function apiRequireAuth(req, res, next) {
 }
 
 app.post('/api/v1/auth/login', requireDatabase, async (req, res) => {
+    const clientIp = req.ip || req.connection?.remoteAddress || 'unknown';
     const discordId = (req.body.discordId || '').toString().trim();
     const password = (req.body.password || '').toString();
 
@@ -9173,6 +9466,30 @@ app.post('/api/v1/auth/login', requireDatabase, async (req, res) => {
             req.session.currentuser = discordId;
             req.session.accountType = currentAccountType;
             req.session.isDeveloper = currentIsDeveloper;
+
+            db.collection('users').findOneAndUpdate(
+                { 'login.discordId': discordId },
+                {
+                    $set: {
+                        lastSeen: new Date(),
+                        'security.lastLoginAt': new Date(),
+                        'security.lastLoginIp': clientIp
+                    }
+                },
+                { projection: { 'security.lastLoginIp': 1 }, returnDocument: 'before' }
+            ).then((previousUser) => {
+                const previousIp = (previousUser?.security?.lastLoginIp || '').toString().trim();
+                if (previousIp && previousIp !== clientIp && clientIp !== 'unknown') {
+                    const ipAlertMessage = [
+                        '🔔 New login detected for your Drowsy Vocals account.',
+                        `Current IP: ${clientIp}`,
+                        `Previous IP: ${previousIp}`,
+                        'If this was not you, change your password immediately and contact management.'
+                    ].join('\n');
+                    sendBotDirectMessage(discordId, ipAlertMessage)
+                        .catch((dmError) => console.error('Failed to send API login security DM:', dmError.message));
+                }
+            }).catch((presenceError) => console.error('API login presence update failed:', presenceError.message));
 
             return res.json({
                 success: true,

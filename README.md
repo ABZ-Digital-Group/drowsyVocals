@@ -16,6 +16,9 @@ The login screen now supports **Forgot your password?** and sends reset links th
 
 Reset tokens are single-use, short-lived, and existing sessions for the account are revoked after a successful reset.
 Gods and Developers can run a one-click DM delivery probe from **Bot > Bot Core Configuration** to verify the reset DM endpoint wiring.
+The same bot DM path is also used for LOA lifecycle reminders (start/end) and promotion/demotion notifications sent to affected staff accounts.
+Staff DMs now also cover account security updates (password changed, suspension/unsuspension, and new login IP), strike added/removed events, strike appeal decisions, and event assignment updates/cancellations plus configurable pre-event reminders.
+Use `LOA_PENDING_REMINDER_DAYS` (default `3`) to control when pending LOA requests trigger a reminder DM, and `EVENT_ASSIGNMENT_REMINDER_HOURS` (default `24`) for pre-event assignment reminders.
 
 ## Role-based page access
 
