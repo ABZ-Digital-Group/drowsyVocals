@@ -59,8 +59,9 @@
                                 <small>Submitted <%= new Date(request.submittedAt).toLocaleString() %></small>
                                 <% if (request.responseNote) { %><p class="privacy-response"><strong>Staff response:</strong> <%= request.responseNote %></p><% } %>
                                 <% if (request.requestType === 'access' && request.status === 'completed' && request.exportReadyAt) { %>
-                                    <a class="privacy-export-link" href="/privacy-requests/<%= request._id %>/export">Download your data copy (JSON)</a>
-                                    <small class="privacy-export-note">Your copy is available here for 12 months. Sign in to this account to download it.</small>
+                                    <a class="privacy-export-link" href="/privacy-requests/<%= request._id %>/export.pdf">Download formatted PDF</a>
+                                    <a class="privacy-export-link" href="/privacy-requests/<%= request._id %>/export">Download JSON</a>
+                                    <small class="privacy-export-note">Both copies are available here for 12 months. Sign in to this account to download them.</small>
                                 <% } else if (request.requestType === 'access' && request.status === 'completed') { %>
                                     <small class="privacy-export-note">A data copy is not available for this request yet. Please contact management to prepare one.</small>
                                 <% } %>

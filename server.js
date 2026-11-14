@@ -18,6 +18,7 @@ const multer = require('multer');
 const { MongoClient, ObjectId } = require('mongodb');
 const { Server } = require('socket.io');
 const { createBotService } = require('./services/botService');
+const { createPrivacyDataExportPdf } = require('./services/privacyDataExportPdf');
 
 const app = express();
 
@@ -6811,6 +6812,48 @@ app.get('/privacy-requests/:requestId/export', requireDatabase, async (req, res)
     } catch (error) {
         console.error('Error downloading privacy data export:', error);
         res.status(500).send('Unable to download the data copy.');
+    }
+});
+
+app.get('/privacy-requests/:requestId/export.pdf', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !req.session.currentuser) return res.redirect('/');
+
+    try {
+        if (!ObjectId.isValid(req.params.requestId)) return res.status(404).send('Data copy not found.');
+        const request = await db.collection('privacyRequests').findOne(
+            {
+                _id: new ObjectId(req.params.requestId),
+                discordId: req.session.currentuser,
+                requestType: 'access'
+            },
+            { projection: { status: 1, exportReadyAt: 1, exportDataJson: 1 } }
+        );
+        if (!request) return res.status(404).send('Data copy not found.');
+        if (request.status !== 'completed' || !request.exportReadyAt) {
+            return res.status(409).send('This data copy has not been prepared yet. Please check your privacy request status.');
+        }
+        if (typeof request.exportDataJson !== 'string' || !request.exportDataJson) {
+            return res.status(410).send('This request has no saved data copy. Please contact management to prepare one.');
+        }
+
+        const exportData = JSON.parse(request.exportDataJson);
+        const pdf = createPrivacyDataExportPdf(exportData);
+        const filename = `drowsy-vocals-data-copy-${new Date().toISOString().slice(0, 10)}.pdf`;
+        res.set('Cache-Control', 'no-store, private');
+        res.type('application/pdf').attachment(filename);
+        pdf.on('error', (error) => {
+            console.error('Error generating privacy data PDF:', error);
+            if (res.headersSent) {
+                res.destroy(error);
+            } else {
+                res.status(500).send('Unable to generate the data copy PDF.');
+            }
+        });
+        pdf.pipe(res);
+        pdf.end();
+    } catch (error) {
+        console.error('Error downloading privacy data PDF:', error);
+        res.status(500).send('Unable to download the data copy PDF.');
     }
 });
 
