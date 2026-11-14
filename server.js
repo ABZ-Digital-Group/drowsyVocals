@@ -5112,87 +5112,6 @@ async function sendBotApiPost(pathname, bodyParams = {}) {
             if (res.ok) {
                 return await res.json();
             }
-
-            function getPasswordResetDmPaths() {
-                const deduped = new Set([passwordResetDmPath, ...PASSWORD_RESET_DM_ROUTE_FALLBACKS].map((route) => normalizeBotApiPath(route, '/actions/direct-message')));
-                return [...deduped];
-            }
-
-            async function sendBotApiPostDetailed(pathname, bodyParams = {}, timeoutMs = 5000) {
-                const botApi = getBotApiConfig();
-                const cleanPath = normalizeBotApiPath(pathname, '/');
-                if (!botApi.baseUrl) {
-                    return { ok: false, status: null, path: cleanPath, error: 'BOT_API_URL is not configured.' };
-                }
-
-                const url = `${botApi.baseUrl}${cleanPath}`;
-                const controller = new AbortController();
-                const timeout = setTimeout(() => controller.abort(), timeoutMs);
-
-                try {
-                    const res = await fetch(url, {
-                        method: 'POST',
-                        headers: { ...botApi.headers, 'Content-Type': 'application/x-www-form-urlencoded' },
-                        body: new URLSearchParams(bodyParams).toString(),
-                        signal: controller.signal
-                    });
-                    const rawPayload = await res.text();
-                    let payload = {};
-                    if (rawPayload) {
-                        try {
-                            payload = JSON.parse(rawPayload);
-                        } catch {
-                            payload = { raw: rawPayload };
-                        }
-                    }
-
-                    const successBlocked = payload && (payload.ok === false || payload.success === false);
-                    if (res.ok && !successBlocked) {
-                        return { ok: true, status: res.status, path: cleanPath, payload };
-                    }
-
-                    return {
-                        ok: false,
-                        status: res.status,
-                        path: cleanPath,
-                        payload,
-                        error: String(payload.error || payload.message || rawPayload || `HTTP ${res.status}`)
-                    };
-                } catch (error) {
-                    if (error.name === 'AbortError') {
-                        return { ok: false, status: null, path: cleanPath, error: `Bot API request timed out after ${timeoutMs}ms.` };
-                    }
-                    return { ok: false, status: null, path: cleanPath, error: `Bot API unreachable: ${error.message}` };
-                } finally {
-                    clearTimeout(timeout);
-                }
-            }
-
-            async function sendBotDirectMessageDetailed(discordId, message) {
-                const cleanDiscordId = (discordId || '').toString().trim();
-                const cleanMessage = (message || '').toString().trim();
-                if (!cleanDiscordId || !cleanMessage) {
-                    return { success: false, attemptedPaths: [], error: 'Discord ID and message are required.' };
-                }
-
-                const dmPaths = getPasswordResetDmPaths();
-                let lastResult = null;
-                for (const dmPath of dmPaths) {
-                    const result = await sendBotApiPostDetailed(dmPath, {
-                        userId: cleanDiscordId,
-                        message: cleanMessage
-                    }, 7000);
-                    if (result.ok) {
-                        return { success: true, path: dmPath, result, attemptedPaths: dmPaths };
-                    }
-
-                    lastResult = result;
-                    const shouldTryFallback = [404, 405].includes(Number(result.status));
-                    if (!shouldTryFallback) break;
-                }
-
-                return { success: false, path: lastResult?.path, result: lastResult, attemptedPaths: dmPaths };
-            }
             console.error(`Bot API returned HTTP ${res.status} on ${pathname}`);
         } finally {
             clearTimeout(timeout);
@@ -5202,6 +5121,87 @@ async function sendBotApiPost(pathname, bodyParams = {}) {
         console.error(`Bot API error on ${pathname}: ${reason}:`, error.message);
     }
     return null;
+}
+
+function getPasswordResetDmPaths() {
+    const deduped = new Set([passwordResetDmPath, ...PASSWORD_RESET_DM_ROUTE_FALLBACKS].map((route) => normalizeBotApiPath(route, '/actions/direct-message')));
+    return [...deduped];
+}
+
+async function sendBotApiPostDetailed(pathname, bodyParams = {}, timeoutMs = 5000) {
+    const botApi = getBotApiConfig();
+    const cleanPath = normalizeBotApiPath(pathname, '/');
+    if (!botApi.baseUrl) {
+        return { ok: false, status: null, path: cleanPath, error: 'BOT_API_URL is not configured.' };
+    }
+
+    const url = `${botApi.baseUrl}${cleanPath}`;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: { ...botApi.headers, 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams(bodyParams).toString(),
+            signal: controller.signal
+        });
+        const rawPayload = await res.text();
+        let payload = {};
+        if (rawPayload) {
+            try {
+                payload = JSON.parse(rawPayload);
+            } catch {
+                payload = { raw: rawPayload };
+            }
+        }
+
+        const successBlocked = payload && (payload.ok === false || payload.success === false);
+        if (res.ok && !successBlocked) {
+            return { ok: true, status: res.status, path: cleanPath, payload };
+        }
+
+        return {
+            ok: false,
+            status: res.status,
+            path: cleanPath,
+            payload,
+            error: String(payload.error || payload.message || rawPayload || `HTTP ${res.status}`)
+        };
+    } catch (error) {
+        if (error.name === 'AbortError') {
+            return { ok: false, status: null, path: cleanPath, error: `Bot API request timed out after ${timeoutMs}ms.` };
+        }
+        return { ok: false, status: null, path: cleanPath, error: `Bot API unreachable: ${error.message}` };
+    } finally {
+        clearTimeout(timeout);
+    }
+}
+
+async function sendBotDirectMessageDetailed(discordId, message) {
+    const cleanDiscordId = (discordId || '').toString().trim();
+    const cleanMessage = (message || '').toString().trim();
+    if (!cleanDiscordId || !cleanMessage) {
+        return { success: false, attemptedPaths: [], error: 'Discord ID and message are required.' };
+    }
+
+    const dmPaths = getPasswordResetDmPaths();
+    let lastResult = null;
+    for (const dmPath of dmPaths) {
+        const result = await sendBotApiPostDetailed(dmPath, {
+            userId: cleanDiscordId,
+            message: cleanMessage
+        }, 7000);
+        if (result.ok) {
+            return { success: true, path: dmPath, result, attemptedPaths: dmPaths };
+        }
+
+        lastResult = result;
+        const shouldTryFallback = [404, 405].includes(Number(result.status));
+        if (!shouldTryFallback) break;
+    }
+
+    return { success: false, path: lastResult?.path, result: lastResult, attemptedPaths: dmPaths };
 }
 
 function sendPdLogsWebhook(title, color, fields) {
