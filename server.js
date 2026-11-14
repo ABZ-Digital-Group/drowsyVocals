@@ -5067,19 +5067,22 @@ app.post('/bot/password-reset/probe', requireDatabase, async (req, res) => {
         if (!probeDelivery.success) {
             const status = probeDelivery.result?.status;
             const routedPath = probeDelivery.path || passwordResetDmPath;
+            const detail = String(probeDelivery.result?.error || probeDelivery.error || 'Unknown bot API error.');
             if (status === 401) {
                 req.flash('error_msg', `DM probe failed: bot API authentication was rejected on ${routedPath}.`);
             } else if ([404, 405].includes(Number(status))) {
                 req.flash('error_msg', `DM probe failed: no DM route accepted the request (last attempted ${routedPath}).`);
+            } else if (detail.toLowerCase().includes('no mutual guild')) {
+                req.flash('error_msg', `DM probe failed for Discord ID ${targetDiscordId}: bot reports no mutual guild on ${routedPath}. Verify this account ID in Settings and check Discord privacy settings for server DMs.`);
             } else {
-                const detail = String(probeDelivery.result?.error || probeDelivery.error || 'Unknown bot API error.').slice(0, 200);
-                req.flash('error_msg', `DM probe failed on ${routedPath}: ${detail}`);
+                req.flash('error_msg', `DM probe failed on ${routedPath}: ${detail.slice(0, 200)}`);
             }
             console.error('DM probe routing diagnostics:', {
                 attemptedPaths: probeDelivery.attemptedPaths,
                 finalPath: routedPath,
                 status,
-                error: probeDelivery.result?.error || probeDelivery.error || null
+                targetDiscordId,
+                error: detail
             });
             return res.redirect('/bot#config');
         }
@@ -5185,13 +5188,18 @@ async function sendBotDirectMessageDetailed(discordId, message) {
         return { success: false, attemptedPaths: [], error: 'Discord ID and message are required.' };
     }
 
+    const dmPayload = {
+        userId: cleanDiscordId,
+        discordId: cleanDiscordId,
+        targetUserId: cleanDiscordId,
+        recipientId: cleanDiscordId,
+        message: cleanMessage,
+        content: cleanMessage
+    };
     const dmPaths = getPasswordResetDmPaths();
     let lastResult = null;
     for (const dmPath of dmPaths) {
-        const result = await sendBotApiPostDetailed(dmPath, {
-            userId: cleanDiscordId,
-            message: cleanMessage
-        }, 7000);
+        const result = await sendBotApiPostDetailed(dmPath, dmPayload, 7000);
         if (result.ok) {
             return { success: true, path: dmPath, result, attemptedPaths: dmPaths };
         }
