@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <%- include('../partials/head') %>
+        <title>Drowsy Privacy &amp; Data Requests</title>
+    </head>
+    <body>
+        <header><%- include('../partials/nav') %></header>
+        <main class="privacy-requests-page">
+            <section class="privacy-requests-heading">
+                <p class="privacy-eyebrow">Your account</p>
+                <h1>Privacy &amp; Data Requests</h1>
+                <p>Submit a request about your personal information. Staff review requests manually and may contact you to verify your identity or clarify what you need.</p>
+                <p><a href="/privacy">Read the privacy notice</a></p>
+            </section>
+
+            <% if (success_msg && success_msg.length) { %><p class="privacy-message is-success"><%= success_msg[0] %></p><% } %>
+            <% if (error_msg && error_msg.length) { %><p class="privacy-message is-error"><%= error_msg[0] %></p><% } %>
+
+            <section class="privacy-card">
+                <h2>Make a request</h2>
+                <form action="/privacy-requests" method="POST" class="privacy-request-form">
+                    <label for="requestType">Request type</label>
+                    <select id="requestType" name="requestType" required>
+                        <option value="">Choose a request type</option>
+                        <% const requestTypeLabels = {
+                            access: 'Access or copy of my information',
+                            rectification: 'Correct inaccurate information',
+                            erasure: 'Delete information',
+                            restriction: 'Restrict use of information',
+                            portability: 'Receive or transfer information',
+                            objection: 'Object to a use of information',
+                            other: 'Other privacy question'
+                        }; %>
+                        <% requestTypes.forEach((type) => { %>
+                            <option value="<%= type %>"><%= requestTypeLabels[type] || type %></option>
+                        <% }); %>
+                    </select>
+                    <label for="requestDetails">Details</label>
+                    <textarea id="requestDetails" name="details" minlength="10" maxlength="2000" rows="6" required aria-describedby="privacy-request-help"></textarea>
+                    <small id="privacy-request-help">Include enough information for us to understand your request, but do not include your password. Maximum 2,000 characters.</small>
+                    <button type="submit">Submit privacy request</button>
+                </form>
+            </section>
+
+            <section class="privacy-card">
+                <h2>Your requests</h2>
+                <% if (!ownRequests.length) { %>
+                    <p>You have not submitted any privacy requests through this account.</p>
+                <% } else { %>
+                    <div class="privacy-request-list">
+                        <% ownRequests.forEach((request) => { %>
+                            <article class="privacy-request-item">
+                                <div class="privacy-request-meta">
+                                    <strong><%= requestTypeLabels[request.requestType] || request.requestType %></strong>
+                                    <span class="privacy-status"><%= request.status.replace('_', ' ') %></span>
+                                </div>
+                                <p><%= request.details %></p>
+                                <small>Submitted <%= new Date(request.submittedAt).toLocaleString() %></small>
+                                <% if (request.responseNote) { %><p class="privacy-response"><strong>Staff response:</strong> <%= request.responseNote %></p><% } %>
+                            </article>
+                        <% }); %>
+                    </div>
+                <% } %>
+            </section>
+
+            <% if (isPrivacyAdmin) { %>
+                <section class="privacy-card privacy-admin-queue">
+                    <h2>Staff review queue</h2>
+                    <% if (!adminRequests.length) { %>
+                        <p>No privacy requests have been submitted.</p>
+                    <% } else { %>
+                        <% adminRequests.forEach((request) => { %>
+                            <article class="privacy-request-item">
+                                <div class="privacy-request-meta">
+                                    <strong><%= requestTypeLabels[request.requestType] || request.requestType %> · <%= request.discordId %></strong>
+                                    <span class="privacy-status"><%= request.status.replace('_', ' ') %></span>
+                                </div>
+                                <p><%= request.details %></p>
+                                <small>Submitted <%= new Date(request.submittedAt).toLocaleString() %></small>
+                                <form action="/privacy-requests/<%= request._id %>/status" method="POST" class="privacy-review-form">
+                                    <label for="status-<%= request._id %>">Status</label>
+                                    <select id="status-<%= request._id %>" name="status" required>
+                                        <option value="received" <%= request.status === 'received' ? 'selected' : '' %>>Received</option>
+                                        <option value="in_review" <%= request.status === 'in_review' ? 'selected' : '' %>>In review</option>
+                                        <option value="completed" <%= request.status === 'completed' ? 'selected' : '' %>>Completed</option>
+                                        <option value="declined" <%= request.status === 'declined' ? 'selected' : '' %>>Declined</option>
+                                    </select>
+                                    <label for="response-<%= request._id %>">Response note (visible to the requester)</label>
+                                    <textarea id="response-<%= request._id %>" name="responseNote" maxlength="2000" rows="3"><%= request.responseNote || '' %></textarea>
+                                    <button type="submit">Save review</button>
+                                </form>
+                            </article>
+                        <% }); %>
+                    <% } %>
+                </section>
+                <section class="privacy-card">
+                    <h2>Recently closed requests</h2>
+                    <% if (!adminHistory.length) { %>
+                        <p>No closed privacy requests are available.</p>
+                    <% } else { %>
+                        <% adminHistory.forEach((request) => { %>
+                            <article class="privacy-request-item">
+                                <div class="privacy-request-meta">
+                                    <strong><%= requestTypeLabels[request.requestType] || request.requestType %> · <%= request.discordId %></strong>
+                                    <span class="privacy-status"><%= request.status %></span>
+                                </div>
+                                <p><%= request.details %></p>
+                                <small>Closed <%= new Date(request.closedAt).toLocaleString() %></small>
+                                <% if (request.responseNote) { %><p class="privacy-response"><strong>Staff response:</strong> <%= request.responseNote %></p><% } %>
+                            </article>
+                        <% }); %>
+                    <% } %>
+                </section>
+            <% } %>
+        </main>
+        <div class="footer"><p>&copy; 2026 Drowsy Vocals | All rights reserved.</p></div>
+    </body>
+</html>

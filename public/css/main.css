@@ -121,6 +121,133 @@ main{
     margin: 20px;
     flex: 1 0 auto;
 }
+.privacy-page, .privacy-requests-page {
+    width: min(100% - 32px, 1000px);
+    margin: 32px auto;
+}
+.privacy-heading, .privacy-requests-heading {
+    margin-bottom: 24px;
+    padding: clamp(20px, 4vw, 36px);
+    border-radius: 18px;
+    color: var(--cloud-white);
+    background: var(--night-indigo);
+}
+.privacy-heading h1, .privacy-requests-heading h1 {
+    margin: 0 0 12px;
+    font-size: clamp(2rem, 5vw, 3rem);
+}
+.privacy-heading p, .privacy-requests-heading p {
+    max-width: 760px;
+}
+.privacy-heading a, .privacy-requests-heading a {
+    color: var(--moonlight-yellow);
+}
+.privacy-eyebrow {
+    margin: 0 0 8px;
+    color: var(--dreamy-periwinkle);
+    font-size: .85rem;
+    font-weight: 700;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+}
+.privacy-document, .privacy-card {
+    margin-bottom: 20px;
+    padding: clamp(18px, 3vw, 28px);
+    border: 1px solid var(--cloud-lilac);
+    border-radius: 14px;
+    background: var(--warm-white);
+}
+.privacy-document section + section {
+    margin-top: 24px;
+    padding-top: 18px;
+    border-top: 1px solid var(--cloud-lilac);
+}
+.privacy-document h2, .privacy-card h2 {
+    margin-top: 0;
+}
+.privacy-document li {
+    margin: 8px 0;
+}
+.privacy-request-form, .privacy-review-form {
+    display: grid;
+    gap: 10px;
+}
+.privacy-request-form textarea, .privacy-review-form textarea,
+.privacy-request-form select, .privacy-review-form select {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px;
+    border: 1px solid var(--dusty-blue-purple);
+    border-radius: 8px;
+    color: var(--night-indigo);
+    background: white;
+    font: inherit;
+}
+.privacy-request-form button, .privacy-review-form button {
+    justify-self: start;
+    padding: 10px 16px;
+    border: 0;
+    border-radius: 8px;
+    color: var(--cloud-white);
+    background: var(--night-indigo);
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+}
+.privacy-request-list {
+    display: grid;
+    gap: 12px;
+}
+.privacy-request-item {
+    padding: 16px;
+    border: 1px solid var(--cloud-lilac);
+    border-radius: 10px;
+    background: white;
+    overflow-wrap: anywhere;
+}
+.privacy-request-meta {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.privacy-status {
+    color: var(--dusty-blue-purple);
+    text-transform: capitalize;
+}
+.privacy-response {
+    padding: 12px;
+    border-left: 3px solid var(--dreamy-periwinkle);
+    background: var(--cloud-white);
+}
+.privacy-review-form {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--cloud-lilac);
+}
+.privacy-message {
+    padding: 12px 16px;
+    border-radius: 8px;
+}
+.privacy-message.is-success {
+    color: #155b38;
+    background: #e2f5e9;
+}
+.privacy-message.is-error {
+    color: #7a2634;
+    background: #fce8eb;
+}
+.terms-acceptance-label {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+.terms-acceptance-label input {
+    width: 18px;
+    height: 18px;
+    margin: 2px 0 0;
+    accent-color: var(--night-indigo);
+}
 .login-page {
     margin: 0;
     width: 100%;

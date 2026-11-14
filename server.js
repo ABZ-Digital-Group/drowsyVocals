@@ -48,6 +48,28 @@ const voiceActivityApiSecret = process.env.VOICE_ACTIVITY_API_SECRET
     || process.env.BOT_API_TOKEN;
 const HOUSE_POINT_VOICE_RATE = 2;
 const HOUSE_POINT_DOUBLING_THRESHOLD = 10;
+const MINIMUM_APPLICATION_AGE = 13;
+const PRIVACY_REQUEST_TYPES = ['access', 'rectification', 'erasure', 'restriction', 'portability', 'objection', 'other'];
+const PRIVACY_REQUEST_STATUSES = ['received', 'in_review', 'completed', 'declined'];
+const TERMS_VERSION = '2026-11-14';
+function shiftUtcMonths(date, months) {
+    const shifted = new Date(Date.UTC(
+        date.getUTCFullYear(),
+        date.getUTCMonth() + months,
+        1,
+        date.getUTCHours(),
+        date.getUTCMinutes(),
+        date.getUTCSeconds(),
+        date.getUTCMilliseconds()
+    ));
+    const lastDayOfShiftedMonth = new Date(Date.UTC(
+        shifted.getUTCFullYear(),
+        shifted.getUTCMonth() + 1,
+        0
+    )).getUTCDate();
+    shifted.setUTCDate(Math.min(date.getUTCDate(), lastDayOfShiftedMonth));
+    return shifted;
+}
 const PASSWORD_RESET_TOKEN_TTL_MINUTES = (() => {
     const parsed = Number(process.env.PASSWORD_RESET_TOKEN_TTL_MINUTES);
     if (!Number.isFinite(parsed)) return 20;
@@ -331,7 +353,7 @@ app.use(async (req, res, next) => {
 // MAINTENANCE MODE MIDDLEWARE
 app.use(async (req, res, next) => {
     // Always allow static files, health checks, login/auth pages, logout, and external webhook ingestion
-    const bypassedPaths = ['/health', '/logout', '/login', '/index', '/forgot-password', '/reset-password', '/event-feedback', '/staff-application', '/api/applications/webhook', '/api/internal/voice-sessions', '/developer-preview/stop'];
+    const bypassedPaths = ['/health', '/logout', '/login', '/index', '/terms', '/terms/accept', '/api/v1/auth/accept-terms', '/forgot-password', '/reset-password', '/event-feedback', '/staff-application', '/api/applications/webhook', '/api/internal/voice-sessions', '/developer-preview/stop'];
     if (bypassedPaths.includes(req.path) || req.path.startsWith('/css') || req.path.startsWith('/scripts') || req.path.startsWith('/assets') || req.path.startsWith('/uploads')) {
         return next();
     }
@@ -380,12 +402,14 @@ app.use((req, res, next) => {
 
 // SUSPENDED ACCOUNTS CANNOT CONTINUE USING AN ACTIVE SESSION.
 app.use(async (req, res, next) => {
-    if (!isDatabaseReady || !db || !req.session.loggedin || !req.session.currentuser || req.path === '/logout') return next();
+    const termsBypassedPaths = ['/logout', '/terms', '/terms/accept', '/api/v1/auth/login', '/api/v1/auth/logout', '/api/v1/auth/accept-terms'];
+    const termsBypassedStatic = ['/css', '/scripts', '/assets', '/uploads'];
+    if (!isDatabaseReady || !db || !req.session.loggedin || !req.session.currentuser) return next();
 
     try {
         const user = await db.collection('users').findOne(
             { 'login.discordId': req.session.currentuser },
-            { projection: { suspended: 1 } }
+            { projection: { suspended: 1, 'termsAcceptance.version': 1 } }
         );
 
         if (user?.suspended) {
@@ -396,8 +420,29 @@ app.use(async (req, res, next) => {
             req.flash('error_msg', 'Your account has been suspended. Please contact management.');
             return res.redirect('/');
         }
+
+        const termsAccepted = user?.termsAcceptance?.version === TERMS_VERSION;
+        req.session.termsAcceptedVersion = termsAccepted ? TERMS_VERSION : null;
+        res.locals.termsAccepted = termsAccepted;
+        if (
+            !termsAccepted
+            && !termsBypassedPaths.includes(req.path)
+            && !termsBypassedStatic.some((prefix) => req.path.startsWith(prefix))
+        ) {
+            if (req.path.startsWith('/api/')) {
+                return res.status(403).json({
+                    error: 'You must accept the current Terms of Service before using this account.',
+                    termsAcceptanceRequired: true,
+                    termsUrl: '/terms',
+                    acceptTermsUrl: '/api/v1/auth/accept-terms'
+                });
+            }
+            req.flash('error_msg', 'Please review and accept the Terms of Service before continuing.');
+            return res.redirect('/terms');
+        }
     } catch (error) {
-        console.error('Suspension status check failed:', error.message);
+        console.error('Account access status check failed:', error);
+        return res.status(503).send('We could not verify your account requirements. Please try again shortly.');
     }
 
     next();
@@ -504,6 +549,7 @@ const PAGE_PERMISSION_OPTIONS = [
     { key: 'footprint', path: '/footprint', label: 'Digital Footprint' },
     { key: 'discord-channels', path: '/discord-channels', label: 'Discord Channels' },
     { key: 'bot', path: '/bot', apiPath: '/api/v1/bot', label: 'Discord Bot' },
+    { key: 'privacy-requests', path: '/privacy-requests', label: 'Privacy Requests' },
     { key: 'notifications', path: '/notifications', label: 'Notifications' },
     { key: 'account', path: '/account', apiPath: '/api/v1/account', label: 'Account' },
     { key: 'settings', path: '/settings', apiPath: '/api/v1/settings', label: 'Settings' }
@@ -538,7 +584,7 @@ app.use(async (req, res, next) => {
     if (!req.session.loggedin || !isDatabaseReady || !db) return next();
 
     const pageKey = getPagePermissionKey(req.path);
-    if (!pageKey || hasGodAccess(req)) return next();
+    if (!pageKey || pageKey === 'privacy-requests' || hasGodAccess(req)) return next();
 
     try {
         const settings = await getSettings();
@@ -554,6 +600,16 @@ app.use(async (req, res, next) => {
     }
 });
 const CHANGELOG_ENTRIES = [
+    {
+        date: '2026-11-14',
+        title: 'Terms of Service added',
+        changes: ['Added a public Terms of Service page and recorded active-account acceptance before portal and API access.']
+    },
+    {
+        date: '2026-11-14',
+        title: 'Privacy controls and retention baseline added',
+        changes: ['Added a public privacy notice, in-app privacy request tracking, a 13+ application age gate, and scheduled cleanup for defined application, activity, security, and closed-account records.']
+    },
     {
         date: '2026-11-14',
         title: 'DM probe diagnostics improved',
@@ -2330,6 +2386,48 @@ app.get('/', (req, res) => {
     res.render('pages/splash');
 });
 
+app.get('/privacy', (req, res) => {
+    res.render('pages/privacy');
+});
+
+app.get('/terms', (req, res) => {
+    res.render('pages/terms', { termsVersion: TERMS_VERSION });
+});
+
+app.post('/terms/accept', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !req.session.currentuser) return res.redirect('/');
+    if (req.body.acceptTerms !== 'yes') {
+        req.flash('error_msg', 'You must confirm acceptance to continue using your account.');
+        return res.redirect('/terms');
+    }
+
+    try {
+        const result = await db.collection('users').updateOne(
+            { 'login.discordId': req.session.currentuser },
+            {
+                $set: {
+                    termsAcceptance: {
+                        version: TERMS_VERSION,
+                        acceptedAt: new Date().toISOString()
+                    }
+                }
+            }
+        );
+        if (!result.matchedCount) {
+            req.flash('error_msg', 'We could not find your account to record acceptance. Please sign in again.');
+            return res.redirect('/logout');
+        }
+        req.session.termsAcceptedVersion = TERMS_VERSION;
+        await writeAudit(req, 'Accepted Terms of Service', `Accepted Terms of Service version ${TERMS_VERSION}`);
+        req.flash('success_msg', 'Terms accepted. You can now continue using your account.');
+        res.redirect('/dashboard');
+    } catch (error) {
+        console.error('Terms acceptance could not be recorded:', error);
+        req.flash('error_msg', 'We could not record your acceptance. Please try again.');
+        res.redirect('/terms');
+    }
+});
+
 // LOGIN PAGE DOES NOT REQUIRE DATABASE ACCESS
 app.get('/index', (req, res) => {
     if (req.query.splash !== '1') return res.redirect('/');
@@ -2377,10 +2475,12 @@ function connectDB() {
                 nextDb.collection('voiceActivitySessions').createIndex({ userId: 1, startedAt: -1 }),
                 nextDb.collection('voiceActivitySessions').createIndex({ channelId: 1, startedAt: -1 }),
                 nextDb.collection('passwordResetTokens').createIndex({ discordId: 1 }, { unique: true }),
-                nextDb.collection('passwordResetTokens').createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 })
+                nextDb.collection('passwordResetTokens').createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 }),
+                nextDb.collection('privacyRequests').createIndex({ expireAt: 1 }, { expireAfterSeconds: 0 })
             ]);
             isDatabaseReady = true;
             startLiveUpdates();
+            processPrivacyRetention();
             console.log('Connected successfully to MongoDB');
         } catch (error) {
             isDatabaseReady = false;
@@ -5789,6 +5889,7 @@ app.post('/login', requireDatabase, async (req, res) => {
             req.session.currentuser = discordId;
             req.session.accountType = currentAccountType;
             req.session.isDeveloper = currentIsDeveloper;
+            req.session.termsAcceptedVersion = userDoc.termsAcceptance?.version === TERMS_VERSION ? TERMS_VERSION : null;
 
             // Update lastSeen immediately on login and notify on new login IPs.
             db.collection('users').findOneAndUpdate(
@@ -5820,7 +5921,7 @@ app.post('/login', requireDatabase, async (req, res) => {
                     console.error('Session save error:', saveError);
                     return res.status(500).send('Unable to create login session.');
                 }
-                res.redirect('/dashboard');
+                res.redirect(userDoc.termsAcceptance?.version === TERMS_VERSION ? '/dashboard' : '/terms');
             });
         });
     } catch (error) {
@@ -6251,6 +6352,122 @@ app.get('/dashboard', requireDatabase, async (req, res) => {
     }
 });
 
+app.get('/privacy-requests', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin) return res.redirect('/');
+
+    try {
+        const [ownRequests, adminRequests, adminHistory] = await Promise.all([
+            db.collection('privacyRequests')
+                .find({ discordId: req.session.currentuser })
+                .sort({ submittedAt: -1 })
+                .limit(20)
+                .toArray(),
+            hasGodAccess(req)
+                ? db.collection('privacyRequests')
+                    .find({ status: { $in: ['received', 'in_review'] } })
+                    .sort({ submittedAt: 1 })
+                    .limit(100)
+                    .toArray()
+                : Promise.resolve([]),
+            hasGodAccess(req)
+                ? db.collection('privacyRequests')
+                    .find({ status: { $in: ['completed', 'declined'] } })
+                    .sort({ closedAt: -1 })
+                    .limit(100)
+                    .toArray()
+                : Promise.resolve([])
+        ]);
+
+        res.render('pages/privacy-requests', {
+            page: 'privacy-requests',
+            ownRequests,
+            adminRequests,
+            adminHistory,
+            isPrivacyAdmin: hasGodAccess(req),
+            requestTypes: PRIVACY_REQUEST_TYPES
+        });
+    } catch (error) {
+        console.error('Error loading privacy requests:', error);
+        res.status(500).send('Unable to load privacy requests.');
+    }
+});
+
+app.post('/privacy-requests', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin) return res.redirect('/');
+
+    const requestType = (req.body.requestType || '').toString().trim();
+    const details = (req.body.details || '').toString().trim();
+    if (!PRIVACY_REQUEST_TYPES.includes(requestType) || details.length < 10 || details.length > 2000) {
+        req.flash('error_msg', 'Choose a request type and provide details between 10 and 2,000 characters.');
+        return res.redirect('/privacy-requests');
+    }
+
+    try {
+        const submittedAt = new Date().toISOString();
+        await db.collection('privacyRequests').insertOne({
+            discordId: req.session.currentuser,
+            requestType,
+            details,
+            status: 'received',
+            submittedAt,
+            updatedAt: submittedAt
+        });
+        req.flash('success_msg', 'Your privacy request has been submitted for review.');
+        res.redirect('/privacy-requests');
+    } catch (error) {
+        console.error('Error submitting privacy request:', error);
+        req.flash('error_msg', 'Unable to submit your privacy request. Please contact support.');
+        res.redirect('/privacy-requests');
+    }
+});
+
+app.post('/privacy-requests/:requestId/status', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !hasGodAccess(req)) {
+        return res.status(403).send('You do not have permission to manage privacy requests.');
+    }
+
+    const { requestId } = req.params;
+    const status = (req.body.status || '').toString().trim();
+    const responseNote = (req.body.responseNote || '').toString().trim();
+    if (!ObjectId.isValid(requestId) || !PRIVACY_REQUEST_STATUSES.includes(status) || responseNote.length > 2000) {
+        req.flash('error_msg', 'The privacy request update is invalid.');
+        return res.redirect('/privacy-requests');
+    }
+
+    try {
+        const request = await db.collection('privacyRequests').findOne({ _id: new ObjectId(requestId) });
+        if (!request) {
+            req.flash('error_msg', 'Privacy request not found.');
+            return res.redirect('/privacy-requests');
+        }
+
+        const updatedAt = new Date();
+        const update = {
+            $set: {
+                status,
+                responseNote,
+                reviewedBy: req.session.currentuser,
+                updatedAt: updatedAt.toISOString()
+            }
+        };
+        if (['completed', 'declined'].includes(status)) {
+            update.$set.expireAt = shiftUtcMonths(updatedAt, 12);
+            update.$set.closedAt = updatedAt.toISOString();
+        } else {
+            update.$unset = { expireAt: '', closedAt: '' };
+        }
+
+        await db.collection('privacyRequests').updateOne({ _id: request._id }, update);
+        await writeAudit(req, 'Updated privacy rights request', `${request.requestType} request status set to ${status}`);
+        req.flash('success_msg', 'Privacy request updated.');
+        res.redirect('/privacy-requests');
+    } catch (error) {
+        console.error('Error updating privacy request:', error);
+        req.flash('error_msg', 'Unable to update the privacy request.');
+        res.redirect('/privacy-requests');
+    }
+});
+
 //ACCOUNT
 app.get('/account', requireDatabase, async (req, res) => {
     if (!req.session.loggedin) return res.redirect('/');
@@ -6516,7 +6733,9 @@ app.post('/staff-application', requireDatabase, async (req, res) => {
     const answers = Object.fromEntries(Object.keys(req.body || {}).map((field) => [field, (req.body[field] || '').toString().trim()]));
     const missingField = requiredFields.some((field) => !answers[field]);
     const oversizedAnswer = Object.values(answers).some((answer) => answer.length > 5000);
-    const validAge = /^\d+$/.test(answers.age) && Number(answers.age) >= 13 && Number(answers.age) <= 120;
+    const validAge = /^\d+$/.test(answers.age)
+        && Number(answers.age) >= MINIMUM_APPLICATION_AGE
+        && Number(answers.age) <= 120;
     const validVcAvailability = ['Yes', 'No', 'Sometimes'].includes(answers.vcAvailability);
     const validDrink = ['Coke', 'Pepsi'].includes(answers.drink);
 
@@ -8504,9 +8723,92 @@ async function processEventAssignmentReminders() {
     }
 }
 
+async function processPrivacyRetention() {
+    if (!isDatabaseReady || !db) return;
+
+    try {
+        const now = new Date();
+        const sixMonthsAgo = shiftUtcMonths(now, -6).toISOString().slice(0, 19);
+        const twelveMonthsAgo = shiftUtcMonths(now, -12).toISOString().slice(0, 19);
+        const twelveMonthsAgoDate = twelveMonthsAgo.slice(0, 10);
+        const ninetyDaysAgo = new Date(Date.now() - (90 * 24 * 60 * 60 * 1000));
+
+        const oldResolvedCheckIns = await db.collection('checkIns').find(
+            { createdAt: { $lt: twelveMonthsAgo }, followUpComplete: true },
+            { projection: { attachments: 1 } }
+        ).toArray();
+        const oldCheckInAttachmentIds = oldResolvedCheckIns.flatMap((checkIn) => (
+            (checkIn.attachments || []).map((attachment) => attachment.filename).filter(Boolean)
+        ));
+        const oldCheckInAttachmentFiles = oldCheckInAttachmentIds.filter((filename) => (
+            typeof filename === 'string'
+            && filename.startsWith('check-in-')
+            && path.basename(filename) === filename
+        ));
+        await Promise.all(oldCheckInAttachmentFiles.map(async (filename) => {
+            try {
+                await fs.promises.unlink(path.join(CHECK_IN_UPLOAD_DIR, filename));
+            } catch (error) {
+                if (error.code !== 'ENOENT') throw error;
+            }
+        }));
+        if (oldCheckInAttachmentIds.length) {
+            await db.collection('checkInAttachments').deleteMany({ _id: { $in: oldCheckInAttachmentIds } });
+        }
+
+        const results = await Promise.all([
+            db.collection('applications').deleteMany({
+                status: 'Denied',
+                submittedAt: { $lt: sixMonthsAgo }
+            }),
+            db.collection('voiceActivitySessions').deleteMany({ startedAt: { $lt: twelveMonthsAgo } }),
+            db.collection('users').updateMany(
+                {},
+                { $pull: { attendance: { week: { $lt: twelveMonthsAgoDate } } } }
+            ),
+            db.collection('users').updateMany(
+                {
+                    'security.lastLoginAt': { $lt: ninetyDaysAgo },
+                    'security.lastLoginIp': { $exists: true }
+                },
+                { $unset: { 'security.lastLoginIp': '' } }
+            ),
+            db.collection('deletedUserHistory').deleteMany({ deletedAt: { $lt: twelveMonthsAgo } }),
+            db.collection('auditLog').deleteMany({ createdAt: { $lt: twelveMonthsAgo } }),
+            db.collection('housePointsLog').deleteMany({ createdAt: { $lt: twelveMonthsAgo } }),
+            db.collection('notifications').deleteMany({ createdAt: { $lt: twelveMonthsAgo } }),
+            db.collection('strikeAppeals').deleteMany({
+                status: { $in: ['Approved', 'Denied'] },
+                $or: [
+                    { reviewedAt: { $lt: twelveMonthsAgo } },
+                    { reviewedAt: { $exists: false }, submittedAt: { $lt: twelveMonthsAgo } }
+                ]
+            }),
+            db.collection('checkIns').deleteMany({
+                createdAt: { $lt: twelveMonthsAgo },
+                followUpComplete: true
+            }),
+            db.collection('feedback').deleteMany({
+                status: 'Resolved',
+                submittedAt: { $lt: twelveMonthsAgo }
+            }),
+            db.collection('eventFeedback').deleteMany({ submittedAt: { $lt: twelveMonthsAgo } })
+        ]);
+        const removedRecords = results.reduce((total, result) => (
+            total + Number(result.deletedCount || result.modifiedCount || 0)
+        ), 0);
+        if (removedRecords) {
+            console.info('Privacy retention cleanup removed expired records:', removedRecords);
+        }
+    } catch (error) {
+        console.error('Privacy retention cleanup failed:', error);
+    }
+}
+
 // Check for scheduled LOA starts and expired LOAs every 30 minutes
 setInterval(processExpiredLoas, 30 * 60 * 1000);
 setInterval(processEventAssignmentReminders, 30 * 60 * 1000);
+setInterval(processPrivacyRetention, 24 * 60 * 60 * 1000);
 
 // VIEW ALL STAFF APPLICATIONS
 app.get('/applications', requireDatabase, async (req, res) => {
@@ -8605,6 +8907,20 @@ app.post('/api/applications/webhook', requireDatabase, async (req, res) => {
             }
             return '';
         };
+
+        const ageEntry = Object.entries(answers).find(([question]) => {
+            const normalizedQuestion = question.toLowerCase().replace(/[^a-z0-9]/g, '');
+            return normalizedQuestion === 'age'
+                || normalizedQuestion.includes('howoldareyou')
+                || normalizedQuestion.includes('yourage')
+                || normalizedQuestion.includes('applicantage');
+        });
+        const rawAge = payload.age ?? (ageEntry ? ageEntry[1] : '');
+        const submittedAge = (Array.isArray(rawAge) ? rawAge[0] : rawAge || '').toString().trim();
+        const applicantAge = Number(submittedAge);
+        if (!/^\d{1,3}$/.test(submittedAge) || applicantAge < MINIMUM_APPLICATION_AGE || applicantAge > 120) {
+            return res.status(400).json({ error: `Applicants must confirm they are at least ${MINIMUM_APPLICATION_AGE}.` });
+        }
 
         const detectedName = findValueByKeywords(['whatisyourname', 'yourname', 'realname', 'displayname', 'name', 'applicant', 'nickname'], answers);
         const detectedDiscord = findValueByKeywords(['discorduser', 'discordtag', 'discordid', 'discordname', 'discordhandle', 'discord'], answers);
@@ -9709,6 +10025,38 @@ function apiRequireAuth(req, res, next) {
     next();
 }
 
+app.post('/api/v1/auth/accept-terms', apiRequireAuth, async (req, res) => {
+    const accepted = req.body.accepted === true
+        || req.body.accepted === 'true'
+        || req.body.accepted === '1';
+    if (!accepted) {
+        return res.status(400).json({ success: false, error: 'Explicit acceptance is required.' });
+    }
+
+    try {
+        const result = await db.collection('users').updateOne(
+            { 'login.discordId': req.session.currentuser },
+            {
+                $set: {
+                    termsAcceptance: {
+                        version: TERMS_VERSION,
+                        acceptedAt: new Date().toISOString()
+                    }
+                }
+            }
+        );
+        if (!result.matchedCount) {
+            return res.status(404).json({ success: false, error: 'User account not found.' });
+        }
+
+        req.session.termsAcceptedVersion = TERMS_VERSION;
+        return res.json({ success: true, termsVersion: TERMS_VERSION });
+    } catch (error) {
+        console.error('API Terms acceptance could not be recorded:', error);
+        return res.status(500).json({ success: false, error: 'Unable to record Terms acceptance.' });
+    }
+});
+
 app.post('/api/v1/auth/login', requireDatabase, async (req, res) => {
     const clientIp = req.ip || req.connection?.remoteAddress || 'unknown';
     const discordId = (req.body.discordId || '').toString().trim();
@@ -9744,6 +10092,7 @@ app.post('/api/v1/auth/login', requireDatabase, async (req, res) => {
             req.session.currentuser = discordId;
             req.session.accountType = currentAccountType;
             req.session.isDeveloper = currentIsDeveloper;
+            req.session.termsAcceptedVersion = userDoc.termsAcceptance?.version === TERMS_VERSION ? TERMS_VERSION : null;
 
             db.collection('users').findOneAndUpdate(
                 { 'login.discordId': discordId },
@@ -9771,6 +10120,9 @@ app.post('/api/v1/auth/login', requireDatabase, async (req, res) => {
 
             return res.json({
                 success: true,
+                termsAcceptanceRequired: userDoc.termsAcceptance?.version !== TERMS_VERSION,
+                termsUrl: '/terms',
+                acceptTermsUrl: '/api/v1/auth/accept-terms',
                 user: {
                     discordId: userDoc.login.discordId,
                     name: userDoc.displayName || userDoc.discordUser || userDoc.name || userDoc.login.discordId,

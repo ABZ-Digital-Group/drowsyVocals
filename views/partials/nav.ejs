@@ -63,7 +63,7 @@
                 && (canViewPage('applications') || canViewPage('appeals') || canViewPage('check-ins')
                     || canViewPage('loa-history') || canViewPage('roster-planner') || canViewPage('reports')
                     || canViewPage('staff-activity') || canViewPage('analytics') || canViewPage('audit-log') || canViewPage('changelog')
-                    || canViewPage('footprint') || canViewPage('bot')))
+                    || canViewPage('footprint') || canViewPage('bot') || canViewPage('privacy-requests')))
             || (canViewPage('discord-channels') && currentuser === '404371787606917140' && !developerPreviewMode)
         ) { %>
         <li class="nav-guidelines-menu">
@@ -85,6 +85,7 @@
                 <% if (canViewPage('footprint') && (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender' || userIsDeveloper)) { %><a href="/footprint">Digital Footprint</a><% } %>
                 <% if (canViewPage('discord-channels') && currentuser === '404371787606917140' && !developerPreviewMode) { %><a href="/discord-channels">Discord Channels</a><% } %>
                 <% if (canViewPage('bot') && (userType === 'Mr. Sandman' || userType === 'Realm God' || userIsDeveloper)) { %><a href="/bot">Discord Bot</a><% } %>
+                <% if (canViewPage('privacy-requests') && (userType === 'Mr. Sandman' || userType === 'Realm God' || userIsDeveloper)) { %><a href="/privacy-requests">Privacy Requests</a><% } %>
             </div>
         </li>
         <% } %>
@@ -114,6 +115,9 @@
             </button>
             <div class="nav-account-dropdown" id="accountMenu">
                 <a href="/account">Account</a>
+                <a href="/privacy-requests">Privacy & Data Requests</a>
+                <a href="/terms">Terms of Service</a>
+                <a href="/privacy">Privacy Notice</a>
                 <button type="button" class="nav-account-action theme-toggle" data-theme-toggle aria-pressed="false">
                     <span class="material-symbols-outlined" aria-hidden="true">dark_mode</span>
                     <span data-theme-label>Dark mode</span>

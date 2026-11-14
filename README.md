@@ -34,3 +34,23 @@ Deleted staff accounts retain their strike history in the deleted-user record. I
 ## Seasonal themes
 
 Gods and Developers can enable the manual Halloween or Christmas theme from **Settings > System & Security**. Only one seasonal theme is active at a time; enabling one disables the other. Visitors can disable the animated effects locally with the seasonal-effects control.
+
+## Privacy baseline
+
+The public privacy notice is available at `/privacy`. Signed-in users can submit access, correction, erasure, restriction, portability, objection, or other privacy requests at `/privacy-requests`; Gods and Developers can review requests and record a response there. Requests are reviewed manually and are not automatically fulfilled by submission.
+
+Application intake enforces a minimum age of 13, including submissions received through the external application webhook. Scheduled database cleanup runs at connection and daily for the record categories and periods described in the privacy notice. Completed check-in attachments are removed from both MongoDB and the local upload directory when their check-in records expire.
+
+Before relying on this as a compliance program, have qualified privacy counsel review applicable legal bases, children’s privacy requirements, international data transfers, and retention. In particular:
+
+- Configure and verify the Hostinger backup rotation; application cleanup does not erase backup copies. The current operational target is 90 days.
+- Confirm transfer safeguards and provider terms for Discord and Google integrations.
+- Review retention for accepted applications and other record types not covered by the automated cleanup.
+
+This technical baseline is not a legal compliance certification.
+
+## Terms of Service
+
+The public Terms of Service is available at `/terms`. Users must explicitly accept the current version after signing in before using the portal. The native API login response indicates whether acceptance is needed, and authenticated API clients can record acceptance through `/api/v1/auth/accept-terms` with `{ "accepted": true }`. Acceptance is recorded on the user's account with the terms version and timestamp; update `TERMS_VERSION` in `server.js` whenever revised terms require users to accept again.
+
+The terms text is an operational draft, not legal advice or a guarantee of enforceability. Have qualified counsel review it for the operator's legal identity, applicable jurisdictions, consumer rights, moderation procedures, and any liability or dispute provisions before relying on it.

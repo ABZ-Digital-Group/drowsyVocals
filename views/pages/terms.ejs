@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <%- include('../partials/head') %>
+        <title>Drowsy Vocals Terms of Service</title>
+    </head>
+    <body>
+        <main class="privacy-page">
+            <header class="privacy-heading">
+                <p class="privacy-eyebrow">Drowsy Vocals</p>
+                <h1>Terms of Service</h1>
+                <p>Effective date: November 14, 2026 · Version <%= termsVersion %></p>
+                <p>These terms set the basic rules for using the Drowsy Vocals management portal and related community services.</p>
+                <p><a href="/">Return to Drowsy Vocals</a> · <a href="/privacy">Privacy notice</a></p>
+            </header>
+
+            <% if (success_msg && success_msg.length) { %><p class="privacy-message is-success"><%= success_msg[0] %></p><% } %>
+            <% if (error_msg && error_msg.length) { %><p class="privacy-message is-error"><%= error_msg[0] %></p><% } %>
+
+            <article class="privacy-document">
+                <section>
+                    <h2>1. About these terms</h2>
+                    <p>Drowsy Vocals is a community service operated from the United Kingdom. By signing in or using an account, you agree to follow these terms and the applicable community rules. If you do not agree, do not use the management portal or related account features. Mandatory rights that apply where you live are not waived by these terms.</p>
+                </section>
+
+                <section>
+                    <h2>2. Eligibility and accounts</h2>
+                    <p>You must be at least 13 years old to submit an application or use application routes, including external application forms. You must also meet any minimum age requirements imposed by Discord or other services you use to access the community. If you are under 18, involve a parent or guardian where required by the laws that apply to you.</p>
+                    <p>Keep your account credentials private, provide accurate information when asked, and tell management promptly if you believe someone else has accessed your account. You are responsible for activity carried out through your account, except where applicable law provides otherwise.</p>
+                </section>
+
+                <section>
+                    <h2>3. Acceptable use</h2>
+                    <p>You agree not to use the service to break the law, threaten or harass others, share content you are not allowed to share, impersonate another person, bypass access controls, interfere with the service or its security, or disrupt the community. Follow the published staff and community guidelines when they apply to you.</p>
+                </section>
+
+                <section>
+                    <h2>4. Content you submit</h2>
+                    <p>You keep any rights you have in content you submit. You allow Drowsy Vocals to store, use, and display that content as needed to operate the service, review applications or reports, moderate the community, and provide support. Do not submit sensitive information unless it is genuinely needed for the matter you are raising.</p>
+                </section>
+
+                <section>
+                    <h2>5. Moderation and access</h2>
+                    <p>Management may review activity and take reasonable action to protect members and operate the community, including removing content, changing account permissions, or suspending or closing an account when these terms or community rules are breached. We may also restrict access for security, maintenance, or operational reasons. Where practical, you can contact management to ask about a decision.</p>
+                </section>
+
+                <section>
+                    <h2>6. Third-party services</h2>
+                    <p>The service integrates with third parties, including Discord and Google. Their services are governed by their own terms and privacy practices. Drowsy Vocals does not control third-party services, and you are responsible for following the terms that apply to your use of them.</p>
+                </section>
+
+                <section>
+                    <h2>7. Privacy</h2>
+                    <p>Our <a href="/privacy">Privacy Notice</a> describes information handled by Drowsy Vocals and how to submit a privacy request. These terms do not replace the privacy notice or create consent to processing where consent is required by law.</p>
+                </section>
+
+                <section>
+                    <h2>8. Service availability and liability</h2>
+                    <p>We work to keep the service useful and available, but cannot promise uninterrupted access or that every feature will always be error-free. To the extent permitted by law, the service is provided without a guarantee that it will meet every individual need. Nothing in these terms excludes or limits liability or consumer rights that cannot legally be excluded or limited.</p>
+                </section>
+
+                <section>
+                    <h2>9. Changes and ending access</h2>
+                    <p>We may update these terms as the service changes. If an update requires renewed acceptance, we will present the updated terms before you continue using your account. You may stop using the service at any time. Account access may be suspended or ended as described above, subject to any rights that apply where you live.</p>
+                </section>
+
+                <section>
+                    <h2>10. Contact</h2>
+                    <p>For questions about these terms, contact <a href="mailto:support@drowsyvocals.com">support@drowsyvocals.com</a>.</p>
+                </section>
+            </article>
+
+            <% if (loggedin && !(typeof termsAccepted !== 'undefined' && termsAccepted)) { %>
+                <section class="privacy-card terms-acceptance-card">
+                    <h2>Acceptance required</h2>
+                    <p>Review the terms above. You must accept this version to continue using your account.</p>
+                    <form action="/terms/accept" method="POST" class="privacy-request-form">
+                        <label class="terms-acceptance-label">
+                            <input type="checkbox" name="acceptTerms" value="yes" required>
+                            I have read and agree to the Terms of Service.
+                        </label>
+                        <button type="submit">Accept and continue</button>
+                    </form>
+                </section>
+            <% } else if (loggedin) { %>
+                <p class="privacy-message is-success">You have accepted the current Terms of Service.</p>
+            <% } else { %>
+                <p class="privacy-card">Sign in to use the service. You will be asked to accept these terms before accessing your account.</p>
+            <% } %>
+
+            <div class="footer"><p>&copy; 2026 Drowsy Vocals | All rights reserved.</p></div>
+        </main>
+    </body>
+</html>
