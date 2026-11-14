@@ -6542,7 +6542,7 @@ app.get('/privacy-requests', requireDatabase, async (req, res) => {
     if (!req.session.loggedin) return res.redirect('/');
 
     try {
-        const [ownRequests, adminRequests, closedAdminRequests, exportRecoveryRequests] = await Promise.all([
+        const [ownRequests, adminRequests, closedAdminRequests, exportRecoveryResults] = await Promise.all([
             db.collection('privacyRequests')
                 .find({ discordId: req.session.currentuser })
                 .project({ exportDataJson: 0 })
@@ -6582,6 +6582,13 @@ app.get('/privacy-requests', requireDatabase, async (req, res) => {
                     .limit(100)
                 : Promise.resolve([])
         ]);
+        let exportRecoveryRequests = exportRecoveryResults;
+        if (!Array.isArray(exportRecoveryRequests)) {
+            if (!exportRecoveryRequests || typeof exportRecoveryRequests.toArray !== 'function') {
+                throw new TypeError('Privacy export recovery query did not return an array or cursor.');
+            }
+            exportRecoveryRequests = await exportRecoveryRequests.toArray();
+        }
         const recoveryRequestIds = new Set(exportRecoveryRequests.map((request) => request._id.toString()));
         const adminHistory = closedAdminRequests.filter((request) => !recoveryRequestIds.has(request._id.toString()));
 
