@@ -19,6 +19,13 @@ const { MongoClient, ObjectId } = require('mongodb');
 const { Server } = require('socket.io');
 const { createBotService } = require('./services/botService');
 const { createPrivacyDataExportPdf } = require('./services/privacyDataExportPdf');
+const {
+    STAFF_ACTIVITY_TIME_ZONE,
+    clipActivitySession,
+    getStaffActivityWindow,
+    shiftDateKey,
+    splitActivityAcrossDays
+} = require('./services/staffActivity');
 
 const app = express();
 
@@ -602,6 +609,11 @@ app.use(async (req, res, next) => {
     }
 });
 const CHANGELOG_ENTRIES = [
+    {
+        date: '2026-11-15',
+        title: 'Staff activity history and reporting accuracy improved',
+        changes: ['Staff activity now supports 7-, 14-, 30-, and 90-day Eastern-time windows, keeps live presence separate from completed history, clips session totals to the selected period, filters to configured staff ranks, and shows the latest session-report delivery.']
+    },
     {
         date: '2026-11-15',
         title: 'Event planning toolkit added',
@@ -2486,6 +2498,7 @@ function connectDB() {
                 nextDb.collection('voiceActivitySessions').createIndex({ sessionId: 1 }, { unique: true }),
                 nextDb.collection('voiceActivitySessions').createIndex({ userId: 1, startedAt: -1 }),
                 nextDb.collection('voiceActivitySessions').createIndex({ channelId: 1, startedAt: -1 }),
+                nextDb.collection('voiceActivitySessions').createIndex({ receivedAt: -1 }),
                 nextDb.collection('passwordResetTokens').createIndex({ discordId: 1 }, { unique: true }),
                 nextDb.collection('passwordResetTokens').createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 }),
                 nextDb.collection('privacyRequests').createIndex({ expireAt: 1 }, { expireAfterSeconds: 0 })
@@ -4249,6 +4262,17 @@ app.post('/api/internal/voice-sessions', requireDatabase, async (req, res) => {
                 { ordered: false }
             )
             : { upsertedCount: 0 };
+        const activityReceivedAt = new Date().toISOString();
+        await db.collection('settings').updateOne(
+            { _id: 'appSettings' },
+            {
+                $set: {
+                    voiceActivityLastReceivedAt: activityReceivedAt,
+                    voiceActivityLastBatchSize: uniqueDocuments.length
+                }
+            },
+            { upsert: true }
+        );
 
         const sessionsToAward = uniqueDocuments.length
             ? await db.collection('voiceActivitySessions')
@@ -4388,20 +4412,23 @@ app.get('/staff-activity', requireDatabase, async (req, res) => {
     try {
         const activitySettings = await getSettings();
         const requestedRange = Number.parseInt(req.query.range, 10);
-        const rangeDays = [7, 14].includes(requestedRange) ? requestedRange : 14;
+        const rangeDays = [7, 14, 30, 90].includes(requestedRange) ? requestedRange : 14;
         const now = new Date();
-        const rangeEndMs = Date.UTC(
-            now.getUTCFullYear(),
-            now.getUTCMonth(),
-            now.getUTCDate() + 1
-        );
-        const rangeStartMs = rangeEndMs - (rangeDays * 24 * 60 * 60 * 1000);
+        const activityWindow = getStaffActivityWindow(now, rangeDays, STAFF_ACTIVITY_TIME_ZONE);
+        const rangeStartMs = activityWindow.startMs;
+        const rangeEndMs = activityWindow.endMs;
         const rangeStartIso = new Date(rangeStartMs).toISOString();
         const rangeEndIso = new Date(rangeEndMs).toISOString();
-        const users = await db.collection('users').find(
-            { 'login.discordId': { $exists: true } },
-            { projection: { displayName: 1, discordUser: 1, avatarUrl: 1, 'login.discordId': 1 } }
-        ).toArray();
+        const staffRankNames = (activitySettings.ranks || []).map((rank) => rank.name).filter(Boolean);
+        const users = staffRankNames.length
+            ? await db.collection('users').find(
+                {
+                    'login.discordId': { $exists: true },
+                    accountType: { $in: staffRankNames }
+                },
+                { projection: { displayName: 1, discordUser: 1, avatarUrl: 1, accountType: 1, 'login.discordId': 1 } }
+            ).toArray()
+            : [];
         const userById = new Map(
             users
                 .filter((user) => user.login?.discordId)
@@ -4413,36 +4440,38 @@ app.get('/staff-activity', requireDatabase, async (req, res) => {
         const staffIds = [...userById.keys()];
         const match = {
             userId: { $in: staffIds },
-            startedAt: { $lt: rangeEndIso },
-            endedAt: { $gte: rangeStartIso }
+            $and: [
+                { $or: [{ startedAt: { $lt: rangeEndIso } }, { startedAt: { $lt: new Date(rangeEndMs) } }] },
+                { $or: [{ endedAt: { $gte: rangeStartIso } }, { endedAt: { $gte: new Date(rangeStartMs) } }] }
+            ]
         };
         const sessionsCollection = db.collection('voiceActivitySessions');
-        const [activitySessions, botLiveState] = await Promise.all([
+        const [activitySessions, botLiveState, mostRecentlyReceivedSession] = await Promise.all([
             staffIds.length
-                ? sessionsCollection.find(match).sort({ endedAt: -1 }).toArray()
+                ? sessionsCollection.find(match).toArray()
                 : [],
-            getBotLiveState()
+            getBotLiveState(),
+            sessionsCollection.find({}, { projection: { receivedAt: 1 } })
+                .sort({ receivedAt: -1 })
+                .limit(1)
+                .next()
         ]);
         const countedActivitySessions = activitySessions.filter((session) => session.eligibleForActivity !== false);
+        const lastActivityReceivedAt = activitySettings.voiceActivityLastReceivedAt
+            || mostRecentlyReceivedSession?.receivedAt
+            || null;
+        const lastActivityBatchSize = Number.isFinite(Number(activitySettings.voiceActivityLastBatchSize))
+            ? Number(activitySettings.voiceActivityLastBatchSize)
+            : null;
 
         const toHours = (seconds) => Number((Number(seconds || 0) / 3600).toFixed(2));
         const dailyTotals = new Map();
         for (let dayOffset = 0; dayOffset < rangeDays; dayOffset += 1) {
-            const date = new Date(rangeStartMs + (dayOffset * 24 * 60 * 60 * 1000)).toISOString().slice(0, 10);
+            const date = shiftDateKey(activityWindow.startDate, dayOffset);
             dailyTotals.set(date, { date, seconds: 0, sessions: 0 });
         }
         const staffTotals = new Map();
         const channelTotals = new Map();
-        const getClippedRange = (startedAt, endedAt) => {
-            const startedMs = Date.parse(startedAt);
-            const endedMs = Date.parse(endedAt);
-            if (!Number.isFinite(startedMs) || !Number.isFinite(endedMs)) return null;
-            const clippedStartMs = Math.max(startedMs, rangeStartMs);
-            const clippedEndMs = Math.min(endedMs, rangeEndMs);
-            return clippedEndMs > clippedStartMs
-                ? { startMs: clippedStartMs, endMs: clippedEndMs, seconds: (clippedEndMs - clippedStartMs) / 1000 }
-                : null;
-        };
         const addActivity = (session, activityRange) => {
             const staffTotal = staffTotals.get(session.userId) || {
                 userId: session.userId,
@@ -4468,24 +4497,17 @@ app.get('/staff-activity', requireDatabase, async (req, res) => {
             channelTotal.sessions += 1;
             channelTotals.set(liveChannelKey, channelTotal);
 
-            let dayCursorMs = activityRange.startMs;
-            while (dayCursorMs < activityRange.endMs) {
-                const dayStartMs = Date.UTC(
-                    new Date(dayCursorMs).getUTCFullYear(),
-                    new Date(dayCursorMs).getUTCMonth(),
-                    new Date(dayCursorMs).getUTCDate()
-                );
-                const dayEndMs = Math.min(dayStartMs + (24 * 60 * 60 * 1000), activityRange.endMs);
-                const dailyTotal = dailyTotals.get(new Date(dayStartMs).toISOString().slice(0, 10));
+            splitActivityAcrossDays(activityRange.startMs, activityRange.endMs, STAFF_ACTIVITY_TIME_ZONE)
+                .forEach((daySegment) => {
+                const dailyTotal = dailyTotals.get(daySegment.date);
                 if (dailyTotal) {
-                    dailyTotal.seconds += (dayEndMs - dayCursorMs) / 1000;
+                    dailyTotal.seconds += daySegment.seconds;
                     dailyTotal.sessions += 1;
                 }
-                dayCursorMs = dayEndMs;
-            }
+            });
         };
         countedActivitySessions.forEach((session) => {
-            const activityRange = getClippedRange(session.startedAt, session.endedAt);
+            const activityRange = clipActivitySession(session.startedAt, session.endedAt, rangeStartMs, rangeEndMs);
             if (activityRange) addActivity(session, activityRange);
         });
         const afkChannelByGuild = new Map(
@@ -4553,12 +4575,6 @@ app.get('/staff-activity', requireDatabase, async (req, res) => {
         });
         const voiceActivityChannelOptions = [...channelOptionsById.values()]
             .sort((a, b) => `${a.guildName} ${a.channelName}`.localeCompare(`${b.guildName} ${b.channelName}`));
-        liveSessions.forEach((session) => {
-            const activityRange = session.startedAt
-                ? getClippedRange(session.startedAt, new Date().toISOString())
-                : null;
-            if (activityRange && activityRange.seconds >= 60) addActivity(session, activityRange);
-        });
         const staff = [...staffTotals.values()]
             .sort((a, b) => b.seconds - a.seconds)
             .map((item) => ({ ...item, hours: toHours(item.seconds) }));
@@ -4568,17 +4584,26 @@ app.get('/staff-activity', requireDatabase, async (req, res) => {
         const daily = [...dailyTotals.values()]
             .sort((a, b) => a.date.localeCompare(b.date))
             .map((item) => ({ ...item, hours: toHours(item.seconds) }));
-        const recent = countedActivitySessions.slice(0, 100).map((session) => ({
-            ...session,
-            displayName: userById.get(session.userId)?.displayName || session.userName || session.userId,
-            durationMinutes: Math.round(Number(session.durationSeconds || 0) / 60),
-            startedAt: new Date(session.startedAt).toLocaleString(),
-            endedAt: new Date(session.endedAt).toLocaleString()
-        }));
+        const recent = countedActivitySessions
+            .slice()
+            .sort((a, b) => Date.parse(b.endedAt) - Date.parse(a.endedAt))
+            .slice(0, 100)
+            .map((session) => {
+                const activityRange = clipActivitySession(session.startedAt, session.endedAt, rangeStartMs, rangeEndMs);
+                return {
+                    ...session,
+                    displayName: userById.get(session.userId)?.displayName || session.userName || session.userId,
+                    durationMinutes: Math.round((activityRange?.seconds || 0) / 60),
+                    startedAt: new Date(session.startedAt).toLocaleString('en-US', { timeZone: STAFF_ACTIVITY_TIME_ZONE }),
+                    endedAt: new Date(session.endedAt).toLocaleString('en-US', { timeZone: STAFF_ACTIVITY_TIME_ZONE })
+                };
+            });
         const live = liveSessions.map((session) => ({
             displayName: session.userName,
             channelName: session.channelName,
-            joinedAt: session.startedAt ? new Date(session.startedAt).toLocaleString() : null,
+            joinedAt: session.startedAt
+                ? new Date(session.startedAt).toLocaleString('en-US', { timeZone: STAFF_ACTIVITY_TIME_ZONE })
+                : null,
             durationMinutes: Math.floor(Number(session.durationSeconds || 0) / 60)
         }));
         const totalSeconds = staff.reduce((sum, item) => sum + item.seconds, 0);
@@ -4613,7 +4638,10 @@ app.get('/staff-activity', requireDatabase, async (req, res) => {
             voiceActivityChannelOptions,
             botOnline: Boolean(botLiveState.online),
             trackingConfigured: Boolean(voiceActivityApiSecret),
-            botConnectionError: botLiveState.connectionError || null
+            botConnectionError: botLiveState.connectionError || null,
+            lastActivityReceivedAt,
+            lastActivityBatchSize,
+            activityTimeZone: STAFF_ACTIVITY_TIME_ZONE
         });
     } catch (error) {
         console.error('Error loading staff activity:', error);
@@ -8074,7 +8102,7 @@ app.post('/pop-up/:eventId/delete', requireDatabase, async (req, res) => {
     res.redirect('/pop-up');
 });
 
-const EVENT_TIME_ZONE = 'America/New_York';
+const EVENT_TIME_ZONE = STAFF_ACTIVITY_TIME_ZONE;
 
 function parseEventDateTimeInEasternTime(dateValue, timeValue) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(dateValue || '') || !/^\d{2}:\d{2}$/.test(timeValue || '')) {

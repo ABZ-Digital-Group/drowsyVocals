@@ -6,6 +6,8 @@ Set `BOT_API_URL` to the bot's private API URL and set `BOT_API_SECRET` to the s
 
 The Management > Staff Activity page receives completed voice sessions at `/api/internal/voice-sessions`. Configure the bot's `ACTIVITY_API_URL` to this application's public HTTPS URL. It uses `ACTIVITY_API_SECRET` when set, or the shared `BOT_API_SECRET` by default. The endpoint is authenticated, idempotent, and stores sessions in MongoDB.
 
+Staff Activity reports completed sessions over 7-, 14-, 30-, or 90-day windows using Eastern calendar days. Live presence is shown separately from completed-session totals. The page shows the timestamp and batch size of the latest session report received; missing reports cannot be reconstructed by the portal, so verify the bot's `ACTIVITY_API_URL` and shared API secret if history is absent.
+
 ## Discord forgot-password recovery
 
 The login screen now supports **Forgot your password?** and sends reset links through DrowsyBot DMs. Configure these variables in the portal environment:

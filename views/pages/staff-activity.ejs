@@ -54,6 +54,7 @@
             .staff-activity-live-name { display: flex; align-items: center; gap: 8px; min-width: 0; }
             .staff-activity-empty { margin: 0; color: var(--dusty-blue-purple); }
             .staff-activity-chart { display: grid; grid-template-columns: repeat(14, minmax(18px, 1fr)); align-items: end; gap: clamp(4px, 1vw, 12px); min-height: 238px; padding: 18px 8px 0; border-top: 1px solid var(--cloud-lilac); background: repeating-linear-gradient(to bottom, transparent 0, transparent 47px, rgba(229, 225, 247, .7) 48px); }
+            .staff-activity-chart-scroll { overflow-x: auto; }
             .staff-activity-chart-column { display: grid; grid-template-rows: 24px 170px 28px; align-items: end; min-width: 0; height: 222px; }
             .staff-activity-chart-value { overflow: hidden; color: var(--night-indigo); font-size: .68em; font-weight: bold; text-align: center; text-overflow: ellipsis; white-space: nowrap; }
             .staff-activity-chart-track { display: flex; align-items: end; height: 170px; overflow: hidden; border-radius: 7px 7px 3px 3px; background: rgba(229, 225, 247, .5); }
@@ -120,19 +121,26 @@
                     <nav class="staff-activity-range" aria-label="Activity history range">
                         <a href="/staff-activity?range=7"<%= rangeDays === 7 ? ' aria-current="page"' : '' %>>Last 7 days</a>
                         <a href="/staff-activity?range=14"<%= rangeDays === 14 ? ' aria-current="page"' : '' %>>Last 14 days</a>
+                        <a href="/staff-activity?range=30"<%= rangeDays === 30 ? ' aria-current="page"' : '' %>>Last 30 days</a>
+                        <a href="/staff-activity?range=90"<%= rangeDays === 90 ? ' aria-current="page"' : '' %>>Last 90 days</a>
                     </nav>
                 </div>
-                <p class="staff-activity-note">Voice time excludes AFK channels, splits when someone changes channel, and ignores sessions shorter than one minute. Totals include live sessions after one minute and refresh automatically.</p>
+                <p class="staff-activity-note">Completed sessions are split into Eastern calendar days; sessions shorter than one minute are ignored. Live presence is shown separately and is not mixed into historical totals.</p>
             </div>
 
             <div class="staff-activity-status" aria-label="Monitoring status">
                 <span class="staff-activity-status-badge<%= botOnline ? '' : ' is-offline' %>"><span class="staff-activity-dot" aria-hidden="true"></span><%= botOnline ? 'DrowsyBot online' : 'DrowsyBot offline' %></span>
                 <% if (!trackingConfigured) { %>
-                <span>Voice activity tracking is not configured.</span>
+                <span>The portal activity API secret is not configured.</span>
                 <% } else if (botConnectionError) { %>
                 <span><%= botConnectionError %></span>
                 <% } else { %>
-                <span>Live monitoring enabled · refreshes every minute</span>
+                <span><%= botOnline ? 'Live voice presence is available.' : 'Live voice presence is unavailable while DrowsyBot is offline.' %></span>
+                <% } %>
+                <% if (lastActivityReceivedAt) { %>
+                <span>Latest completed-session data received <%= new Date(lastActivityReceivedAt).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short', timeZone: activityTimeZone }) %><% if (lastActivityBatchSize !== null) { %> · <%= lastActivityBatchSize %> session<%= lastActivityBatchSize === 1 ? '' : 's' %> in that batch<% } %>.</span>
+                <% } else if (trackingConfigured) { %>
+                <span>No completed-session report has reached the portal yet. Check DrowsyBot's <code>ACTIVITY_API_URL</code> and shared API secret.</span>
                 <% } %>
             </div>
 
@@ -203,7 +211,7 @@
             </section>
 
             <section class="staff-activity-summary" aria-label="Activity summary">
-                <div class="staff-activity-stat"><span>Voice hours (last <%= rangeDays %> days, incl. live)</span><strong><%= summary.hours.toFixed(2) %></strong></div>
+                <div class="staff-activity-stat"><span>Completed voice hours (last <%= rangeDays %> days)</span><strong><%= summary.hours.toFixed(2) %></strong></div>
                 <div class="staff-activity-stat"><span>Completed sessions</span><strong><%= summary.sessions %></strong></div>
                 <div class="staff-activity-stat"><span>Staff with activity</span><strong><%= summary.staffCount %></strong></div>
                 <div class="staff-activity-stat"><span>Channels used</span><strong><%= summary.channelCount %></strong></div>
@@ -276,36 +284,38 @@
 
                 <section class="staff-activity-panel staff-activity-panel-wide">
                     <div class="staff-activity-panel-heading">
-                        <div><h2>Daily voice trend</h2><p>Hours recorded for each day in the selected <%= rangeDays %>-day window</p></div>
+                        <div><h2>Daily voice trend</h2><p>Completed hours for each Eastern calendar day in the selected <%= rangeDays %>-day window</p></div>
                         <span class="staff-activity-panel-badge">Hours</span>
                     </div>
                     <% if (!daily.length) { %>
                     <p class="staff-activity-empty">No daily activity has been recorded yet.</p>
                     <% } else { const maxDailyHours = Math.max(...daily.map(function(item) { return item.hours; }), 1); %>
-                    <div class="staff-activity-chart" style="grid-template-columns: repeat(<%= daily.length %>, minmax(18px, 1fr));" role="img" aria-label="Daily voice hours chart">
-                        <% daily.forEach(function(item) { %>
-                        <div class="staff-activity-chart-column" title="<%= item.date %>: <%= item.hours.toFixed(2) %> hours, <%= item.sessions %> sessions">
-                            <span class="staff-activity-chart-value"><%= item.hours ? item.hours.toFixed(1) + 'h' : '—' %></span>
-                            <div class="staff-activity-chart-track"><span class="staff-activity-chart-bar" style="height: <%= item.hours ? Math.max(4, item.hours / maxDailyHours * 100) : 0 %>%"></span></div>
-                            <small><%= item.date.slice(5) %></small>
+                    <div class="staff-activity-chart-scroll" tabindex="0" aria-label="Scrollable daily voice hours chart">
+                        <div class="staff-activity-chart" style="grid-template-columns: repeat(<%= daily.length %>, minmax(18px, 1fr));" role="img" aria-label="Daily voice hours chart">
+                            <% daily.forEach(function(item) { %>
+                            <div class="staff-activity-chart-column" title="<%= item.date %>: <%= item.hours.toFixed(2) %> hours, <%= item.sessions %> sessions">
+                                <span class="staff-activity-chart-value"><%= item.hours ? item.hours.toFixed(1) + 'h' : '—' %></span>
+                                <div class="staff-activity-chart-track"><span class="staff-activity-chart-bar" style="height: <%= item.hours ? Math.max(4, item.hours / maxDailyHours * 100) : 0 %>%"></span></div>
+                                <small><%= item.date.slice(5) %></small>
+                            </div>
+                            <% }); %>
                         </div>
-                        <% }); %>
                     </div>
-                    <div class="staff-activity-chart-caption"><span>Each bar shows voice time for that day</span><span><%= daily.reduce(function(total, item) { return total + item.sessions; }, 0) %> daily session entries</span></div>
+                    <div class="staff-activity-chart-caption"><span>Live sessions are excluded until DrowsyBot reports them as completed.</span><span><%= daily.reduce(function(total, item) { return total + item.sessions; }, 0) %> daily session entries</span></div>
                     <% } %>
                 </section>
 
                 <section class="staff-activity-panel staff-activity-panel-wide">
                     <div class="staff-activity-panel-heading">
-                        <div><h2>Recent completed activity</h2><p>Latest sessions from the last <%= rangeDays %> days</p></div>
+                        <div><h2>Recent completed activity</h2><p>Latest sessions from the last <%= rangeDays %> days · times shown in Eastern Time</p></div>
                         <span class="staff-activity-panel-badge">Newest first</span>
                     </div>
                     <% if (!recent.length) { %>
-                    <p class="staff-activity-empty">No completed voice sessions have been recorded yet.</p>
+                    <p class="staff-activity-empty">No qualifying completed sessions were received in this date range. Check the last-report status above and the counted-channel settings.</p>
                     <% } else { %>
                     <div class="staff-activity-table-wrap">
                         <table class="staff-activity-table">
-                            <thead><tr><th>Staff member</th><th>Channel</th><th>Started</th><th>Ended</th><th>Duration</th></tr></thead>
+                            <thead><tr><th>Staff member</th><th>Channel</th><th>Started (ET)</th><th>Ended (ET)</th><th>Minutes in range</th></tr></thead>
                             <tbody>
                                 <% recent.forEach(function(session) { %>
                                 <tr>
