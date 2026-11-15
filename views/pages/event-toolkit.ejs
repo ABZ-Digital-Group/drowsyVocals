@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <%- include('../partials/head') %>
+        <title>Event Toolkit - Drowsy Vocals</title>
+    </head>
+    <body>
+        <header>
+            <%- include('../partials/nav') %>
+        </header>
+        <main class="settings-page event-toolkit-page">
+            <a class="event-toolkit-back" href="/events"><span class="material-symbols-outlined" aria-hidden="true">arrow_back</span>Back to Events</a>
+            <section class="event-toolkit-header">
+                <div>
+                    <p class="profile-eyebrow">Event Planning</p>
+                    <h1><%= event.title %></h1>
+                    <p class="profile-subtitle"><%= event.category || 'Event' %> · <%= new Date(event.scheduledStartTime).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'America/New_York' }) %> Eastern · <%= event.location || 'Discord Stage' %></p>
+                </div>
+                <span class="account-badge"><%= toolkit.tasks.filter(function(task) { return task.completed; }).length %> of <%= toolkit.tasks.length %> tasks complete</span>
+            </section>
+
+            <% if (typeof success_msg !== 'undefined' && success_msg && success_msg.length) { %>
+            <div class="settings-alert is-success" role="status"><span><%= success_msg %></span></div>
+            <% } %>
+            <% if (typeof error_msg !== 'undefined' && error_msg && error_msg.length) { %>
+            <div class="settings-alert is-error" role="alert"><span><%= error_msg %></span></div>
+            <% } %>
+
+            <div class="event-toolkit-grid">
+                <section class="account-card event-toolkit-main">
+                    <div class="account-card-header">
+                        <h2 class="account-card-title"><span class="material-symbols-outlined" aria-hidden="true">checklist</span>Preparation checklist</h2>
+                    </div>
+
+                    <% if (!toolkit.tasks.length) { %>
+                    <p class="event-toolkit-empty">No preparation tasks yet. Add tasks here or apply a saved template.</p>
+                    <% } else { %>
+                    <div class="event-toolkit-tasks">
+                        <% toolkit.tasks.forEach(function(task) { %>
+                        <article class="event-toolkit-task <%= task.completed ? 'is-complete' : '' %>">
+                            <div class="event-toolkit-task-status">
+                                <span class="material-symbols-outlined" aria-hidden="true"><%= task.completed ? 'check_circle' : 'radio_button_unchecked' %></span>
+                            </div>
+                            <div class="event-toolkit-task-content">
+                                <% if (isManager) { %>
+                                <form class="event-toolkit-task-edit" action="/events/<%= event.id || event._id %>/toolkit/tasks/<%= task.id %>/update" method="POST">
+                                    <label>
+                                        <span>Task</span>
+                                        <input name="title" value="<%= task.title %>" maxlength="120" required>
+                                    </label>
+                                    <label>
+                                        <span>Assign to</span>
+                                        <select name="assignedTo">
+                                            <option value="">Unassigned</option>
+                                            <% assignees.forEach(function(user) { %>
+                                            <% if (user.login && user.login.discordId) { %>
+                                            <option value="<%= user.login.discordId %>" <%= task.assignedTo === user.login.discordId ? 'selected' : '' %>><%= user.displayName || user.discordUser || user.login.discordId %> · <%= user.accountType %></option>
+                                            <% } %>
+                                            <% }); %>
+                                        </select>
+                                    </label>
+                                    <label>
+                                        <span>Due date</span>
+                                        <input type="date" name="dueDate" value="<%= task.dueDate || '' %>">
+                                    </label>
+                                    <button type="submit" class="settings-btn settings-btn-secondary settings-btn-sm">Save task</button>
+                                </form>
+                                <% } else { %>
+                                <h3><%= task.title %></h3>
+                                <% } %>
+
+                                <div class="event-toolkit-task-meta">
+                                    <% if (task.assignedTo) { %>
+                                    <% const taskAssignee = assignees.find(function(user) { return user.login && user.login.discordId === task.assignedTo; }); %>
+                                    <span><span class="material-symbols-outlined" aria-hidden="true">person</span><%= isManager ? (taskAssignee ? (taskAssignee.displayName || taskAssignee.discordUser || task.assignedTo) : 'Unlisted staff member') : 'Assigned to you' %></span>
+                                    <% } else if (isManager) { %>
+                                    <span><span class="material-symbols-outlined" aria-hidden="true">person</span>Unassigned</span>
+                                    <% } %>
+                                    <% if (task.dueDate) { %>
+                                    <span class="<%= !task.completed && task.dueDate < todayDate ? 'is-overdue' : '' %>"><span class="material-symbols-outlined" aria-hidden="true">event</span>Due <%= task.dueDate %></span>
+                                    <% } %>
+                                </div>
+
+                                <div class="event-toolkit-task-actions">
+                                    <form action="/events/<%= event.id || event._id %>/toolkit/tasks/<%= task.id %>/completion" method="POST">
+                                        <input type="hidden" name="completed" value="<%= task.completed ? 'false' : 'true' %>">
+                                        <button type="submit" class="settings-btn <%= task.completed ? 'settings-btn-secondary' : 'settings-btn-primary' %> settings-btn-sm"><%= task.completed ? 'Reopen task' : 'Mark complete' %></button>
+                                    </form>
+                                    <% if (isManager) { %>
+                                    <form action="/events/<%= event.id || event._id %>/toolkit/tasks/<%= task.id %>/delete" method="POST" onsubmit="return confirm('Remove this preparation task?');">
+                                        <button type="submit" class="settings-btn settings-btn-danger settings-btn-sm">Remove</button>
+                                    </form>
+                                    <% } %>
+                                </div>
+                            </div>
+                        </article>
+                        <% }); %>
+                    </div>
+                    <% } %>
+
+                    <% if (isManager) { %>
+                    <form class="event-toolkit-add-form" action="/events/<%= event.id || event._id %>/toolkit/tasks/add" method="POST">
+                        <h3>Add a preparation task</h3>
+                        <label>
+                            <span>Task</span>
+                            <input name="title" maxlength="120" placeholder="e.g. Test the voice channel" required>
+                        </label>
+                        <label>
+                            <span>Assign to</span>
+                            <select name="assignedTo">
+                                <option value="">Unassigned</option>
+                                <% assignees.forEach(function(user) { %>
+                                <% if (user.login && user.login.discordId) { %>
+                                <option value="<%= user.login.discordId %>"><%= user.displayName || user.discordUser || user.login.discordId %> · <%= user.accountType %></option>
+                                <% } %>
+                                <% }); %>
+                            </select>
+                        </label>
+                        <label>
+                            <span>Due date</span>
+                            <input type="date" name="dueDate">
+                        </label>
+                        <button type="submit" class="settings-btn settings-btn-primary">Add task</button>
+                    </form>
+                    <% } %>
+                </section>
+
+                <% if (isManager) { %>
+                <aside class="event-toolkit-sidebar">
+                    <section class="account-card">
+                        <div class="account-card-header">
+                            <h2 class="account-card-title"><span class="material-symbols-outlined" aria-hidden="true">library_add</span>Checklist templates</h2>
+                        </div>
+                        <% if (templates.length) { %>
+                        <form class="event-toolkit-template-form" action="/events/<%= event.id || event._id %>/toolkit/templates/apply" method="POST">
+                            <label for="eventToolkitTemplate">Add tasks from a template</label>
+                            <select id="eventToolkitTemplate" name="templateId" required>
+                                <% templates.forEach(function(template) { %>
+                                <option value="<%= template.id %>"><%= template.name %> · <%= template.tasks.length %> tasks</option>
+                                <% }); %>
+                            </select>
+                            <button type="submit" class="settings-btn settings-btn-primary">Add template tasks</button>
+                        </form>
+                        <% } else { %>
+                        <p class="event-toolkit-empty">Save a checklist as a template to reuse it for future events.</p>
+                        <% } %>
+
+                        <form class="event-toolkit-template-form" action="/events/<%= event.id || event._id %>/toolkit/templates/save" method="POST">
+                            <label for="eventToolkitTemplateName">Save this checklist as</label>
+                            <input id="eventToolkitTemplateName" name="name" maxlength="60" placeholder="e.g. Karaoke Night" required>
+                            <button type="submit" class="settings-btn settings-btn-secondary">Save as template</button>
+                        </form>
+
+                        <% if (templates.length) { %>
+                        <details class="event-toolkit-saved-templates">
+                            <summary>Manage saved templates</summary>
+                            <% templates.forEach(function(template) { %>
+                            <div class="event-toolkit-template-item">
+                                <span><strong><%= template.name %></strong><small><%= template.tasks.length %> tasks</small></span>
+                                <form action="/events/<%= event.id || event._id %>/toolkit/templates/<%= template.id %>/delete" method="POST" onsubmit="return confirm('Delete this checklist template?');">
+                                    <button type="submit" class="settings-btn settings-btn-danger settings-btn-sm">Delete</button>
+                                </form>
+                            </div>
+                            <% }); %>
+                        </details>
+                        <% } %>
+                    </section>
+
+                    <section class="account-card">
+                        <div class="account-card-header">
+                            <h2 class="account-card-title"><span class="material-symbols-outlined" aria-hidden="true">summarize</span>Event close-out</h2>
+                        </div>
+                        <p class="event-toolkit-help">Capture a brief recap or anything that needs follow-up after the event.</p>
+                        <form class="event-toolkit-recap-form" action="/events/<%= event.id || event._id %>/toolkit/recap" method="POST">
+                            <label for="eventToolkitRecap">Recap and follow-up notes</label>
+                            <textarea id="eventToolkitRecap" name="recap" maxlength="2000" rows="7" placeholder="What went well? What should be followed up?"><%= toolkit.recap %></textarea>
+                            <button type="submit" class="settings-btn settings-btn-primary">Save close-out</button>
+                        </form>
+                    </section>
+                </aside>
+                <% } %>
+            </div>
+        </main>
+        <div class="footer">
+            <p>&copy; 2026 Drowsy Vocals | All rights reserved.</p>
+        </div>
+    </body>
+</html>

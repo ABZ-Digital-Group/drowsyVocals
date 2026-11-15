@@ -3688,6 +3688,258 @@ textarea.bingo-template-input {
     justify-content: flex-end;
     margin-top: 20px;
 }
+.event-toolkit-page {
+    max-width: 1180px;
+    margin: 36px auto 72px;
+}
+.event-toolkit-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 20px;
+    color: var(--night-indigo);
+    font-weight: bold;
+    text-decoration: none;
+}
+.event-toolkit-back:hover,
+.event-toolkit-back:focus-visible {
+    text-decoration: underline;
+}
+.event-toolkit-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+    margin-bottom: 24px;
+}
+.event-toolkit-header h1 {
+    margin: 0;
+    color: var(--night-indigo);
+    font-size: clamp(2em, 4vw, 2.8em);
+}
+.event-toolkit-header .profile-subtitle {
+    margin: 8px 0 0;
+}
+.event-toolkit-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(280px, .9fr);
+    align-items: start;
+    gap: 20px;
+}
+.event-toolkit-main,
+.event-toolkit-sidebar {
+    display: grid;
+    gap: 18px;
+}
+.event-toolkit-sidebar .account-card {
+    margin: 0;
+}
+.event-toolkit-tasks {
+    display: grid;
+    gap: 10px;
+}
+.event-toolkit-task {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 12px;
+    padding: 14px;
+    border: 1px solid var(--dusty-blue-purple);
+    border-radius: 6px;
+    background: var(--cloud-white);
+}
+.event-toolkit-task.is-complete {
+    border-color: #34a873;
+}
+.event-toolkit-task-status {
+    color: var(--dusty-blue-purple);
+}
+.event-toolkit-task.is-complete .event-toolkit-task-status {
+    color: #228b5a;
+}
+.event-toolkit-task-status .material-symbols-outlined {
+    background: transparent;
+}
+.event-toolkit-task-content {
+    min-width: 0;
+}
+.event-toolkit-task-content h3 {
+    margin: 0;
+    color: var(--night-indigo);
+    font-size: 1.05em;
+}
+.event-toolkit-task-edit,
+.event-toolkit-add-form {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(160px, 1fr) minmax(130px, .7fr) auto;
+    align-items: end;
+    gap: 10px;
+}
+.event-toolkit-task-edit label,
+.event-toolkit-add-form label,
+.event-toolkit-template-form,
+.event-toolkit-recap-form {
+    display: grid;
+    gap: 6px;
+}
+.event-toolkit-task-edit label > span,
+.event-toolkit-add-form label > span {
+    color: var(--dusty-blue-purple);
+    font-size: .78em;
+    font-weight: bold;
+}
+.event-toolkit-task-edit input,
+.event-toolkit-task-edit select,
+.event-toolkit-add-form input,
+.event-toolkit-add-form select,
+.event-toolkit-template-form input,
+.event-toolkit-template-form select,
+.event-toolkit-recap-form textarea {
+    width: 100%;
+    min-width: 0;
+    padding: 9px 10px;
+    border: 1px solid var(--dusty-blue-purple);
+    border-radius: 4px;
+    background: var(--cloud-white);
+    color: var(--night-indigo);
+    font: inherit;
+}
+.event-toolkit-task-meta,
+.event-toolkit-task-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 14px;
+    margin-top: 10px;
+}
+.event-toolkit-task-meta {
+    color: var(--dusty-blue-purple);
+    font-size: .82em;
+}
+.event-toolkit-task-meta > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+.event-toolkit-task-meta .material-symbols-outlined {
+    background: transparent;
+    font-size: 1.15em;
+}
+.event-toolkit-task-meta .is-overdue {
+    color: #b42318;
+    font-weight: bold;
+}
+.event-toolkit-task-actions form {
+    margin: 0;
+}
+.event-toolkit-add-form {
+    margin-top: 18px;
+    padding-top: 18px;
+    border-top: 1px solid var(--dusty-blue-purple);
+}
+.event-toolkit-add-form h3 {
+    grid-column: 1 / -1;
+    margin: 0;
+    color: var(--night-indigo);
+}
+.event-toolkit-template-form {
+    margin-top: 14px;
+}
+.event-toolkit-template-form label,
+.event-toolkit-recap-form label {
+    color: var(--night-indigo);
+    font-weight: bold;
+}
+.event-toolkit-recap-form textarea {
+    min-height: 150px;
+    resize: vertical;
+    line-height: 1.5;
+}
+.event-toolkit-help,
+.event-toolkit-empty {
+    margin: 0;
+    color: var(--dusty-blue-purple);
+    line-height: 1.5;
+}
+.event-toolkit-saved-templates {
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px solid var(--dusty-blue-purple);
+}
+.event-toolkit-saved-templates summary {
+    cursor: pointer;
+    color: var(--night-indigo);
+    font-weight: bold;
+}
+.event-toolkit-template-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--dusty-blue-purple);
+}
+.event-toolkit-template-item > span {
+    display: grid;
+    gap: 3px;
+    color: var(--night-indigo);
+}
+.event-toolkit-template-item small {
+    color: var(--dusty-blue-purple);
+}
+.event-toolkit-template-item form {
+    margin: 0;
+}
+@media (max-width: 760px) {
+    .event-toolkit-page {
+        margin-top: 24px;
+    }
+    .event-toolkit-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    .event-toolkit-header {
+        flex-direction: column;
+    }
+    .event-toolkit-task-edit,
+    .event-toolkit-add-form {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    .event-toolkit-add-form h3 {
+        grid-column: auto;
+    }
+}
+html[data-theme="dark"] .event-toolkit-back,
+html[data-theme="dark"] .event-toolkit-header h1,
+html[data-theme="dark"] .event-toolkit-task-content h3,
+html[data-theme="dark"] .event-toolkit-add-form h3,
+html[data-theme="dark"] .event-toolkit-template-form label,
+html[data-theme="dark"] .event-toolkit-recap-form label,
+html[data-theme="dark"] .event-toolkit-saved-templates summary,
+html[data-theme="dark"] .event-toolkit-template-item > span {
+    color: var(--theme-text);
+}
+html[data-theme="dark"] .event-toolkit-task {
+    border-color: var(--theme-border);
+    background: var(--theme-surface-raised);
+}
+html[data-theme="dark"] .event-toolkit-task-edit input,
+html[data-theme="dark"] .event-toolkit-task-edit select,
+html[data-theme="dark"] .event-toolkit-add-form input,
+html[data-theme="dark"] .event-toolkit-add-form select,
+html[data-theme="dark"] .event-toolkit-template-form input,
+html[data-theme="dark"] .event-toolkit-template-form select,
+html[data-theme="dark"] .event-toolkit-recap-form textarea {
+    border-color: var(--theme-border);
+    background: var(--theme-surface);
+    color: var(--theme-text);
+}
+html[data-theme="dark"] .event-toolkit-help,
+html[data-theme="dark"] .event-toolkit-empty,
+html[data-theme="dark"] .event-toolkit-task-meta,
+html[data-theme="dark"] .event-toolkit-template-item small,
+html[data-theme="dark"] .event-toolkit-task-edit label > span,
+html[data-theme="dark"] .event-toolkit-add-form label > span {
+    color: var(--theme-muted);
+}
 
 /* Toggle switch */
 .settings-switch-row {

@@ -97,6 +97,7 @@
                             <% } else { %>
                             <div style="display: flex; flex-direction: column; gap: 14px;">
                                 <% upcomingEvents.forEach(function(event) { %>
+                                <% const eventToolkitTasks = Array.isArray(event.toolkit && event.toolkit.tasks) ? event.toolkit.tasks : []; const hasMyToolkitTask = eventToolkitTasks.some(function(task) { return task.assignedTo === currentUserId; }); %>
                                 <div style="background: var(--night-indigo); border: 1px solid var(--dusty-blue-purple); border-left: 4px solid <%= event.category === 'Karaoke' ? 'var(--misty-blue)' : event.category === 'Staff Meeting' ? 'var(--moonlight-yellow)' : 'var(--dreamy-periwinkle)' %>; border-radius: 6px; padding: 18px; display: flex; flex-direction: column; gap: 10px;">
                                     <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px;">
                                         <div>
@@ -160,8 +161,13 @@
                                     <p style="margin: 0; color: var(--cloud-lilac); font-size: 0.9em; line-height: 1.5; white-space: pre-wrap;"><%= event.description %></p>
                                     <% } %>
 
-                                    <% if (isManager) { %>
+                                    <% if (isManager || hasMyToolkitTask) { %>
                                     <div style="display: flex; justify-content: flex-end; align-items: center; gap: 8px; border-top: 1px solid #282724; padding-top: 10px; margin-top: 4px;">
+                                        <a href="/events/<%= event.id || event._id %>/toolkit" class="settings-btn settings-btn-primary settings-btn-sm">
+                                            <span class="material-symbols-outlined">checklist</span>
+                                            <span>Event Toolkit</span>
+                                        </a>
+                                        <% if (isManager) { %>
                                         <button type="button" class="settings-btn settings-btn-secondary settings-btn-sm editEventBtn"
                                             data-event-id="<%= event.id || event._id %>"
                                             data-event-title="<%= event.title %>"
@@ -182,6 +188,7 @@
                                                 <span>Delete Event</span>
                                             </button>
                                         </form>
+                                        <% } %>
                                     </div>
                                     <% } %>
                                 </div>
@@ -228,6 +235,7 @@
                             <div class="settings-accordion-content">
                                 <div style="display: flex; flex-direction: column; gap: 8px;">
                                     <% pastEvents.slice(0, 10).forEach(function(event) { %>
+                                    <% const eventToolkitTasks = Array.isArray(event.toolkit && event.toolkit.tasks) ? event.toolkit.tasks : []; const hasMyToolkitTask = eventToolkitTasks.some(function(task) { return task.assignedTo === currentUserId; }); %>
                                     <div class="event-history-row">
                                     <button type="button" class="event-history-item"
                                         data-event-id="<%= event.id || event._id %>"
@@ -248,20 +256,25 @@
                                         </div>
                                         <span class="settings-badge badge-neutral" style="font-size: 0.75em;">Concluded</span>
                                     </button>
-                                    <% if (isManager) { %>
-                                    <button type="button" class="settings-btn settings-btn-secondary settings-btn-sm editEventBtn"
-                                        data-event-id="<%= event.id || event._id %>"
-                                        data-event-title="<%= event.title %>"
-                                        data-event-category="<%= event.category || 'Karaoke' %>"
-                                        data-event-location="<%= event.location || 'Discord Stage' %>"
-                                        data-event-host="<%= event.host || '' %>"
-                                        data-event-co-host="<%= event.coHost || '' %>"
-                                        data-event-admin="<%= event.admin || '' %>"
-                                        data-event-start-iso="<%= event.scheduledStartTime || '' %>"
-                                        data-event-end-iso="<%= event.scheduledEndTime || '' %>"
-                                        data-event-desc="<%= event.description || '' %>">
-                                        Edit
-                                    </button>
+                                    <% if (isManager || hasMyToolkitTask) { %>
+                                    <div style="display: flex; align-items: center; gap: 6px;">
+                                        <a href="/events/<%= event.id || event._id %>/toolkit" class="settings-btn settings-btn-primary settings-btn-sm">Event Toolkit</a>
+                                        <% if (isManager) { %>
+                                        <button type="button" class="settings-btn settings-btn-secondary settings-btn-sm editEventBtn"
+                                            data-event-id="<%= event.id || event._id %>"
+                                            data-event-title="<%= event.title %>"
+                                            data-event-category="<%= event.category || 'Karaoke' %>"
+                                            data-event-location="<%= event.location || 'Discord Stage' %>"
+                                            data-event-host="<%= event.host || '' %>"
+                                            data-event-co-host="<%= event.coHost || '' %>"
+                                            data-event-admin="<%= event.admin || '' %>"
+                                            data-event-start-iso="<%= event.scheduledStartTime || '' %>"
+                                            data-event-end-iso="<%= event.scheduledEndTime || '' %>"
+                                            data-event-desc="<%= event.description || '' %>">
+                                            Edit
+                                        </button>
+                                        <% } %>
+                                    </div>
                                     <% } %>
                                     </div>
                                     <% }); %>

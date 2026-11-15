@@ -603,6 +603,11 @@ app.use(async (req, res, next) => {
 });
 const CHANGELOG_ENTRIES = [
     {
+        date: '2026-11-15',
+        title: 'Event planning toolkit added',
+        changes: ['Managers can organize event preparation tasks, assign them to staff, reuse saved checklist templates, and record event close-out notes. Assigned staff can view and complete only their own event tasks.']
+    },
+    {
         date: '2026-11-14',
         title: 'Automatic personal data exports added',
         changes: ['Gods and Developers can prepare an access-request export without writing a response; requesters receive a private portal download and linked file downloads.']
@@ -8323,6 +8328,7 @@ app.get('/events', requireDatabase, async (req, res) => {
             upcomingPopUps,
             pastPopUps,
             isManager,
+            currentUserId: req.session.currentuser,
             users,
             rosterHosts,
             userMap
@@ -8331,6 +8337,423 @@ app.get('/events', requireDatabase, async (req, res) => {
         console.error('Error loading events:', error);
         res.status(500).send('Error loading events.');
     }
+});
+
+const getScheduledEventFilter = (eventId) => ({
+    $or: [
+        { id: eventId },
+        ...(ObjectId.isValid(eventId) ? [{ _id: new ObjectId(eventId) }] : [])
+    ]
+});
+const getEventToolkitUrl = (eventId) => `/events/${encodeURIComponent(eventId)}/toolkit`;
+const EVENT_TOOLKIT_MAX_TASKS = 30;
+
+function parseEventToolkitDueDate(value) {
+    const dateValue = (value || '').toString().trim();
+    if (!dateValue) return null;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateValue)) return undefined;
+    const parsedDate = new Date(`${dateValue}T00:00:00.000Z`);
+    return !Number.isNaN(parsedDate.getTime()) && parsedDate.toISOString().slice(0, 10) === dateValue
+        ? dateValue
+        : undefined;
+}
+
+app.get('/events/:eventId/toolkit', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin) return res.redirect('/');
+
+    try {
+        const event = await db.collection('scheduledEvents').findOne(getScheduledEventFilter(req.params.eventId));
+        if (!event) return res.status(404).send('Event not found.');
+
+        const isManager = hasManagementAccess(req);
+        const allTasks = Array.isArray(event.toolkit?.tasks) ? event.toolkit.tasks : [];
+        const assignedTasks = allTasks.filter((task) => task.assignedTo === req.session.currentuser);
+        if (!isManager && !assignedTasks.length) {
+            return res.status(403).send('You do not have an assigned task for this event.');
+        }
+
+        let assignees = [];
+        let templates = [];
+        if (isManager) {
+            const settings = await getSettings();
+            const staffRanks = (settings.ranks || []).map((rank) => rank.name).filter(Boolean);
+            [assignees, templates] = await Promise.all([
+                staffRanks.length
+                    ? db.collection('users').find(
+                        { accountType: { $in: staffRanks } },
+                        { projection: { displayName: 1, discordUser: 1, accountType: 1, 'login.discordId': 1 } }
+                    ).sort({ displayName: 1 }).toArray()
+                    : [],
+                db.collection('eventToolkitTemplates').find().sort({ name: 1 }).toArray()
+            ]);
+        }
+
+        const toolkit = {
+            tasks: isManager ? allTasks : assignedTasks,
+            recap: isManager ? (event.toolkit?.recap || '') : '',
+            updatedAt: event.toolkit?.updatedAt || null
+        };
+        res.render('pages/event-toolkit', {
+            page: 'events',
+            event,
+            toolkit,
+            assignees,
+            templates,
+            isManager,
+            currentUserId: req.session.currentuser,
+            todayDate: new Date().toISOString().slice(0, 10)
+        });
+    } catch (error) {
+        console.error('Error loading event toolkit:', error);
+        res.status(500).send('Error loading event toolkit.');
+    }
+});
+
+app.post('/events/:eventId/toolkit/tasks/add', requireDatabase, async (req, res) => {
+    const toolkitUrl = getEventToolkitUrl(req.params.eventId);
+    if (!req.session.loggedin || !hasManagementAccess(req)) {
+        req.flash('error_msg', 'You are not authorized to manage this event toolkit.');
+        return res.redirect('/events');
+    }
+
+    const title = (req.body.title || '').toString().trim();
+    const assignedTo = (req.body.assignedTo || '').toString().trim();
+    const dueDate = parseEventToolkitDueDate(req.body.dueDate);
+    if (!title || title.length > 120 || dueDate === undefined) {
+        req.flash('error_msg', 'Enter a task title of 1–120 characters and a valid due date.');
+        return res.redirect(toolkitUrl);
+    }
+
+    try {
+        const eventFilter = getScheduledEventFilter(req.params.eventId);
+        const event = await db.collection('scheduledEvents').findOne(eventFilter);
+        if (!event) {
+            req.flash('error_msg', 'Event not found.');
+            return res.redirect('/events');
+        }
+        const tasks = Array.isArray(event.toolkit?.tasks) ? event.toolkit.tasks : [];
+        if (tasks.length >= EVENT_TOOLKIT_MAX_TASKS) {
+            req.flash('error_msg', `An event can have up to ${EVENT_TOOLKIT_MAX_TASKS} preparation tasks.`);
+            return res.redirect(toolkitUrl);
+        }
+
+        if (assignedTo) {
+            const settings = await getSettings();
+            const staffRanks = (settings.ranks || []).map((rank) => rank.name).filter(Boolean);
+            const assignee = staffRanks.length
+                ? await db.collection('users').findOne({
+                    'login.discordId': assignedTo,
+                    accountType: { $in: staffRanks }
+                }, { projection: { _id: 1 } })
+                : null;
+            if (!assignee) {
+                req.flash('error_msg', 'Choose an active staff member for the task assignment.');
+                return res.redirect(toolkitUrl);
+            }
+        }
+
+        const now = new Date().toISOString();
+        const task = {
+            id: crypto.randomUUID(),
+            title,
+            assignedTo: assignedTo || null,
+            dueDate,
+            completed: false,
+            completedAt: null,
+            completedBy: null,
+            createdAt: now,
+            updatedAt: now
+        };
+        await db.collection('scheduledEvents').updateOne(eventFilter, {
+            $push: { 'toolkit.tasks': task },
+            $set: { 'toolkit.updatedAt': now, 'toolkit.updatedBy': req.session.currentuser }
+        });
+        await writeAudit(req, 'Updated Event Toolkit', `Added a preparation task for ${event.title}.`);
+        req.flash('success_msg', 'Preparation task added.');
+    } catch (error) {
+        console.error('Error adding event toolkit task:', error);
+        req.flash('error_msg', 'Failed to add the preparation task.');
+    }
+    res.redirect(toolkitUrl);
+});
+
+app.post('/events/:eventId/toolkit/tasks/:taskId/update', requireDatabase, async (req, res) => {
+    const toolkitUrl = getEventToolkitUrl(req.params.eventId);
+    if (!req.session.loggedin || !hasManagementAccess(req)) {
+        req.flash('error_msg', 'You are not authorized to manage this event toolkit.');
+        return res.redirect('/events');
+    }
+
+    const title = (req.body.title || '').toString().trim();
+    const assignedTo = (req.body.assignedTo || '').toString().trim();
+    const dueDate = parseEventToolkitDueDate(req.body.dueDate);
+    if (!title || title.length > 120 || dueDate === undefined) {
+        req.flash('error_msg', 'Enter a task title of 1–120 characters and a valid due date.');
+        return res.redirect(toolkitUrl);
+    }
+
+    try {
+        const eventFilter = getScheduledEventFilter(req.params.eventId);
+        const event = await db.collection('scheduledEvents').findOne({
+            ...eventFilter,
+            'toolkit.tasks.id': req.params.taskId
+        });
+        if (!event) {
+            req.flash('error_msg', 'Preparation task not found.');
+            return res.redirect(toolkitUrl);
+        }
+
+        if (assignedTo) {
+            const settings = await getSettings();
+            const staffRanks = (settings.ranks || []).map((rank) => rank.name).filter(Boolean);
+            const assignee = staffRanks.length
+                ? await db.collection('users').findOne({
+                    'login.discordId': assignedTo,
+                    accountType: { $in: staffRanks }
+                }, { projection: { _id: 1 } })
+                : null;
+            if (!assignee) {
+                req.flash('error_msg', 'Choose an active staff member for the task assignment.');
+                return res.redirect(toolkitUrl);
+            }
+        }
+
+        const now = new Date().toISOString();
+        await db.collection('scheduledEvents').updateOne(eventFilter, {
+            $set: {
+                'toolkit.tasks.$[task].title': title,
+                'toolkit.tasks.$[task].assignedTo': assignedTo || null,
+                'toolkit.tasks.$[task].dueDate': dueDate,
+                'toolkit.tasks.$[task].updatedAt': now,
+                'toolkit.updatedAt': now,
+                'toolkit.updatedBy': req.session.currentuser
+            }
+        }, { arrayFilters: [{ 'task.id': req.params.taskId }] });
+        await writeAudit(req, 'Updated Event Toolkit', `Updated a preparation task for ${event.title}.`);
+        req.flash('success_msg', 'Preparation task updated.');
+    } catch (error) {
+        console.error('Error updating event toolkit task:', error);
+        req.flash('error_msg', 'Failed to update the preparation task.');
+    }
+    res.redirect(toolkitUrl);
+});
+
+app.post('/events/:eventId/toolkit/tasks/:taskId/completion', requireDatabase, async (req, res) => {
+    const toolkitUrl = getEventToolkitUrl(req.params.eventId);
+    if (!req.session.loggedin) return res.redirect('/');
+    const completed = req.body.completed === 'true';
+
+    try {
+        const eventFilter = getScheduledEventFilter(req.params.eventId);
+        const event = await db.collection('scheduledEvents').findOne({
+            ...eventFilter,
+            'toolkit.tasks.id': req.params.taskId
+        });
+        if (!event) {
+            req.flash('error_msg', 'Preparation task not found.');
+            return res.redirect('/events');
+        }
+        const task = (event.toolkit?.tasks || []).find((item) => item.id === req.params.taskId);
+        if (!hasManagementAccess(req) && task?.assignedTo !== req.session.currentuser) {
+            req.flash('error_msg', 'You can only update tasks assigned to you.');
+            return res.redirect('/events');
+        }
+
+        const now = new Date().toISOString();
+        await db.collection('scheduledEvents').updateOne(eventFilter, {
+            $set: {
+                'toolkit.tasks.$[task].completed': completed,
+                'toolkit.tasks.$[task].completedAt': completed ? now : null,
+                'toolkit.tasks.$[task].completedBy': completed ? req.session.currentuser : null,
+                'toolkit.tasks.$[task].updatedAt': now,
+                'toolkit.updatedAt': now,
+                'toolkit.updatedBy': req.session.currentuser
+            }
+        }, { arrayFilters: [{ 'task.id': req.params.taskId }] });
+        req.flash('success_msg', completed ? 'Task marked complete.' : 'Task reopened.');
+    } catch (error) {
+        console.error('Error updating event toolkit task status:', error);
+        req.flash('error_msg', 'Failed to update the task status.');
+    }
+    res.redirect(toolkitUrl);
+});
+
+app.post('/events/:eventId/toolkit/tasks/:taskId/delete', requireDatabase, async (req, res) => {
+    const toolkitUrl = getEventToolkitUrl(req.params.eventId);
+    if (!req.session.loggedin || !hasManagementAccess(req)) {
+        req.flash('error_msg', 'You are not authorized to manage this event toolkit.');
+        return res.redirect('/events');
+    }
+
+    try {
+        const eventFilter = getScheduledEventFilter(req.params.eventId);
+        const result = await db.collection('scheduledEvents').updateOne(eventFilter, {
+            $pull: { 'toolkit.tasks': { id: req.params.taskId } },
+            $set: { 'toolkit.updatedAt': new Date().toISOString(), 'toolkit.updatedBy': req.session.currentuser }
+        });
+        if (!result.matchedCount) {
+            req.flash('error_msg', 'Event not found.');
+            return res.redirect('/events');
+        }
+        await writeAudit(req, 'Updated Event Toolkit', `Removed a preparation task from event ${req.params.eventId}.`);
+        req.flash('success_msg', 'Preparation task removed.');
+    } catch (error) {
+        console.error('Error removing event toolkit task:', error);
+        req.flash('error_msg', 'Failed to remove the preparation task.');
+    }
+    res.redirect(toolkitUrl);
+});
+
+app.post('/events/:eventId/toolkit/recap', requireDatabase, async (req, res) => {
+    const toolkitUrl = getEventToolkitUrl(req.params.eventId);
+    if (!req.session.loggedin || !hasManagementAccess(req)) {
+        req.flash('error_msg', 'You are not authorized to manage this event toolkit.');
+        return res.redirect('/events');
+    }
+
+    const recap = (req.body.recap || '').toString().trim();
+    if (recap.length > 2000) {
+        req.flash('error_msg', 'The event recap must be 2,000 characters or fewer.');
+        return res.redirect(toolkitUrl);
+    }
+
+    try {
+        const now = new Date().toISOString();
+        const result = await db.collection('scheduledEvents').updateOne(getScheduledEventFilter(req.params.eventId), {
+            $set: {
+                'toolkit.recap': recap,
+                'toolkit.updatedAt': now,
+                'toolkit.updatedBy': req.session.currentuser
+            }
+        });
+        if (!result.matchedCount) {
+            req.flash('error_msg', 'Event not found.');
+            return res.redirect('/events');
+        }
+        await writeAudit(req, 'Updated Event Toolkit', `Saved the event recap for ${req.params.eventId}.`);
+        req.flash('success_msg', 'Event recap saved.');
+    } catch (error) {
+        console.error('Error saving event toolkit recap:', error);
+        req.flash('error_msg', 'Failed to save the event recap.');
+    }
+    res.redirect(toolkitUrl);
+});
+
+app.post('/events/:eventId/toolkit/templates/apply', requireDatabase, async (req, res) => {
+    const toolkitUrl = getEventToolkitUrl(req.params.eventId);
+    if (!req.session.loggedin || !hasManagementAccess(req)) {
+        req.flash('error_msg', 'You are not authorized to manage this event toolkit.');
+        return res.redirect('/events');
+    }
+
+    try {
+        const template = await db.collection('eventToolkitTemplates').findOne({ id: req.body.templateId });
+        const templateTasks = Array.isArray(template?.tasks) ? template.tasks : [];
+        if (!template || !templateTasks.length) {
+            req.flash('error_msg', 'Choose a saved template with at least one task.');
+            return res.redirect(toolkitUrl);
+        }
+
+        const eventFilter = getScheduledEventFilter(req.params.eventId);
+        const event = await db.collection('scheduledEvents').findOne(eventFilter);
+        if (!event) {
+            req.flash('error_msg', 'Event not found.');
+            return res.redirect('/events');
+        }
+        const currentTasks = Array.isArray(event.toolkit?.tasks) ? event.toolkit.tasks : [];
+        if (currentTasks.length + templateTasks.length > EVENT_TOOLKIT_MAX_TASKS) {
+            req.flash('error_msg', `Applying this template would exceed the ${EVENT_TOOLKIT_MAX_TASKS}-task limit.`);
+            return res.redirect(toolkitUrl);
+        }
+
+        const now = new Date().toISOString();
+        const tasks = templateTasks.slice(0, EVENT_TOOLKIT_MAX_TASKS).map((item) => ({
+            id: crypto.randomUUID(),
+            title: item.title,
+            assignedTo: null,
+            dueDate: null,
+            completed: false,
+            completedAt: null,
+            completedBy: null,
+            createdAt: now,
+            updatedAt: now
+        }));
+        await db.collection('scheduledEvents').updateOne(eventFilter, {
+            $push: { 'toolkit.tasks': { $each: tasks } },
+            $set: { 'toolkit.updatedAt': now, 'toolkit.updatedBy': req.session.currentuser }
+        });
+        await writeAudit(req, 'Updated Event Toolkit', `Applied template "${template.name}" to ${event.title}.`);
+        req.flash('success_msg', `Added ${tasks.length} tasks from "${template.name}".`);
+    } catch (error) {
+        console.error('Error applying event toolkit template:', error);
+        req.flash('error_msg', 'Failed to apply the event toolkit template.');
+    }
+    res.redirect(toolkitUrl);
+});
+
+app.post('/events/:eventId/toolkit/templates/save', requireDatabase, async (req, res) => {
+    const toolkitUrl = getEventToolkitUrl(req.params.eventId);
+    if (!req.session.loggedin || !hasManagementAccess(req)) {
+        req.flash('error_msg', 'You are not authorized to manage this event toolkit.');
+        return res.redirect('/events');
+    }
+
+    const name = (req.body.name || '').toString().trim();
+    if (!name || name.length > 60) {
+        req.flash('error_msg', 'Enter a template name of 1–60 characters.');
+        return res.redirect(toolkitUrl);
+    }
+
+    try {
+        const event = await db.collection('scheduledEvents').findOne(getScheduledEventFilter(req.params.eventId));
+        if (!event) {
+            req.flash('error_msg', 'Event not found.');
+            return res.redirect('/events');
+        }
+        const tasks = (Array.isArray(event.toolkit?.tasks) ? event.toolkit.tasks : [])
+            .map((task) => ({ title: (task.title || '').toString().trim().slice(0, 120) }))
+            .filter((task) => task.title);
+        if (!tasks.length) {
+            req.flash('error_msg', 'Add at least one preparation task before saving a template.');
+            return res.redirect(toolkitUrl);
+        }
+
+        await db.collection('eventToolkitTemplates').insertOne({
+            id: crypto.randomUUID(),
+            name,
+            tasks,
+            createdBy: req.session.currentuser,
+            createdAt: new Date().toISOString()
+        });
+        await writeAudit(req, 'Created Event Toolkit Template', `Created template "${name}".`);
+        req.flash('success_msg', `Template "${name}" saved.`);
+    } catch (error) {
+        console.error('Error saving event toolkit template:', error);
+        req.flash('error_msg', 'Failed to save the event toolkit template.');
+    }
+    res.redirect(toolkitUrl);
+});
+
+app.post('/events/:eventId/toolkit/templates/:templateId/delete', requireDatabase, async (req, res) => {
+    const toolkitUrl = getEventToolkitUrl(req.params.eventId);
+    if (!req.session.loggedin || !hasManagementAccess(req)) {
+        req.flash('error_msg', 'You are not authorized to manage this event toolkit.');
+        return res.redirect('/events');
+    }
+
+    try {
+        const result = await db.collection('eventToolkitTemplates').deleteOne({ id: req.params.templateId });
+        if (!result.deletedCount) {
+            req.flash('error_msg', 'Template not found.');
+            return res.redirect(toolkitUrl);
+        }
+        await writeAudit(req, 'Deleted Event Toolkit Template', `Deleted template ${req.params.templateId}.`);
+        req.flash('success_msg', 'Event toolkit template deleted.');
+    } catch (error) {
+        console.error('Error deleting event toolkit template:', error);
+        req.flash('error_msg', 'Failed to delete the event toolkit template.');
+    }
+    res.redirect(toolkitUrl);
 });
 
 // CREATE SCHEDULED EVENT (MANAGEMENT ONLY)

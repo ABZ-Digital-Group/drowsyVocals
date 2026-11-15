@@ -31,6 +31,10 @@ The Changelog, Audit Log, and LOA History pages show their complete datasets in 
 
 Deleted staff accounts retain their strike history in the deleted-user record. If the same Discord account is added back to the roster, its previous strikes are restored automatically.
 
+## Event planning toolkit
+
+Managers can open **Event Toolkit** from a scheduled event to add preparation tasks, assign them to staff, set due dates, and save or reuse checklist templates. Assigned staff can open the event toolkit from the event listing and update only their own task completion; managers can edit all tasks and record close-out notes. Templates copy task titles only, so assignees, due dates, and completion state are set separately for each event.
+
 ## Seasonal themes
 
 Gods and Developers can enable the manual Halloween or Christmas theme from **Settings > System & Security**. Only one seasonal theme is active at a time; enabling one disables the other. Visitors can disable the animated effects locally with the seasonal-effects control.
