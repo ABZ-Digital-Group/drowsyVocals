@@ -26,6 +26,7 @@ const {
     shiftDateKey,
     splitActivityAcrossDays
 } = require('./services/staffActivity');
+const { buildBingoArchive, buildHousePointsArchive } = require('./services/gamificationArchives');
 const { getAllowedInviteData } = require('./services/inviteWhitelist');
 
 const app = express();
@@ -610,6 +611,11 @@ app.use(async (req, res, next) => {
     }
 });
 const CHANGELOG_ENTRIES = [
+    {
+        date: '2026-11-15',
+        title: 'Bingo and House Points archives added',
+        changes: ['Managers can manually save read-only snapshots of Bingo progress and House Points standings without changing the active pages.']
+    },
     {
         date: '2026-11-15',
         title: 'Staff activity history and reporting accuracy improved',
@@ -5997,10 +6003,14 @@ app.get('/house-points', requireDatabase, async (req, res) => {
     if (!req.session.loggedin) return res.redirect('/');
 
     try {
-        const [settings, users, pointsLog] = await Promise.all([
+        const [settings, users, pointsLog, archives] = await Promise.all([
             getSettings(),
             db.collection('users').find({}, { projection: { 'login.password': 0 } }).toArray(),
-            db.collection('housePointsLog').find().sort({ createdAt: -1 }).limit(30).toArray()
+            db.collection('housePointsLog').find().sort({ createdAt: -1 }).limit(30).toArray(),
+            db.collection('gamificationArchives')
+                .find({ type: 'house-points' }, { projection: { title: 1, createdAt: 1, createdByName: 1 } })
+                .sort({ createdAt: -1 })
+                .toArray()
         ]);
 
         const houseColorMap = Object.fromEntries((settings?.houses || []).map(h => [h.name, h.color]));
@@ -6041,11 +6051,73 @@ app.get('/house-points', requireDatabase, async (req, res) => {
             users: users.sort((a, b) => (a.displayName || a.discordUser || '').localeCompare(b.displayName || b.discordUser || '')),
             pointsLog,
             houseColorMap,
-            isManager
+            isManager,
+            archives
         });
     } catch (error) {
         console.error('Error loading house points:', error);
         res.status(500).send('Error loading house points.');
+    }
+});
+
+app.post('/house-points/archive', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !hasManagementAccess(req)) {
+        req.flash('error_msg', 'You are not authorized to archive House Points.');
+        return res.redirect('/house-points');
+    }
+
+    try {
+        const [settings, users, actor] = await Promise.all([
+            getSettings(),
+            db.collection('users').find({}, {
+                projection: { displayName: 1, discordUser: 1, accountType: 1, house: 1, housePoints: 1 }
+            }).toArray(),
+            db.collection('users').findOne(
+                { 'login.discordId': req.session.currentuser },
+                { projection: { displayName: 1, discordUser: 1 } }
+            )
+        ]);
+        const createdAt = new Date();
+        const archiveName = (req.body.archiveName || '').toString().trim().slice(0, 80);
+        const title = archiveName || `House Points - ${createdAt.toISOString().slice(0, 10)}`;
+        const data = buildHousePointsArchive(settings, users);
+
+        await db.collection('gamificationArchives').insertOne({
+            type: 'house-points',
+            title,
+            createdAt,
+            createdByName: actor?.displayName || actor?.discordUser || 'Management',
+            data
+        });
+        await writeAudit(req, 'Archived House Points standings', `${data.members.length} staff member totals saved`);
+        req.flash('success_msg', `House Points archive "${title}" saved. Current scores were not changed.`);
+    } catch (error) {
+        console.error('Error archiving House Points:', error);
+        req.flash('error_msg', 'Failed to create the House Points archive.');
+    }
+
+    res.redirect('/house-points#archives');
+});
+
+app.get('/house-points/archives/:archiveId', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin) return res.redirect('/');
+    if (!/^[a-f\d]{24}$/i.test(req.params.archiveId)) return res.status(404).send('Archive not found.');
+
+    try {
+        const archive = await db.collection('gamificationArchives').findOne({
+            _id: new ObjectId(req.params.archiveId),
+            type: 'house-points'
+        });
+        if (!archive) return res.status(404).send('Archive not found.');
+
+        res.render('pages/gamification-archive', {
+            page: 'house-points',
+            archive,
+            backPath: '/house-points#archives'
+        });
+    } catch (error) {
+        console.error('Error loading House Points archive:', error);
+        res.status(500).send('Error loading House Points archive.');
     }
 });
 
@@ -10350,9 +10422,13 @@ app.get('/bingo', requireDatabase, async (req, res) => {
     if (!req.session.loggedin) return res.redirect('/');
 
     try {
-        const [settings, users] = await Promise.all([
+        const [settings, users, bingoArchives] = await Promise.all([
             getSettings(),
-            db.collection('users').find({}, { projection: { 'login.password': 0 } }).toArray()
+            db.collection('users').find({}, { projection: { 'login.password': 0 } }).toArray(),
+            db.collection('gamificationArchives')
+                .find({ type: 'bingo' }, { projection: { title: 1, createdAt: 1, createdByName: 1 } })
+                .sort({ createdAt: -1 })
+                .toArray()
         ]);
         const {
             templates: bingoTemplates,
@@ -10446,11 +10522,84 @@ app.get('/bingo', requireDatabase, async (req, res) => {
             totalBingoCc,
             houseColorMap,
             canManageBingo: hasManagementAccess(req),
-            canManageBingoTemplates: hasGodAccess(req)
+            canManageBingoTemplates: hasGodAccess(req),
+            bingoArchives
         });
     } catch (error) {
         console.error('Error loading Bingo board:', error);
         res.status(500).send('Error loading Bingo board.');
+    }
+});
+
+app.post('/bingo/archive', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !hasManagementAccess(req)) {
+        req.flash('error_msg', 'You are not authorized to archive Bingo.');
+        return res.redirect('/bingo');
+    }
+
+    try {
+        const [settings, users, actor] = await Promise.all([
+            getSettings(),
+            db.collection('users').find({}, {
+                projection: { displayName: 1, discordUser: 1, accountType: 1, house: 1, bingoProgress: 1, bingoTotals: 1 }
+            }).toArray(),
+            db.collection('users').findOne(
+                { 'login.discordId': req.session.currentuser },
+                { projection: { displayName: 1, discordUser: 1 } }
+            )
+        ]);
+        const { activeTemplate } = getBingoTemplateConfig(settings);
+        const sortedRanks = settings.ranks.slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+        const baselineOrder = getBingoEligibilityOrder(settings);
+        const normalizeRank = (rank) => (rank || '').toString().toLowerCase().replace(/\./g, '').trim();
+        const groups = sortedRanks.filter((rank) => (
+            Number.isFinite(baselineOrder) && (rank.order ?? 0) >= baselineOrder
+        )).map((rank) => ({
+            name: rank.name,
+            users: users.filter((user) => normalizeRank(user.accountType) === normalizeRank(rank.name))
+        })).filter((group) => group.users.length);
+        const data = buildBingoArchive(activeTemplate, groups, getBingoGoalRewardValue);
+        const createdAt = new Date();
+        const archiveName = (req.body.archiveName || '').toString().trim().slice(0, 80);
+        const title = archiveName || `Bingo - ${activeTemplate.name} - ${createdAt.toISOString().slice(0, 10)}`;
+
+        await db.collection('gamificationArchives').insertOne({
+            type: 'bingo',
+            title,
+            createdAt,
+            createdByName: actor?.displayName || actor?.discordUser || 'Management',
+            data
+        });
+        const participantCount = data.groups.reduce((total, group) => total + group.users.length, 0);
+        await writeAudit(req, 'Archived Bingo board', `${participantCount} staff progress records saved for ${activeTemplate.name}`);
+        req.flash('success_msg', `Bingo archive "${title}" saved. Current progress was not changed.`);
+    } catch (error) {
+        console.error('Error archiving Bingo board:', error);
+        req.flash('error_msg', 'Failed to create the Bingo archive.');
+    }
+
+    res.redirect('/bingo#archives');
+});
+
+app.get('/bingo/archives/:archiveId', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin) return res.redirect('/');
+    if (!/^[a-f\d]{24}$/i.test(req.params.archiveId)) return res.status(404).send('Archive not found.');
+
+    try {
+        const archive = await db.collection('gamificationArchives').findOne({
+            _id: new ObjectId(req.params.archiveId),
+            type: 'bingo'
+        });
+        if (!archive) return res.status(404).send('Archive not found.');
+
+        res.render('pages/gamification-archive', {
+            page: 'bingo',
+            archive,
+            backPath: '/bingo#archives'
+        });
+    } catch (error) {
+        console.error('Error loading Bingo archive:', error);
+        res.status(500).send('Error loading Bingo archive.');
     }
 });
 

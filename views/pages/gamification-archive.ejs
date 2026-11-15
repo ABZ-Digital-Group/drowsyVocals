@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <%- include('../partials/head') %>
+        <title><%= archive.title %> - Drowsy Vocals</title>
+    </head>
+    <body>
+        <header>
+            <%- include('../partials/nav') %>
+        </header>
+        <main>
+            <section class="settings-page">
+                <div class="settings-header">
+                    <div class="settings-header-top">
+                        <div>
+                            <p class="profile-eyebrow">Read-only archive</p>
+                            <h1 style="margin: 0; font-size: 2.4em; color: var(--night-indigo);"><%= archive.title %></h1>
+                            <p class="profile-subtitle">
+                                Saved <%= new Date(archive.createdAt).toLocaleString('en-US', { timeZone: 'America/New_York' }) %>
+                                by <%= archive.createdByName || 'Management' %>. This snapshot does not affect current scores or progress.
+                            </p>
+                        </div>
+                        <a class="settings-btn settings-btn-secondary" href="<%= backPath %>">Back to <%= archive.type === 'bingo' ? 'Bingo' : 'House Points' %></a>
+                    </div>
+                </div>
+
+                <% if (archive.type === 'bingo') { %>
+                <div class="account-card">
+                    <div class="account-card-header">
+                        <h2 class="account-card-title"><span class="material-symbols-outlined">grid_on</span> <%= archive.data.template.name %></h2>
+                        <span class="account-badge"><%= archive.data.groups.reduce(function(total, group) { return total + group.users.length; }, 0) %> Staff</span>
+                    </div>
+                    <p class="settings-hint">The archived board has <%= archive.data.template.goals.length %> goals.</p>
+                    <div class="settings-table-wrapper">
+                        <table class="settings-ranks-table">
+                            <thead>
+                                <tr><th>Staff Member</th><th>Rank</th><th>House</th><th>Progress</th><th>HP</th><th>CC</th></tr>
+                            </thead>
+                            <tbody>
+                                <% archive.data.groups.forEach(function(group) { %>
+                                <% group.users.forEach(function(member) {
+                                    const completedGoals = archive.data.template.goals.filter(function(goal) {
+                                        return member.progress[goal.id];
+                                    });
+                                %>
+                                <tr>
+                                    <td><strong><%= member.name %></strong></td>
+                                    <td><%= group.name %></td>
+                                    <td><%= member.house || '-' %></td>
+                                    <td>
+                                        <details>
+                                            <summary><%= completedGoals.length %> / <%= archive.data.template.goals.length %> goals</summary>
+                                            <% if (completedGoals.length) { %>
+                                            <ul>
+                                                <% completedGoals.forEach(function(goal) { %><li><%= goal.target %> — <%= goal.challenge || ('Complete: ' + goal.target) %></li><% }); %>
+                                            </ul>
+                                            <% } else { %><p>No goals completed.</p><% } %>
+                                        </details>
+                                    </td>
+                                    <td><%= member.totals.hp %></td>
+                                    <td><%= member.totals.cc %></td>
+                                </tr>
+                                <% }); %>
+                                <% }); %>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <% } else { %>
+                <div class="account-card">
+                    <div class="account-card-header">
+                        <h2 class="account-card-title"><span class="material-symbols-outlined">emoji_events</span> House Standings</h2>
+                    </div>
+                    <div class="settings-table-wrapper">
+                        <table class="settings-ranks-table">
+                            <thead><tr><th>Rank</th><th>House</th><th>Members</th><th>Total Points</th></tr></thead>
+                            <tbody>
+                                <% archive.data.houseStandings.forEach(function(house, index) { %>
+                                <tr>
+                                    <td><%= index + 1 %></td>
+                                    <td><span class="account-color-dot" style="background-color: <%= house.color %>;"></span> <%= house.name %></td>
+                                    <td><%= house.memberCount %></td>
+                                    <td><strong><%= house.totalPoints %></strong></td>
+                                </tr>
+                                <% }); %>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="account-card">
+                    <div class="account-card-header">
+                        <h2 class="account-card-title"><span class="material-symbols-outlined">groups</span> Member Totals</h2>
+                        <span class="account-badge"><%= archive.data.members.length %> Staff</span>
+                    </div>
+                    <div class="settings-table-wrapper">
+                        <table class="settings-ranks-table">
+                            <thead><tr><th>Rank</th><th>Staff Member</th><th>House</th><th>Points</th></tr></thead>
+                            <tbody>
+                                <% archive.data.members.forEach(function(member, index) { %>
+                                <tr>
+                                    <td><%= index + 1 %></td>
+                                    <td><strong><%= member.name %></strong></td>
+                                    <td><%= member.house || '-' %></td>
+                                    <td><%= member.points %></td>
+                                </tr>
+                                <% }); %>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <% } %>
+            </section>
+        </main>
+        <div class="footer">
+            <p>&copy; 2026 Drowsy Vocals | All rights reserved.</p>
+        </div>
+    </body>
+</html>
