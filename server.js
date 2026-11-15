@@ -19,6 +19,7 @@ const { MongoClient, ObjectId } = require('mongodb');
 const { Server } = require('socket.io');
 const { createBotService } = require('./services/botService');
 const { createPrivacyDataExportPdf } = require('./services/privacyDataExportPdf');
+const { canViewPageForUser } = require('./services/pageVisibility');
 const {
     STAFF_ACTIVITY_TIME_ZONE,
     clipActivitySession,
@@ -26,7 +27,6 @@ const {
     shiftDateKey,
     splitActivityAcrossDays
 } = require('./services/staffActivity');
-const { buildBingoArchive, buildHousePointsArchive } = require('./services/gamificationArchives');
 const { getAllowedInviteData } = require('./services/inviteWhitelist');
 
 const app = express();
@@ -309,7 +309,13 @@ app.use(async (req, res, next) => {
     res.locals.checkInAccess = false;
     res.locals.checkInReadAccess = Boolean(req.session.loggedin);
     res.locals.pagePermissions = {};
-    res.locals.canViewPage = (pageKey) => canViewPage(req, pageKey, res.locals.pagePermissions);
+    res.locals.archivedPages = [];
+    res.locals.canViewPage = (pageKey) => canViewPage(
+        req,
+        pageKey,
+        res.locals.pagePermissions,
+        res.locals.archivedPages
+    );
     res.locals.halloweenEnabled = false;
     res.locals.christmasEnabled = false;
     res.locals.seasonalTheme = 'none';
@@ -346,6 +352,7 @@ app.use(async (req, res, next) => {
         try {
             const currentSettings = await getSettings();
             res.locals.pagePermissions = currentSettings.pageAccess || {};
+            res.locals.archivedPages = Array.isArray(currentSettings.archivedPages) ? currentSettings.archivedPages : [];
             res.locals.halloweenEnabled = Boolean(currentSettings.halloween?.enabled);
             res.locals.christmasEnabled = Boolean(currentSettings.christmas?.enabled);
             res.locals.seasonalTheme = res.locals.christmasEnabled
@@ -565,16 +572,19 @@ const PAGE_PERMISSION_OPTIONS = [
     { key: 'account', path: '/account', apiPath: '/api/v1/account', label: 'Account' },
     { key: 'settings', path: '/settings', apiPath: '/api/v1/settings', label: 'Settings' }
 ];
+const ARCHIVABLE_PAGE_OPTIONS = PAGE_PERMISSION_OPTIONS.filter((page) => page.key !== 'settings');
 const hasManagementAccess = (req) => MANAGEMENT_ROLES.includes(req.session.accountType) || Boolean(req.session.isDeveloper);
 const hasGodAccess = (req) => GOD_ROLES.includes(req.session.accountType) || Boolean(req.session.isDeveloper);
 const hasBracketAccess = (req) => Boolean(req.session.loggedin && req.session.currentuser);
 const hasDiscordChannelViewerAccess = (req) => !req.session.previewAsNonAdmin && req.session.currentuser === DISCORD_CHANNEL_VIEWER_ID;
 const hasCheckInAccess = (req, settings) => hasGodAccess(req) || (settings.checkInAccessUserIds || []).includes(req.session.currentuser);
-const canViewPage = (req, pageKey, pagePermissions = {}) => {
-    if (hasGodAccess(req)) return true;
-    const allowedRoles = pagePermissions?.[pageKey];
-    return !Array.isArray(allowedRoles) || allowedRoles.includes(req.session.accountType);
-};
+const canViewPage = (req, pageKey, pagePermissions = {}, archivedPages = []) => canViewPageForUser({
+    isGod: hasGodAccess(req),
+    pageKey,
+    accountType: req.session.accountType,
+    pagePermissions,
+    archivedPages
+});
 const getPagePermissionKey = (requestPath) => PAGE_PERMISSION_OPTIONS
     .slice()
     .sort((a, b) => Math.max(b.path.length, b.apiPath?.length || 0) - Math.max(a.path.length, a.apiPath?.length || 0))
@@ -595,11 +605,11 @@ app.use(async (req, res, next) => {
     if (!req.session.loggedin || !isDatabaseReady || !db) return next();
 
     const pageKey = getPagePermissionKey(req.path);
-    if (!pageKey || pageKey === 'privacy-requests' || hasGodAccess(req)) return next();
+    if (!pageKey || hasGodAccess(req)) return next();
 
     try {
         const settings = await getSettings();
-        if (canViewPage(req, pageKey, settings.pageAccess || {})) return next();
+        if (canViewPage(req, pageKey, settings.pageAccess || {}, settings.archivedPages || [])) return next();
 
         if (req.path.startsWith('/api/')) {
             return res.status(403).json({ success: false, error: 'You do not have permission to view this page.' });
@@ -613,8 +623,8 @@ app.use(async (req, res, next) => {
 const CHANGELOG_ENTRIES = [
     {
         date: '2026-11-15',
-        title: 'Bingo and House Points archives added',
-        changes: ['Managers can manually save read-only snapshots of Bingo progress and House Points standings without changing the active pages.']
+        title: 'Pages can be archived from Settings',
+        changes: ['Gods and Developers can hide selected pages from regular users and restore them later without deleting their data.']
     },
     {
         date: '2026-11-15',
@@ -2003,6 +2013,7 @@ const DEFAULT_SETTINGS = {
         { name: 'LOA', color: '#A9CAFF' }
     ],
     pageAccess: {},
+    archivedPages: [],
     halloween: {
         enabled: false
     },
@@ -3597,7 +3608,8 @@ app.get('/settings', requireDatabase, async (req, res) => {
             bingoTemplates,
             activeBingoTemplateId,
             activeBingoTemplate,
-            pagePermissionOptions: PAGE_PERMISSION_OPTIONS
+            pagePermissionOptions: PAGE_PERMISSION_OPTIONS,
+            archivablePageOptions: ARCHIVABLE_PAGE_OPTIONS
         });
     } catch (error) {
         console.error('Error loading settings:', error);
@@ -3643,6 +3655,48 @@ app.post('/settings/page-access', requireDatabase, async (req, res) => {
         req.flash('error_msg', 'Unable to update page access.');
     }
     res.redirect('/settings#page-access');
+});
+
+app.post('/settings/archived-pages', requireDatabase, async (req, res) => {
+    if (!req.session.loggedin || !hasGodAccess(req)) {
+        req.flash('error_msg', 'You are not authorized to archive pages.');
+        return res.redirect('/settings');
+    }
+
+    try {
+        const submittedPages = Array.isArray(req.body.archivedPages)
+            ? req.body.archivedPages
+            : (req.body.archivedPages ? [req.body.archivedPages] : []);
+        const selectedPages = new Set(submittedPages.map((page) => String(page).trim()));
+        const archivedPages = ARCHIVABLE_PAGE_OPTIONS
+            .filter((page) => selectedPages.has(page.key))
+            .map((page) => page.key);
+
+        await db.collection('settings').updateOne(
+            { _id: 'appSettings' },
+            {
+                $set: {
+                    archivedPages,
+                    archivedPagesUpdatedAt: new Date().toISOString(),
+                    archivedPagesUpdatedBy: req.session.currentuser
+                }
+            },
+            { upsert: true }
+        );
+        const labels = ARCHIVABLE_PAGE_OPTIONS
+            .filter((page) => archivedPages.includes(page.key))
+            .map((page) => page.label);
+        await writeAudit(
+            req,
+            'Updated archived pages',
+            labels.length ? `Hidden pages: ${labels.join(', ')}` : 'All pages restored'
+        );
+        req.flash('success_msg', 'Archived page settings saved.');
+    } catch (error) {
+        console.error('Error updating archived pages:', error);
+        req.flash('error_msg', 'Unable to save archived page settings.');
+    }
+    res.redirect('/settings#archived-pages');
 });
 
 app.post('/settings/reset-requests/:requestId/:decision', requireDatabase, async (req, res) => {
@@ -6003,14 +6057,10 @@ app.get('/house-points', requireDatabase, async (req, res) => {
     if (!req.session.loggedin) return res.redirect('/');
 
     try {
-        const [settings, users, pointsLog, archives] = await Promise.all([
+        const [settings, users, pointsLog] = await Promise.all([
             getSettings(),
             db.collection('users').find({}, { projection: { 'login.password': 0 } }).toArray(),
-            db.collection('housePointsLog').find().sort({ createdAt: -1 }).limit(30).toArray(),
-            db.collection('gamificationArchives')
-                .find({ type: 'house-points' }, { projection: { title: 1, createdAt: 1, createdByName: 1 } })
-                .sort({ createdAt: -1 })
-                .toArray()
+            db.collection('housePointsLog').find().sort({ createdAt: -1 }).limit(30).toArray()
         ]);
 
         const houseColorMap = Object.fromEntries((settings?.houses || []).map(h => [h.name, h.color]));
@@ -6051,73 +6101,11 @@ app.get('/house-points', requireDatabase, async (req, res) => {
             users: users.sort((a, b) => (a.displayName || a.discordUser || '').localeCompare(b.displayName || b.discordUser || '')),
             pointsLog,
             houseColorMap,
-            isManager,
-            archives
+            isManager
         });
     } catch (error) {
         console.error('Error loading house points:', error);
         res.status(500).send('Error loading house points.');
-    }
-});
-
-app.post('/house-points/archive', requireDatabase, async (req, res) => {
-    if (!req.session.loggedin || !hasManagementAccess(req)) {
-        req.flash('error_msg', 'You are not authorized to archive House Points.');
-        return res.redirect('/house-points');
-    }
-
-    try {
-        const [settings, users, actor] = await Promise.all([
-            getSettings(),
-            db.collection('users').find({}, {
-                projection: { displayName: 1, discordUser: 1, accountType: 1, house: 1, housePoints: 1 }
-            }).toArray(),
-            db.collection('users').findOne(
-                { 'login.discordId': req.session.currentuser },
-                { projection: { displayName: 1, discordUser: 1 } }
-            )
-        ]);
-        const createdAt = new Date();
-        const archiveName = (req.body.archiveName || '').toString().trim().slice(0, 80);
-        const title = archiveName || `House Points - ${createdAt.toISOString().slice(0, 10)}`;
-        const data = buildHousePointsArchive(settings, users);
-
-        await db.collection('gamificationArchives').insertOne({
-            type: 'house-points',
-            title,
-            createdAt,
-            createdByName: actor?.displayName || actor?.discordUser || 'Management',
-            data
-        });
-        await writeAudit(req, 'Archived House Points standings', `${data.members.length} staff member totals saved`);
-        req.flash('success_msg', `House Points archive "${title}" saved. Current scores were not changed.`);
-    } catch (error) {
-        console.error('Error archiving House Points:', error);
-        req.flash('error_msg', 'Failed to create the House Points archive.');
-    }
-
-    res.redirect('/house-points#archives');
-});
-
-app.get('/house-points/archives/:archiveId', requireDatabase, async (req, res) => {
-    if (!req.session.loggedin) return res.redirect('/');
-    if (!/^[a-f\d]{24}$/i.test(req.params.archiveId)) return res.status(404).send('Archive not found.');
-
-    try {
-        const archive = await db.collection('gamificationArchives').findOne({
-            _id: new ObjectId(req.params.archiveId),
-            type: 'house-points'
-        });
-        if (!archive) return res.status(404).send('Archive not found.');
-
-        res.render('pages/gamification-archive', {
-            page: 'house-points',
-            archive,
-            backPath: '/house-points#archives'
-        });
-    } catch (error) {
-        console.error('Error loading House Points archive:', error);
-        res.status(500).send('Error loading House Points archive.');
     }
 });
 
@@ -10422,13 +10410,9 @@ app.get('/bingo', requireDatabase, async (req, res) => {
     if (!req.session.loggedin) return res.redirect('/');
 
     try {
-        const [settings, users, bingoArchives] = await Promise.all([
+        const [settings, users] = await Promise.all([
             getSettings(),
-            db.collection('users').find({}, { projection: { 'login.password': 0 } }).toArray(),
-            db.collection('gamificationArchives')
-                .find({ type: 'bingo' }, { projection: { title: 1, createdAt: 1, createdByName: 1 } })
-                .sort({ createdAt: -1 })
-                .toArray()
+            db.collection('users').find({}, { projection: { 'login.password': 0 } }).toArray()
         ]);
         const {
             templates: bingoTemplates,
@@ -10522,84 +10506,11 @@ app.get('/bingo', requireDatabase, async (req, res) => {
             totalBingoCc,
             houseColorMap,
             canManageBingo: hasManagementAccess(req),
-            canManageBingoTemplates: hasGodAccess(req),
-            bingoArchives
+            canManageBingoTemplates: hasGodAccess(req)
         });
     } catch (error) {
         console.error('Error loading Bingo board:', error);
         res.status(500).send('Error loading Bingo board.');
-    }
-});
-
-app.post('/bingo/archive', requireDatabase, async (req, res) => {
-    if (!req.session.loggedin || !hasManagementAccess(req)) {
-        req.flash('error_msg', 'You are not authorized to archive Bingo.');
-        return res.redirect('/bingo');
-    }
-
-    try {
-        const [settings, users, actor] = await Promise.all([
-            getSettings(),
-            db.collection('users').find({}, {
-                projection: { displayName: 1, discordUser: 1, accountType: 1, house: 1, bingoProgress: 1, bingoTotals: 1 }
-            }).toArray(),
-            db.collection('users').findOne(
-                { 'login.discordId': req.session.currentuser },
-                { projection: { displayName: 1, discordUser: 1 } }
-            )
-        ]);
-        const { activeTemplate } = getBingoTemplateConfig(settings);
-        const sortedRanks = settings.ranks.slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-        const baselineOrder = getBingoEligibilityOrder(settings);
-        const normalizeRank = (rank) => (rank || '').toString().toLowerCase().replace(/\./g, '').trim();
-        const groups = sortedRanks.filter((rank) => (
-            Number.isFinite(baselineOrder) && (rank.order ?? 0) >= baselineOrder
-        )).map((rank) => ({
-            name: rank.name,
-            users: users.filter((user) => normalizeRank(user.accountType) === normalizeRank(rank.name))
-        })).filter((group) => group.users.length);
-        const data = buildBingoArchive(activeTemplate, groups, getBingoGoalRewardValue);
-        const createdAt = new Date();
-        const archiveName = (req.body.archiveName || '').toString().trim().slice(0, 80);
-        const title = archiveName || `Bingo - ${activeTemplate.name} - ${createdAt.toISOString().slice(0, 10)}`;
-
-        await db.collection('gamificationArchives').insertOne({
-            type: 'bingo',
-            title,
-            createdAt,
-            createdByName: actor?.displayName || actor?.discordUser || 'Management',
-            data
-        });
-        const participantCount = data.groups.reduce((total, group) => total + group.users.length, 0);
-        await writeAudit(req, 'Archived Bingo board', `${participantCount} staff progress records saved for ${activeTemplate.name}`);
-        req.flash('success_msg', `Bingo archive "${title}" saved. Current progress was not changed.`);
-    } catch (error) {
-        console.error('Error archiving Bingo board:', error);
-        req.flash('error_msg', 'Failed to create the Bingo archive.');
-    }
-
-    res.redirect('/bingo#archives');
-});
-
-app.get('/bingo/archives/:archiveId', requireDatabase, async (req, res) => {
-    if (!req.session.loggedin) return res.redirect('/');
-    if (!/^[a-f\d]{24}$/i.test(req.params.archiveId)) return res.status(404).send('Archive not found.');
-
-    try {
-        const archive = await db.collection('gamificationArchives').findOne({
-            _id: new ObjectId(req.params.archiveId),
-            type: 'bingo'
-        });
-        if (!archive) return res.status(404).send('Archive not found.');
-
-        res.render('pages/gamification-archive', {
-            page: 'bingo',
-            archive,
-            backPath: '/bingo#archives'
-        });
-    } catch (error) {
-        console.error('Error loading Bingo archive:', error);
-        res.status(500).send('Error loading Bingo archive.');
     }
 });
 

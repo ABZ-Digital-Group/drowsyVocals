@@ -251,43 +251,6 @@
                     </div>
                 </div>
 
-                <div class="account-card" id="archives" style="margin-top: 20px;">
-                    <div class="account-card-header">
-                        <h3 class="account-card-title">
-                            <span class="material-symbols-outlined">inventory_2</span>
-                            <span>Archived House Points</span>
-                        </h3>
-                        <% if (isManager) { %>
-                        <form action="/house-points/archive" method="POST" style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 0;" onsubmit="return confirm('Save a read-only snapshot of current House Points standings? Current scores will not change.');">
-                            <input type="text" name="archiveName" maxlength="80" class="settings-input" placeholder="Archive name (optional)" aria-label="House Points archive name">
-                            <button type="submit" class="settings-btn settings-btn-secondary">
-                                <span class="material-symbols-outlined">archive</span>
-                                Archive Current Standings
-                            </button>
-                        </form>
-                        <% } %>
-                    </div>
-                    <p class="settings-hint">Archives preserve house standings and member totals at the time they were saved. They do not reset or change current scores.</p>
-                    <% if (archives && archives.length) { %>
-                    <div class="settings-table-wrapper">
-                        <table class="settings-ranks-table">
-                            <thead><tr><th>Archive</th><th>Saved</th><th>Saved by</th><th></th></tr></thead>
-                            <tbody>
-                                <% archives.forEach(function(archive) { %>
-                                <tr>
-                                    <td><strong><%= archive.title %></strong></td>
-                                    <td><%= new Date(archive.createdAt).toLocaleString('en-US', { timeZone: 'America/New_York' }) %></td>
-                                    <td><%= archive.createdByName || 'Management' %></td>
-                                    <td><a class="settings-btn settings-btn-secondary" href="/house-points/archives/<%= archive._id %>">View Snapshot</a></td>
-                                </tr>
-                                <% }); %>
-                            </tbody>
-                        </table>
-                    </div>
-                    <% } else { %>
-                    <p class="settings-hint">No House Points archives yet.</p>
-                    <% } %>
-                </div>
             </section>
         </main>
         <div class="footer">

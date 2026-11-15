@@ -25,7 +25,7 @@ Use `LOA_PENDING_REMINDER_DAYS` (default `3`) to control when pending LOA reques
 
 ## Role-based page access
 
-Gods and Developers can open **Settings > Page Access** to restrict authenticated pages to selected configured ranks. Pages remain unchanged until **Restrict** is enabled for them; an enabled rule with no selected ranks denies the page to every non-privileged role. Gods and Developers always retain access, including while using the developer preview mode.
+Gods and Developers can open **Settings > Page Access** to restrict authenticated pages to selected configured ranks or archive pages that are temporarily out of use. Archived pages are hidden from navigation and direct requests for regular users; Gods and Developers retain access so they can restore a page later. Archiving does not delete page data.
 
 ## Management history pagination
 
@@ -36,10 +36,6 @@ Deleted staff accounts retain their strike history in the deleted-user record. I
 ## Event planning toolkit
 
 Managers can open **Event Toolkit** from a scheduled event to add preparation tasks, assign them to staff, set due dates, and save or reuse checklist templates. Assigned staff can open the event toolkit from the event listing and update only their own task completion; managers can edit all tasks and record close-out notes. Templates copy task titles only, so assignees, due dates, and completion state are set separately for each event.
-
-## Bingo and House Points archives
-
-Managers can manually archive the current Bingo board or House Points standings. Bingo archives preserve the active template, eligible staff progress, and totals; House Points archives preserve house standings and member totals. Archives are read-only and do not reset or change the current page data.
 
 ## Seasonal themes
 

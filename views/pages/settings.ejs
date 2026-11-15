@@ -246,6 +246,42 @@
                                 </div>
                             </form>
                         </div>
+                        <div class="settings-card" id="archived-pages">
+                            <div class="settings-card-header">
+                                <div class="settings-card-title-wrap">
+                                    <h3 class="settings-card-title">
+                                        <span class="material-symbols-outlined">inventory_2</span>
+                                        <span>Archived Pages</span>
+                                    </h3>
+                                    <p class="settings-card-desc">Select pages to hide from regular users when they are not in use. Archived pages disappear from navigation and direct requests. Developers, Mr. Sandman, and Realm God retain access here so pages can be restored later.</p>
+                                </div>
+                            </div>
+
+                            <form action="/settings/archived-pages" method="POST" style="display: flex; flex-direction: column; gap: 16px;">
+                                <div class="settings-page-access-list">
+                                    <% (archivablePageOptions || []).forEach(function(page) {
+                                        const archivedPages = Array.isArray(settings.archivedPages) ? settings.archivedPages : [];
+                                    %>
+                                    <div class="settings-page-access-row">
+                                        <div class="settings-page-access-page">
+                                            <strong><%= page.label %></strong>
+                                            <code><%= page.path %></code>
+                                        </div>
+                                        <label class="settings-page-access-restrict">
+                                            <input type="checkbox" name="archivedPages" value="<%= page.key %>" <%= archivedPages.includes(page.key) ? 'checked' : '' %>>
+                                            Hide from users
+                                        </label>
+                                    </div>
+                                    <% }); %>
+                                </div>
+                                <div style="display: flex; justify-content: flex-start;">
+                                    <button type="submit" class="settings-btn settings-btn-primary">
+                                        <span class="material-symbols-outlined">save</span>
+                                        Save Archived Pages
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
                     <% } %>
 
