@@ -9,6 +9,7 @@
             <%- include('../partials/nav') %>
         </header>
         <main>
+            <% const housePointsArchived = typeof archivedPages !== 'undefined' && Array.isArray(archivedPages) && archivedPages.includes('house-points'); %>
             <!-- Header & Toolbar -->
             <div class="settings-header">
                 <div class="settings-header-top">
@@ -128,7 +129,9 @@
                 <div class="roster-filters" style="margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap;" aria-label="Filter roster">
                     <input id="rosterSearch" type="search" placeholder="🔍 Search staff by name, user, ID..." style="flex: 2; min-width: 220px;">
                     <select id="rosterRankFilter"><option value="">All Ranks</option><% settings.ranks.forEach(function(rank) { %><option value="<%= rank.name.toLowerCase() %>"><%= rank.name %></option><% }); %></select>
+                    <% if (!housePointsArchived) { %>
                     <select id="rosterHouseFilter"><option value="">All Houses</option><% settings.houses.forEach(function(house) { %><option value="<%= house.name.toLowerCase() %>"><%= house.name %></option><% }); %></select>
+                    <% } %>
                     <select id="rosterActivityFilter"><option value="">All Activity</option><% settings.activities.forEach(function(activity) { %><option value="<%= activity.name.toLowerCase() %>"><%= activity.name %></option><% }); %></select>
                     <select id="rosterAlertFilter">
                         <option value="">All Alerts & Badges</option>
@@ -179,8 +182,10 @@
                                 <th>Last <br>Promotion</th>
                                 <th>Time In <br>Grade</th>
                                 <th>Shift</th>
+                                <% if (!housePointsArchived) { %>
                                 <th>House</th>
                                 <th>House <br>Points</th>
+                                <% } %>
                                 <th>Activity</th>
                                 <th>Weeks <br>Activity</th>
                                 <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender' || userType === 'Dreamy Defender' || userIsDeveloper) { %>
@@ -193,7 +198,7 @@
                             <% users.forEach(function(user, index) { %>
                             <% if (index === 0 || users[index - 1].accountType !== user.accountType) { %>
                             <tr class="rank-group-header" data-rank-group="<%= (user.accountType || '').toLowerCase() %>">
-                                <th colspan="<%= (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender' || userType === 'Dreamy Defender' || userIsDeveloper) ? 16 : 13 %>">
+                                <th colspan="<%= ((userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender' || userType === 'Dreamy Defender' || userIsDeveloper) ? 16 : 13) - (housePointsArchived ? 2 : 0) %>">
                                     <span><%= user.accountType %></span>
                                     <span>Vacant slots: <%= rankVacancyCounts[user.accountType] || 0 %></span>
                                 </th>
@@ -205,14 +210,14 @@
                                 <td></td>
                                 <% } %>
                                 <td><%= user.accountType %></td>
-                                <td colspan="12">Vacant</td>
+                                <td colspan="<%= housePointsArchived ? 10 : 12 %>">Vacant</td>
                                 <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender' || userType === 'Dreamy Defender' || userIsDeveloper) { %>
                                 <td></td>
                                 <td></td>
                                 <% } %>
                             </tr>
                             <% } else { %>
-                            <tr class="roster-user-row<%= user.suspended ? ' suspended-row' : '' %>" data-rank="<%= (user.accountType || '').toLowerCase() %>" data-house="<%= (user.house || '').toLowerCase() %>" data-activity="<%= (user.activity || '').toLowerCase() %>" data-promotion-ready="<%= user.isPromotionReady ? '1' : '' %>" data-inactive-risk="<%= user.isInactiveRisk ? '1' : '' %>" data-search="<%= [user.displayName, user.discordUser, user.login.discordId].join(' ').toLowerCase() %>">
+                            <tr class="roster-user-row<%= user.suspended ? ' suspended-row' : '' %>" data-rank="<%= (user.accountType || '').toLowerCase() %>" data-house="<%= housePointsArchived ? '' : (user.house || '').toLowerCase() %>" data-activity="<%= (user.activity || '').toLowerCase() %>" data-promotion-ready="<%= user.isPromotionReady ? '1' : '' %>" data-inactive-risk="<%= user.isInactiveRisk ? '1' : '' %>" data-search="<%= [user.displayName, user.discordUser, user.login.discordId].join(' ').toLowerCase() %>">
                                 <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender' || userType === 'Dreamy Defender' || userIsDeveloper) { %>
                                 <td><input type="checkbox" name="attendees" value="<%= user.login.discordId %>" <%= user.attendedThisWeek ? 'checked' : '' %>></td>
                                 <% } %>
@@ -234,8 +239,8 @@
                                             data-account-type="<%= user.accountType || '' %>"
                                             data-hire-date="<%= user.hireDate || '' %>"
                                             data-last-promotion="<%= user.lastPromotion || '' %>"
-                                            data-house="<%= user.house || '' %>"
-                                            data-house-points="<%= user.housePoints || '' %>"
+                                            data-house="<%= housePointsArchived ? '' : (user.house || '') %>"
+                                            data-house-points="<%= housePointsArchived ? '' : (user.housePoints || '') %>"
                                             data-shift="<%= user.shift || '' %>"
                                             data-activity="<%= user.activity || '' %>"
                                             data-weeks-activity="<%= user.weeksActivity || '' %>"
@@ -266,8 +271,10 @@
                                 </td>
                                 
                                 <td class="shift-cell shift-<%= (user.shift || '').toLowerCase().replace(/[^a-z0-9]+/g, '-') %>" style="background-color: <%= shiftColorMap[user.shift] || '' %>"><%= user.shift %></td>
+                                <% if (!housePointsArchived) { %>
                                 <td class="house-cell house-<%= (user.house || '').toLowerCase().replace(/[^a-z0-9]+/g, '-') %>" style="background-color: <%= houseColorMap[user.house] || '' %>"><%= user.house %></td>
                                 <td><%= user.housePoints %></td>
+                                <% } %>
                                 <td class="activity-cell activity-<%= (user.activity || '').toLowerCase().replace(/[^a-z0-9]+/g, '-') %>" style="background-color: <%= activityColorMap[user.activity] || '' %>"><%= user.activity %></td>
                                 <td><%= user.weeksActivity %></td>
                                 <% if (userType === 'Mr. Sandman' || userType === 'Realm God' || userType === 'Drowsy Defender' || userType === 'Dreamy Defender' || userIsDeveloper) { %>
@@ -293,8 +300,8 @@
                                         data-account-type="<%= user.accountType || '' %>"
                                         data-hire-date="<%= user.hireDate || '' %>"
                                         data-last-promotion="<%= user.lastPromotion || '' %>"
-                                        data-house="<%= user.house || '' %>"
-                                        data-house-points="<%= user.housePoints || '' %>"
+                                        data-house="<%= housePointsArchived ? '' : (user.house || '') %>"
+                                        data-house-points="<%= housePointsArchived ? '' : (user.housePoints || '') %>"
                                         data-shift="<%= user.shift || '' %>"
                                         data-activity="<%= user.activity || '' %>"
                                         data-weeks-activity="<%= user.weeksActivity || '' %>"
@@ -342,7 +349,7 @@
                             <th>Name</th>
                             <th>Discord User</th>
                             <th>Discord ID</th>
-                            <th>House</th>
+                            <% if (!housePointsArchived) { %><th>House</th><% } %>
                             <th>Shift</th>
                             <th>Hire Date</th>
                             <th>Notes</th>
@@ -351,13 +358,13 @@
                     </thead>
                     <tbody>
                         <% if (!hosts || hosts.length === 0) { %>
-                        <tr><td colspan="8">No hosts added yet.</td></tr>
+                        <tr><td colspan="<%= (canManageHosts ? 8 : 7) - (housePointsArchived ? 1 : 0) %>">No hosts added yet.</td></tr>
                         <% } else { hosts.forEach(function(host) { %>
                         <tr>
                             <td><%= host.displayName %></td>
                             <td><%= host.discordUser %></td>
                             <td><%= host.discordId %></td>
-                            <td><%= host.house %></td>
+                            <% if (!housePointsArchived) { %><td><%= host.house %></td><% } %>
                             <td><%= host.shift %></td>
                             <td><%= host.hireDate %></td>
                             <td><%= host.notes %></td>
@@ -393,6 +400,7 @@
                     <label for="hostHireDate">Hire Date:</label>
                     <input type="date" id="hostHireDate" name="hireDate">
                     <br>
+                    <% if (!housePointsArchived) { %>
                     <label for="hostHouse"><b>House</b></label>
                     <select name="house" id="hostHouse">
                         <option value=""></option>
@@ -401,6 +409,7 @@
                         <% }); %>
                     </select>
                     <br>
+                    <% } %>
                     <label for="hostShift"><b>Shift</b></label>
                     <select name="shift" id="hostShift">
                         <option value=""></option>
@@ -453,6 +462,7 @@
                     <label for="password">Password:</label>
                     <input type="password" id="password" name="password" required>
                     <hr>
+                    <% if (!housePointsArchived) { %>
                     <label for="house"><b>House</b></label>
                     <select name="house" id="house">
                         <% settings.houses.forEach(function(house) { %>
@@ -460,6 +470,7 @@
                         <% }); %>
                     </select>
                     <br>
+                    <% } %>
                     <label for="shift"><b>Shift</b></label>
                     <select name="shift" id="shift">
                         <% settings.shifts.forEach(function(shift) { %>
@@ -500,6 +511,7 @@
                         <span>Discord ID</span>
                         <strong id="viewDiscordId"></strong>
                     </div>
+                    <% if (!housePointsArchived) { %>
                     <div class="view-user-detail">
                         <span>House</span>
                         <strong id="viewHouse"></strong>
@@ -508,6 +520,7 @@
                         <span>House Points</span>
                         <strong id="viewHousePoints"></strong>
                     </div>
+                    <% } %>
                     <div class="view-user-detail">
                         <span>Shift</span>
                         <strong id="viewShift"></strong>
@@ -671,6 +684,7 @@
                     </label>
                     <hr>
 
+                    <% if (!housePointsArchived) { %>
                     <label for="editHouse"><b>House</b></label>
                     <select name="house" id="editHouse">
                         <% settings.houses.forEach(function(house) { %>
@@ -682,6 +696,7 @@
                     <label for="editHousePoints">House Points:</label>
                     <input type="number" id="editHousePoints" name="housePoints" required>
                     <br>
+                    <% } %>
 
                     <label for="editActivity">Activity:</label>
                     <select name="activity" id="editActivity">

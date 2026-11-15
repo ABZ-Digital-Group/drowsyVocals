@@ -623,6 +623,11 @@ app.use(async (req, res, next) => {
 const CHANGELOG_ENTRIES = [
     {
         date: '2026-11-15',
+        title: 'Archived House Points hidden from rosters',
+        changes: ['When House Points is archived, both roster layouts and the roster API omit house assignments and points while preserving existing values for future restoration.']
+    },
+    {
+        date: '2026-11-15',
         title: 'Pages can be archived from Settings',
         changes: ['Gods and Developers can hide selected pages from regular users and restore them later without deleting their data.']
     },
@@ -2838,9 +2843,11 @@ app.post('/update-user', requireDatabase, async (req, res) => {
                 accountType: cleanAccountType,
                 hireDate: cleanHireDate || existingUser.hireDate,
                 lastPromotion: nextLastPromotion,
-                house: (house || '').toString(),
+                house: house === undefined ? (existingUser.house || '') : (house || '').toString(),
                 shift: (shift || '').toString(),
-                housePoints: Number(housePoints) || 0,
+                housePoints: housePoints === undefined
+                    ? (Number(existingUser.housePoints) || 0)
+                    : (Number(housePoints) || 0),
                 activity: (activity || 'Active').toString(),
                 weeksActivity: Number(weeksActivity) || 0,
                 onboardingComplete: Boolean(onboardingComplete),
@@ -11156,6 +11163,8 @@ app.get('/api/v1/dashboard', apiRequireAuth, async (req, res) => {
 
 app.get('/api/v1/roster', apiRequireAuth, async (req, res) => {
     try {
+        const housePointsArchived = Array.isArray(res.locals.archivedPages)
+            && res.locals.archivedPages.includes('house-points');
         const users = await db.collection('users').find({ suspended: { $ne: true } }).toArray();
         const members = users.map(u => ({
             discordId: u.login?.discordId || 'Unknown',
@@ -11164,8 +11173,10 @@ app.get('/api/v1/roster', apiRequireAuth, async (req, res) => {
             accountType: u.accountType || 'Tired Esquire',
             department: u.department || 'General',
             shift: u.shift || 'EU',
-            house: u.house || 'Stubo United',
-            housePoints: u.housePoints || 0,
+            ...(housePointsArchived ? {} : {
+                house: u.house || 'Stubo United',
+                housePoints: u.housePoints || 0
+            }),
             activity: u.activity || u.status || 'Active',
             hireDate: u.hireDate || '2024-01-01',
             timeInService: u.timeInService || 100,

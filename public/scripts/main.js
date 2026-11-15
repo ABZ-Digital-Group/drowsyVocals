@@ -184,7 +184,7 @@ if (navMenuToggle && primaryNavigation) {
 }
 
 const rosterFilters = ['rosterSearch', 'rosterRankFilter', 'rosterHouseFilter', 'rosterActivityFilter', 'rosterAlertFilter'].map((id) => document.getElementById(id));
-if (rosterFilters.slice(0, 4).every(Boolean)) {
+if (rosterFilters[0] && rosterFilters[1] && rosterFilters[3]) {
   const applyRosterFilters = () => {
     const search = (document.getElementById('rosterSearch')?.value || '').toLowerCase().trim();
     const rank = (document.getElementById('rosterRankFilter')?.value || '').toLowerCase().trim();
@@ -604,8 +604,8 @@ if (editUserPopup && closeEditUserPopup) {
       editAccountType.value = accountType || "Tired Esquire";
       editHireDate.value = hireDate || "";
       editLastPromotion.value = lastPromotion || hireDate || "";
-      editHouse.value = house || "Stubo United";
-      editHousePoints.value = housePoints || 0;
+      if (editHouse) editHouse.value = house || "Stubo United";
+      if (editHousePoints) editHousePoints.value = housePoints || 0;
       editActivity.value = activity || "Active";
       editWeeksActivity.value = weeksActivity || 0;
       editShift.value = shift || "NA";
@@ -720,8 +720,8 @@ if (viewUserPopup && closeViewUserPopup) {
       viewDiscordUser.textContent = discordUser || "";
       viewDiscordId.textContent = discordId || "";
       viewAccountType.textContent = accountType || "";
-      viewHouse.textContent = house || "";
-      viewHousePoints.textContent = housePoints || "0";
+      if (viewHouse) viewHouse.textContent = house || "";
+      if (viewHousePoints) viewHousePoints.textContent = housePoints || "0";
       viewShift.textContent = shift || "";
       viewActivity.textContent = activity || "";
       viewWeeksActivity.textContent = weeksActivity || "0";
