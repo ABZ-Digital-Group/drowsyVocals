@@ -26,6 +26,7 @@ const {
     shiftDateKey,
     splitActivityAcrossDays
 } = require('./services/staffActivity');
+const { getAllowedInviteData } = require('./services/inviteWhitelist');
 
 const app = express();
 
@@ -723,6 +724,11 @@ const CHANGELOG_ENTRIES = [
         date: '2026-10-24',
         title: 'Bulk password reset management added',
         changes: ['Authorized management users can select staff accounts from Settings and require password changes at their next sign-in without exposing or generating passwords in the portal.']
+    },
+    {
+        date: '2026-11-15',
+        title: 'Invite whitelist removals now persist',
+        changes: ['Invite whitelist updates now survive bot restarts, and an empty live whitelist no longer falls back to stale entries.']
     },
     {
         date: '2026-10-24',
@@ -4778,11 +4784,7 @@ app.get('/bot', requireDatabase, async (req, res) => {
             rotationIntervalMs: null
         });
         const storedAllowedInviteIds = readBotJson(path.join(BOT_DATA_DIR, 'allowed-invite-users.json'), []);
-        const rawAllowedInviteData = (botLiveState.allowedInviteUsers && botLiveState.allowedInviteUsers.length > 0)
-            ? botLiveState.allowedInviteUsers
-            : (botLiveState.allowedInviteUserIds && botLiveState.allowedInviteUserIds.length > 0
-                ? botLiveState.allowedInviteUserIds
-                : storedAllowedInviteIds);
+        const rawAllowedInviteData = getAllowedInviteData(botLiveState, storedAllowedInviteIds);
         const inviteItems = Array.isArray(rawAllowedInviteData)
             ? rawAllowedInviteData
             : (rawAllowedInviteData?.users || []);
